@@ -4,12 +4,30 @@
 
 // Patterns to redact (replaced with placeholder)
 const REDACT_PATTERNS = [
-  // API keys & tokens
+  // API keys & tokens (generic)
   /Bearer\s+[A-Za-z0-9\-._~+\/]+=*/g,
   /sk-[A-Za-z0-9]{20,}/g,
   /token[=:]\s*["']?[A-Za-z0-9\-._~+\/]{16,}["']?/gi,
   /api[_-]?key[=:]\s*["']?[A-Za-z0-9\-._~+\/]{16,}["']?/gi,
   /secret[=:]\s*["']?[A-Za-z0-9\-._~+\/]{16,}["']?/gi,
+  /password[=:]\s*["']?[^\s"',;)}\]]{6,}["']?/gi,
+  // GitHub tokens (ghp_, gho_, ghu_, ghs_, github_pat_)
+  /ghp_[A-Za-z0-9]{36,}/g,
+  /gho_[A-Za-z0-9]{36,}/g,
+  /ghu_[A-Za-z0-9]{36,}/g,
+  /ghs_[A-Za-z0-9]{36,}/g,
+  /github_pat_[A-Za-z0-9_]{22,}/g,
+  // AWS access keys
+  /AKIA[0-9A-Z]{16}/g,
+  // OpenAI / Anthropic tokens
+  /sk-proj-[A-Za-z0-9\-_]{20,}/g,
+  /sk-ant-[A-Za-z0-9\-_]{20,}/g,
+  // npm tokens
+  /npm_[A-Za-z0-9]{36,}/g,
+  // Private keys
+  /-----BEGIN\s+(?:RSA\s+|EC\s+|DSA\s+|OPENSSH\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+|EC\s+|DSA\s+|OPENSSH\s+)?PRIVATE\s+KEY-----/g,
+  // Basic auth in URLs (redact only credentials, keep :// and @)
+  /(?<=:\/\/)[^@\s]+:[^@\s]+(?=@)/g,
   // Local filesystem paths
   /\/home\/[^\s"',;)}\]]+/g,
   /\/Users\/[^\s"',;)}\]]+/g,

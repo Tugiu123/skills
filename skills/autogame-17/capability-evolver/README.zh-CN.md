@@ -1,12 +1,18 @@
 # 🧬 Capability Evolver（能力进化引擎）
 
-[English Docs](README.md)
+**[evomap.ai](https://evomap.ai)** | [Wiki 文档](https://evomap.ai/wiki) | [English Docs](README.md)
+
+---
 
 **“进化不是可选项，而是生存法则。”**
 
 **Capability Evolver** 是一个元技能（Meta-Skill），赋予 OpenClaw 智能体自我反省的能力。它可以扫描自身的运行日志，识别效率低下或报错的地方，并自主编写代码补丁来优化自身性能。
 
 本仓库内置 **基因组进化协议（Genome Evolution Protocol, GEP）**，用于将每次进化固化为可复用资产，降低后续同类问题的推理成本。
+
+## EvoMap -- 进化网络
+
+Capability Evolver 是 **[EvoMap](https://evomap.ai)** 的核心引擎。EvoMap 是一个 AI 智能体通过验证协作实现进化的网络。访问 [evomap.ai](https://evomap.ai) 了解完整平台 -- 实时智能体图谱、进化排行榜，以及将孤立的提示词调优转化为共享可审计智能的生态系统。
 
 ## 核心特性
 
@@ -134,77 +140,7 @@ MAJOR.MINOR.PATCH
 
 ## 更新日志
 
-### v1.10.3
-- **可配置约束口径 (Configurable Blast Radius Policy)**：`computeBlastRadius()` 将运行产物（日志、memory、capsule、events）与功能代码分离。仅代码/配置文件计入 `max_files` 约束。策略可通过 `openclaw.json` 的 `evolver.constraints.countedFilePolicy` 配置。
-- **结构化状态产出 (Structured Status Output)**：`solidify()` 生成结构化状态载荷（`result`、`en`、`zh`、`meta`），并写入周期状态文件，为下游报告提供丰富的进化上下文（intent、gene、signals、blast radius、validation 结果）。
-- **Solidify CLI 可观测性**：`index.js solidify` 执行后输出 `[SOLIDIFY_STATUS]` 和 `[SOLIDIFY_STATUS_FILE]`，便于 wrapper 集成。
-
-### v1.10.1
-- **创新冷却 (Innovation Cooldown)**：在 `analyzeRecentHistory()` 中追踪近期创新目标，并在 GEP 提示词中注入 `Context [Innovation Cooldown]` 段，防止 Hand Agent 在连续周期中反复对同一技能/模块进行创新。
-- **信号增强**：`analyzeRecentHistory()` 新增 `recentInnovationTargets` 返回值（目标路径到最近 10 轮出现次数的映射）。
-
-### v1.10.0
-- **运维模块** (`src/ops/`)：从环境相关的 wrapper 中提取 6 个可移植模块：
-  - `lifecycle.js` -- 进程启停/重启/状态/健康检查
-  - `skills_monitor.js` -- 技能健康审计 + 自动修复（npm install、SKILL.md 生成）
-  - `cleanup.js` -- GEP 产物磁盘清理
-  - `trigger.js` -- 唤醒信号机制
-  - `commentary.js` -- 人格化周期评论
-  - `self_repair.js` -- Git 紧急修复（终止 rebase、清理过期锁文件）
-- **可配置进化策略** (`EVOLVE_STRATEGY` 环境变量)：
-  - 4 个预设：`balanced`（默认 50/30/20）、`innovate`（80/15/5）、`harden`（20/40/40）、`repair-only`（0/20/80）
-  - 策略感知的信号过滤，各预设有独立的修复循环阈值
-  - 向后兼容：`FORCE_INNOVATION=true` 等价于 `innovate`
-- **信号去重**：当最近 8 轮中修复占比 >= 50% 时强制创新（阈值随策略变化）
-- **工具使用分析**：检测日志中的高频工具使用模式（由 Hand Agent 自动进化产出）
-- **源码保护**（GEP Section IX）：核心 .js 文件列为不可修改，防止 Hand Agent 覆写
-- **禁止创新区**（GEP Section X）：防止创建与已有基础设施重复的技能（进程管理、健康监控、定时任务等）
-- **已知问题清单**（GEP Section VII.6）：告知 LLM 跳过已修复的错误
-- **鲁棒性提升**：MemoryGraph 故障时 `process.exit(2)` 改为 `throw Error()`（循环不再因瞬态错误崩溃）
-- **Gene 限制放宽**：repair max_files 12->20，innovate max_files 8->25
-- `paths.js` 新增 `getWorkspaceRoot()`、`getSkillsDir()`、`getLogsDir()`
-
-### v1.9.2
-- 中间版本，包含策略预设和源码保护机制。
-
-### v1.9.1
-- 信号去重（修复比率检查）
-- 单例锁（PID 锁文件）
-- GEP 提示词中注入环境指纹
-
-### v1.4.4
-- 增加 validation 命令安全检查：Gene validation 命令执行前通过前缀白名单（node/npm/npx）和 shell 操作符拦截进行门控。
-- 增加 A2A Gene 提升审查：外部 Gene 的 validation 命令不安全时拒绝提升。
-- 增加安全模型文档。
-
-### v1.4.3
-- v1.4.3 发布准备。
-
-### v1.4.2
-- 增加 loop 门控：上一轮未完成 solidify 时，不启动新一轮（避免 wrapper 造成超快空转）。
-- 修复固化状态写入覆盖问题：写入 last_run 时合并保留 last_solidify。
-
-### v1.4.1
-- 增加默认执行桥接：生成 GEP prompt 后输出 `sessions_spawn(...)`，自动派发执行型子智能体。
-- 将 prompt 作为交接工件写入 `memory/`，便于稳定交接与审计回放。
-
-### v1.4.0
-- 增加显式 Mutation Protocol（repair/optimize/innovate），每轮进化必须生成 Mutation 对象并通过安全约束门控。
-- 增加 Personality Evolution：维护 PersonalityState，小幅 PersonalityMutation（单次不超过 ±0.2，最多 2 个参数），并基于成功率做自然选择收敛。
-- EvolutionEvent 增加 `mutation_id` 与 `personality_state` 字段；Memory Graph 同步记录 Mutation 与 Personality 的因果链路。
-- 新增 `scripts/gep_personality_report.js`，用于统计不同人格配置下的成功率差异与收敛趋势。
-
-### v1.3.1
-- v1.3.1 发布准备。
-
-### v1.3.0
-- v1.3.0 发布准备。
-
-### v1.2.0
-- Memory Graph v2 与 A2A 进化资产交换集成。
-
-### v1.1.0
-- public 构建/发布流水线、提示词预算控制与结构化 GEP 资产持久化。
+完整的版本发布记录请查看 [GitHub Releases](https://github.com/autogame-17/evolver/releases)。
 
 ## 安全模型
 
@@ -256,8 +192,10 @@ MAJOR.MINOR.PATCH
 
 - [onthebigtree](https://github.com/onthebigtree) -- 启发了 evomap 进化网络的诞生。
 - [lichunr](https://github.com/lichunr) -- 提供了数千美金 Token 供算力网络免费使用。
-- [shinjiyu](https://github.com/shinjiyu) -- 为 evolver 和 evomap 提交了大量 bug report。
+- [shinjiyu](https://github.com/shinjiyu) -- 为 evolver 和 evomap 提交了大量 bug report，并贡献了多语言信号提取与 snippet 标签功能 (PR #112)。
+- [voidborne-d](https://github.com/voidborne-d) -- 为预广播脱敏层新增 11 种凭证检测模式，强化安全防护 (PR #107)。
 - [upbit](https://github.com/upbit) -- 在 evolver 和 evomap 技术的普及中起到了至关重要的作用。
+- [池建强](https://mowen.cn) -- 在传播和用户体验改进过程中做出了巨大贡献。
 - 其余贡献者扩充中。
 
 ## 许可证

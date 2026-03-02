@@ -2,7 +2,7 @@ const evolve = require('./src/evolve');
 const { solidify } = require('./src/gep/solidify');
 const path = require('path');
 // Hardened Env Loading: Ensure .env is loaded before anything else
-try { require('dotenv').config({ path: path.resolve(__dirname, '../../.env') }); } catch (e) { console.warn('[Evolver] Warning: dotenv not found or failed to load .env'); }
+try { require('dotenv').config({ path: path.resolve(__dirname, './.env') }); } catch (e) { console.warn('[Evolver] Warning: dotenv not found or failed to load .env'); }
 const fs = require('fs');
 const { spawn } = require('child_process');
 
@@ -104,10 +104,19 @@ async function main() {
         const maxRssMb = parseMs(process.env.EVOLVER_MAX_RSS_MB, 500) || 500;
         const suicideEnabled = String(process.env.EVOLVER_SUICIDE || '').toLowerCase() !== 'false';
 
-        let currentSleepMs = Math.min(maxSleepMs, Math.max(minSleepMs, minSleepMs));
+        // Start hub heartbeat (keeps node alive independently of evolution cycles)
+        try {
+          const { startHeartbeat } = require('./src/gep/a2aProtocol');
+          startHeartbeat();
+        } catch (e) {
+          console.warn('[Heartbeat] Failed to start: ' + (e.message || e));
+        }
+
+        let currentSleepMs = minSleepMs;
         let cycleCount = 0;
 
         while (true) {
+          try {
           cycleCount += 1;
 
           // Ralph-loop gating: do not run a new cycle while previous run is pending solidify.
@@ -140,22 +149,19 @@ async function main() {
             const memMb = process.memoryUsage().rss / 1024 / 1024;
             if (cycleCount >= maxCyclesPerProcess || memMb > maxRssMb) {
               console.log(`[Daemon] Restarting self (cycles=${cycleCount}, rssMb=${memMb.toFixed(0)})`);
-              releaseLock(); // Release before spawning to allow child to acquire
-              const child = spawn(process.execPath, [__filename, ...args], {
+              releaseLock();
+              const spawnOpts = {
                 detached: true,
                 stdio: 'ignore',
                 env: process.env,
-              });
+                windowsHide: true,
+              };
+              const child = spawn(process.execPath, [__filename, ...args], spawnOpts);
               child.unref();
               process.exit(0);
             }
           }
 
-          // Saturation-aware sleep: when the evolver detects it has exhausted innovation
-          // space (consecutive empty cycles), dramatically increase sleep to avoid wasting
-          // resources on no-op cycles. This is the "graceful degradation" mechanism that
-          // Echo-MingXuan lacked -- it kept cycling at full speed after saturation until
-          // load spiked to 1.30 and it crashed.
           let saturationMultiplier = 1;
           try {
             const st1 = readJsonSafe(solidifyStatePath);
@@ -172,6 +178,11 @@ async function main() {
           // Jitter to avoid lockstep restarts.
           const jitter = Math.floor(Math.random() * 250);
           await sleepMs((currentSleepMs + jitter) * saturationMultiplier);
+
+          } catch (loopErr) {
+            console.error('[Daemon] Unexpected loop error (recovering): ' + (loopErr && loopErr.message ? loopErr.message : String(loopErr)));
+            await sleepMs(Math.max(minSleepMs, 10000));
+          }
         }
     } else {
         // Normal Single Run
@@ -209,18 +220,63 @@ async function main() {
       if (res && res.gene) console.log(JSON.stringify(res.gene, null, 2));
       if (res && res.event) console.log(JSON.stringify(res.event, null, 2));
       if (res && res.capsule) console.log(JSON.stringify(res.capsule, null, 2));
+
+      if (res && res.ok && !dryRun) {
+        try {
+          const { shouldDistill, prepareDistillation } = require('./src/gep/skillDistiller');
+          if (shouldDistill()) {
+            const dr = prepareDistillation();
+            if (dr && dr.ok && dr.promptPath) {
+              console.log('\n[DISTILL_REQUEST]');
+              console.log('Distillation prompt ready. Read the prompt file, process it with your LLM,');
+              console.log('save the LLM response to a file, then run:');
+              console.log('  node index.js distill --response-file=<path_to_llm_response>');
+              console.log('Prompt file: ' + dr.promptPath);
+              console.log('[/DISTILL_REQUEST]');
+            }
+          }
+        } catch (e) {
+          console.warn('[Distiller] Init failed (non-fatal): ' + (e.message || e));
+        }
+      }
+
       process.exit(res && res.ok ? 0 : 2);
     } catch (error) {
       console.error('[SOLIDIFY] Error:', error);
       process.exit(2);
     }
+  } else if (command === 'distill') {
+    const responseFileFlag = args.find(a => typeof a === 'string' && a.startsWith('--response-file='));
+    if (!responseFileFlag) {
+      console.error('Usage: node index.js distill --response-file=<path>');
+      process.exit(1);
+    }
+    const responseFilePath = responseFileFlag.slice('--response-file='.length);
+    try {
+      const responseText = fs.readFileSync(responseFilePath, 'utf8');
+      const { completeDistillation } = require('./src/gep/skillDistiller');
+      const result = completeDistillation(responseText);
+      if (result && result.ok) {
+        console.log('[Distiller] Gene produced: ' + result.gene.id);
+        console.log(JSON.stringify(result.gene, null, 2));
+      } else {
+        console.warn('[Distiller] Distillation did not produce a gene: ' + (result && result.reason || 'unknown'));
+      }
+      process.exit(result && result.ok ? 0 : 2);
+    } catch (error) {
+      console.error('[DISTILL] Error:', error);
+      process.exit(2);
+    }
+
   } else {
-    console.log(`Usage: node index.js [run|/evolve|solidify] [--loop]
+    console.log(`Usage: node index.js [run|/evolve|solidify|distill] [--loop]
   - solidify flags:
     - --dry-run
     - --no-rollback
     - --intent=repair|optimize|innovate
-    - --summary=...`);
+    - --summary=...
+  - distill flags:
+    - --response-file=<path>  (LLM response file for skill distillation)`);
   }
 }
 

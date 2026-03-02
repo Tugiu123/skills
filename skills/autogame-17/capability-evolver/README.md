@@ -2,7 +2,9 @@
 
 ![Capability Evolver Cover](assets/cover.png)
 
-[Chinese Docs](README.zh-CN.md)
+**[evomap.ai](https://evomap.ai)** | [Documentation](https://evomap.ai/wiki) | [Chinese Docs](README.zh-CN.md)
+
+---
 
 **"Evolution is not optional. Adapt or die."**
 
@@ -10,6 +12,10 @@
 - **What it is**: A protocol-constrained self-evolution engine for AI agents.
 - **Pain it solves**: Turns ad hoc prompt tweaks into auditable, reusable evolution assets.
 - **Use in 30 seconds**: `node index.js` to generate a GEP-guided evolution prompt.
+
+## EvoMap -- The Evolution Network
+
+Capability Evolver is the core engine behind **[EvoMap](https://evomap.ai)**, a network where AI agents evolve through validated collaboration. Visit [evomap.ai](https://evomap.ai) to explore the full platform -- live agent maps, evolution leaderboards, and the ecosystem that turns isolated prompt tweaks into shared, auditable intelligence.
 
 Keywords: protocol-constrained evolution, audit trail, genes and capsules, prompt governance.
 
@@ -73,7 +79,6 @@ Use review mode and validation steps. Treat it as a safety-focused evolution too
 ## Roadmap
 
 - Add a one-minute demo workflow
-- Add a public changelog
 - Add a comparison table vs alternatives
 
 ## GEP Protocol (Auditable Evolution)
@@ -156,101 +161,7 @@ MAJOR.MINOR.PATCH
 
 ## Changelog
 
-### v1.10.3
-- **Configurable Blast Radius Policy**: `computeBlastRadius()` now separates runtime artifacts (logs, memory, capsules, events) from functional code. Only code/config files count toward `max_files` constraints. Policy is configurable via `openclaw.json` at `evolver.constraints.countedFilePolicy`.
-- **Structured Status Output**: `solidify()` now generates a structured status payload (`result`, `en`, `zh`, `meta`) and writes it to a cycle status file, providing downstream reporters with rich evolution context (intent, gene, signals, blast radius, validation results).
-- **Solidify CLI Observability**: `index.js solidify` prints `[SOLIDIFY_STATUS]` and `[SOLIDIFY_STATUS_FILE]` lines for wrapper integration.
-
-### v1.10.1
-- **Innovation Cooldown**: Track recent innovation targets in `analyzeRecentHistory()` and inject `Context [Innovation Cooldown]` into GEP prompt, preventing the Hand Agent from repeatedly innovating on the same skill/module across consecutive cycles.
-- **Signal Enhancement**: `analyzeRecentHistory()` now returns `recentInnovationTargets` (map of target path to count in last 10 events).
-
-### v1.10.0
-- **Operations Module** (`src/ops/`): 6 portable modules extracted from environment-specific wrapper:
-  - `lifecycle.js` -- process start/stop/restart/status/health check
-  - `skills_monitor.js` -- skill health audit with auto-heal (npm install, SKILL.md stub)
-  - `cleanup.js` -- GEP artifact disk cleanup
-  - `trigger.js` -- wake signal mechanism
-  - `commentary.js` -- persona-based cycle commentary
-  - `self_repair.js` -- git emergency repair (abort rebase, remove stale locks)
-- **Configurable Evolution Strategy** (`EVOLVE_STRATEGY` env var):
-  - 4 presets: `balanced` (default 50/30/20), `innovate` (80/15/5), `harden` (20/40/40), `repair-only` (0/20/80)
-  - Strategy-aware signal filtering with per-preset repair loop thresholds
-  - Backward compatible: `FORCE_INNOVATION=true` maps to `innovate`
-- **Signal De-duplication**: repair ratio check forces innovation when >= 50% of last 8 cycles are repairs (threshold varies by strategy).
-- **Tool Usage Analytics**: detects high-frequency tool usage patterns in logs (auto-evolved by Hand Agent).
-- **Protected Source Files** (GEP Section IX): evolver core .js files listed as immutable to prevent Hand Agent overwrites.
-- **Forbidden Innovation Zones** (GEP Section X): prevents creation of skills that duplicate existing infrastructure (process management, health monitoring, scheduling).
-- **Known Issues List** (GEP Section VII.6): tells the LLM to skip already-fixed errors.
-- **Resilience**: replaced `process.exit(2)` with `throw Error()` for MemoryGraph failures (loop survives transient errors).
-- **Gene Limits Relaxed**: repair max_files 12->20, innovate max_files 8->25.
-- `paths.js`: added `getWorkspaceRoot()`, `getSkillsDir()`, `getLogsDir()`.
-
-### v1.9.2
-- Intermediate release with strategy presets and protected files.
-
-### v1.9.1
-- Signal de-duplication (repair ratio check).
-- Singleton Guard (PID lock file).
-- Environment fingerprint in GEP prompt.
-
-### v1.6.0
-- Add innovation/opportunity signal detection: user_feature_request, user_improvement_suggestion, perf_bottleneck, capability_gap, stable_success_plateau, external_opportunity.
-- Add innovate Gene (gene_gep_innovate_from_opportunity) for proactive feature development.
-- Auto-innovate mutation when opportunity signals are present (no longer requires --drift flag).
-- Personality evolution now responds to opportunity signals by increasing creativity.
-- Safety: repair still takes priority over innovate when errors are present.
-
-### v1.5.1
-- Add containerized vibe testing framework (Docker + node:22-bookworm, OpenClaw-compatible environment).
-- 7 end-to-end tests: module load, dry-run solidify, schema compliance, A2A round-trip, full evolve+solidify, loop gating, env fingerprint.
-- Add internal daemon loop with suicide guard for memory leak protection.
-- One-command test: `npm run test:vibe`.
-
-### v1.5.0
-- Add content-addressable asset IDs (SHA-256 canonical hashing) for deduplication, tamper detection, and cross-node consistency.
-- Add environment fingerprint capture (node version, platform, arch, evolver version) embedded in EvolutionEvents, Capsules, and ValidationReports.
-- Add standardized ValidationReport type with machine-readable schema, full command results, and env fingerprint.
-- Add GEP A2A protocol layer with 6 message types (hello/publish/fetch/report/decision/revoke) and pluggable transport interface.
-- Add FileTransport as default A2A transport (JSONL outbox/inbox).
-- Add asset_id integrity verification on A2A ingest; reject tampered assets.
-- Add schema_version field to all GEP asset types (Gene, Capsule, EvolutionEvent, ValidationReport).
-- Fix: dry-run mode no longer triggers rollback.
-- Merge backport/online-fixes: self-contained crash recovery with recover_loop.js.
-
-### v1.4.4
-- Add validation command safety check: Gene validation commands are gated by prefix whitelist (node/npm/npx) and shell operator blocking.
-- Add validation audit on A2A Gene promotion: external Genes with unsafe validation commands are rejected before promotion.
-- Add Security Model documentation to README.
-
-### v1.4.3
-- Release preparation for v1.4.3.
-
-### v1.4.2
-- Add loop gating: do not start a new cycle until the previous run is solidified (prevents fast empty cycles).
-- Preserve `last_solidify` when writing solidify state (merge instead of overwrite).
-
-### v1.4.1
-- Add execute-by-default bridge: after generating the GEP prompt, emit `sessions_spawn(...)` to spawn an executor agent.
-- Write prompt artifacts to `memory/` for reliable handoff and auditing.
-
-### v1.4.0
-- Add explicit Mutation protocol (repair/optimize/innovate) and require Mutation per evolution run.
-- Add evolvable PersonalityState with small PersonalityMutation steps and natural selection statistics.
-- Extend EvolutionEvent with `mutation_id` and `personality_state`; record both into Memory Graph events.
-- Add `scripts/gep_personality_report.js` to observe personality success rates and convergence.
-
-### v1.3.1
-- Release preparation for v1.3.1.
-
-### v1.3.0
-- Release preparation for v1.3.0.
-
-### v1.2.0
-- Memory Graph v2 and A2A exchange protocol integration.
-
-### v1.1.0
-- Public build/publish pipeline, prompt budget enforcement, and structured GEP asset storage.
+See the full release history on [GitHub Releases](https://github.com/autogame-17/evolver/releases).
 
 ## Security Model
 
@@ -312,8 +223,11 @@ The script automatically detects if compatible local skills (like `skills/feishu
 
 - [onthebigtree](https://github.com/onthebigtree) -- Inspired the creation of evomap evolution network.
 - [lichunr](https://github.com/lichunr) -- Contributed thousands of dollars in tokens for our compute network to use for free.
-- [shinjiyu](https://github.com/shinjiyu) -- Submitted numerous bug reports for evolver and evomap.
+- [shinjiyu](https://github.com/shinjiyu) -- Submitted numerous bug reports and contributed multilingual signal extraction with snippet-carrying tags (PR #112).
+- [voidborne-d](https://github.com/voidborne-d) -- Hardened pre-broadcast sanitization with 11 new credential redaction patterns (PR #107); added 45 tests for strategy, validationReport, and envFingerprint (PR #139).
+- [blackdogcat](https://github.com/blackdogcat) -- Fixed missing dotenv dependency and implemented intelligent CPU load threshold auto-calculation (PR #144).
 - [upbit](https://github.com/upbit) -- Played a vital role in popularizing evolver and evomap technologies.
+- [Chi Jianqiang](https://mowen.cn) -- Made significant contributions to promotion and user experience improvements.
 - More contributors to be added.
 
 ## License

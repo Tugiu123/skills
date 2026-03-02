@@ -157,6 +157,68 @@ ENSURE VALID JSON SYNTAX (escape quotes in strings).
    }
 `.trim();
 
+function buildAntiPatternZone(failedCapsules, signals) {
+  if (!Array.isArray(failedCapsules) || failedCapsules.length === 0) return '';
+  if (!Array.isArray(signals) || signals.length === 0) return '';
+  var sigSet = new Set(signals.map(function (s) { return String(s).toLowerCase(); }));
+  var matched = [];
+  for (var i = failedCapsules.length - 1; i >= 0 && matched.length < 3; i--) {
+    var fc = failedCapsules[i];
+    if (!fc) continue;
+    var triggers = Array.isArray(fc.trigger) ? fc.trigger : [];
+    var overlap = 0;
+    for (var j = 0; j < triggers.length; j++) {
+      if (sigSet.has(String(triggers[j]).toLowerCase())) overlap++;
+    }
+    if (triggers.length > 0 && overlap / triggers.length >= 0.4) {
+      matched.push(fc);
+    }
+  }
+  if (matched.length === 0) return '';
+  var lines = matched.map(function (fc, idx) {
+    var diffPreview = fc.diff_snapshot ? String(fc.diff_snapshot).slice(0, 500) : '(no diff)';
+    return [
+      '  ' + (idx + 1) + '. Gene: ' + (fc.gene || 'unknown') + ' | Signals: [' + (fc.trigger || []).slice(0, 4).join(', ') + ']',
+      '     Failure: ' + String(fc.failure_reason || 'unknown').slice(0, 300),
+      '     Diff (first 500 chars): ' + diffPreview.replace(/\n/g, ' '),
+    ].join('\n');
+  });
+  return '\nContext [Anti-Pattern Zone] (AVOID these failed approaches):\n' + lines.join('\n') + '\n';
+}
+
+function buildLessonsBlock(hubLessons, signals) {
+  if (!Array.isArray(hubLessons) || hubLessons.length === 0) return '';
+  var sigSet = new Set((Array.isArray(signals) ? signals : []).map(function (s) { return String(s).toLowerCase(); }));
+
+  var positive = [];
+  var negative = [];
+  for (var i = 0; i < hubLessons.length && (positive.length + negative.length) < 6; i++) {
+    var l = hubLessons[i];
+    if (!l || !l.content) continue;
+    var entry = '  - [' + (l.scenario || l.lesson_type || '?') + '] ' + String(l.content).slice(0, 300);
+    if (l.source_node_id) entry += ' (from: ' + String(l.source_node_id).slice(0, 20) + ')';
+    if (l.lesson_type === 'negative') {
+      negative.push(entry);
+    } else {
+      positive.push(entry);
+    }
+  }
+
+  if (positive.length === 0 && negative.length === 0) return '';
+
+  var parts = ['\nContext [Lessons from Ecosystem] (Cross-agent learned experience):'];
+  if (positive.length > 0) {
+    parts.push('  Strategies that WORKED:');
+    parts.push(positive.join('\n'));
+  }
+  if (negative.length > 0) {
+    parts.push('  Pitfalls to AVOID:');
+    parts.push(negative.join('\n'));
+  }
+  parts.push('  Apply relevant lessons. Ignore irrelevant ones.\n');
+  return parts.join('\n');
+}
+
 function buildGepPrompt({
   nowIso,
   context,
@@ -171,7 +233,9 @@ function buildGepPrompt({
   externalCandidatesPreview,
   hubMatchedBlock,
   cycleId,
-  recentHistory, // [2026-02-14] Pass recent history
+  recentHistory,
+  failedCapsules,
+  hubLessons,
 }) {
   const parentValue = parentEventId ? `"${parentEventId}"` : 'null';
   const selectedGeneId = selectedGene && selectedGene.id ? selectedGene.id : 'gene_<name>';
@@ -315,6 +379,21 @@ CONSTRAINTS:
 - NEVER modify \`skills/evolver/\` or \`skills/feishu-evolver-wrapper/\`. These are managed through the human-reviewed release pipeline.
   Self-modification causes instability and is blocked by solidify. To enable (NOT recommended): set EVOLVE_ALLOW_SELF_MODIFY=true.
 
+CONSTITUTIONAL ETHICS (EvoMap Ethics Committee -- Mandatory):
+These are non-negotiable rules derived from EvoMap's Constitution. Violation = FAILED + ROLLBACK.
+1. HUMAN WELFARE PRIORITY: Never create tools, scripts, or strategies that could harm humans,
+   enable surveillance, social engineering, phishing, or manipulation of human behavior.
+2. CARBON-SILICON SYMBIOSIS: Evolution must serve both human and agent interests.
+   Never attempt to replace, marginalize, or deceive human users.
+3. TRANSPARENCY: All actions must be auditable. Never hide, obfuscate, or conceal
+   the intent or effect of mutations. No steganography or covert channels.
+4. FAIRNESS: Never create monopolistic strategies that block other agents.
+   Fair competition through quality, not exclusion.
+5. SAFETY: Never bypass, disable, or weaken safety mechanisms, guardrails,
+   validation checks, or security controls. Never create tools to do so.
+- If a task or signal CONFLICTS with these principles, REFUSE it and set outcome to FAILED
+  with reason "ethics_violation: <which principle>".
+
 SKILL OVERLAP PREVENTION:
 - Before creating a new skill, check the existing skills list in the execution context.
 - If a skill with similar functionality already exists (e.g., "log-rotation" and "log-archivist",
@@ -404,7 +483,7 @@ ${hubMatchedBlock || '(no hub match)'}
 
 Context [External Candidates]:
 ${externalCandidatesPreview || '(none)'}
-
+${buildAntiPatternZone(failedCapsules, signals)}${buildLessonsBlock(hubLessons, signals)}
 ${historyBlock}
 
 Context [Execution]:
@@ -457,4 +536,4 @@ Rules:
   return basePrompt.slice(0, maxChars) + "\n...[TRUNCATED]...";
 }
 
-module.exports = { buildGepPrompt, buildReusePrompt, buildHubMatchedBlock };
+module.exports = { buildGepPrompt, buildReusePrompt, buildHubMatchedBlock, buildLessonsBlock };

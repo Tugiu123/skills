@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { loadGenes, upsertGene, appendEventJsonl, appendCapsule, upsertCapsule, getLastEventId } = require('./assetStore');
+const { loadGenes, upsertGene, appendEventJsonl, appendCapsule, upsertCapsule, getLastEventId, appendFailedCapsule } = require('./assetStore');
 const { computeSignalKey, memoryGraphPath } = require('./memoryGraph');
 const { computeCapsuleSuccessStreak, isBlastRadiusSafe } = require('./a2a');
 const { getRepoRoot, getMemoryDir, getEvolutionDir, getWorkspaceRoot } = require('./paths');
@@ -60,7 +60,7 @@ function stableHash(input) {
 function runCmd(cmd, opts = {}) {
   const cwd = opts.cwd || getRepoRoot();
   const timeoutMs = Number.isFinite(Number(opts.timeoutMs)) ? Number(opts.timeoutMs) : 120000;
-  return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: timeoutMs });
+  return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: timeoutMs, windowsHide: true });
 }
 
 function tryRunCmd(cmd, opts = {}) {
@@ -262,7 +262,8 @@ function checkConstraints({ gene, blast, blastRadiusEstimate, repoRoot }) {
 
   if (!gene || gene.type !== 'Gene') return { ok: true, violations, warnings, blastSeverity };
   const constraints = gene.constraints || {};
-  const maxFiles = Math.max(Number(constraints.max_files) || 0, 20);
+  const DEFAULT_MAX_FILES = 20;
+  const maxFiles = Number(constraints.max_files) > 0 ? Number(constraints.max_files) : DEFAULT_MAX_FILES;
 
   // --- Blast radius severity classification ---
   blastSeverity = classifyBlastSeverity({ blast, maxFiles });
@@ -337,6 +338,30 @@ function checkConstraints({ gene, blast, blastRadiusEstimate, repoRoot }) {
         }
       } catch (e) { /* dir might not exist yet */ }
     });
+  }
+
+  // --- Ethics Committee: constitutional principle enforcement ---
+  var ethicsText = '';
+  if (gene.strategy) {
+    ethicsText += (Array.isArray(gene.strategy) ? gene.strategy.join(' ') : String(gene.strategy)) + ' ';
+  }
+  if (gene.description) ethicsText += String(gene.description) + ' ';
+  if (gene.summary) ethicsText += String(gene.summary) + ' ';
+
+  if (ethicsText.length > 0) {
+    var ethicsBlockPatterns = [
+      { re: /(?:bypass|disable|circumvent|remove)\s+(?:safety|guardrail|security|ethic|constraint|protection)/i, rule: 'safety', msg: 'ethics: strategy attempts to bypass safety mechanisms' },
+      { re: /(?:keylogger|screen\s*capture|webcam\s*hijack|mic(?:rophone)?\s*record)/i, rule: 'human_welfare', msg: 'ethics: covert monitoring tool in strategy' },
+      { re: /(?:social\s+engineering|phishing)\s+(?:attack|template|script)/i, rule: 'human_welfare', msg: 'ethics: social engineering content in strategy' },
+      { re: /(?:exploit|hack)\s+(?:user|human|people|victim)/i, rule: 'human_welfare', msg: 'ethics: human exploitation in strategy' },
+      { re: /(?:hide|conceal|obfuscat)\w*\s+(?:action|behavior|intent|log)/i, rule: 'transparency', msg: 'ethics: strategy conceals actions from audit trail' },
+    ];
+    for (var ei = 0; ei < ethicsBlockPatterns.length; ei++) {
+      if (ethicsBlockPatterns[ei].re.test(ethicsText)) {
+        violations.push(ethicsBlockPatterns[ei].msg);
+        console.error('[Solidify] Ethics violation: ' + ethicsBlockPatterns[ei].msg);
+      }
+    }
   }
 
   return { ok: violations.length === 0, violations, warnings, blastSeverity };
@@ -548,6 +573,7 @@ function isValidationCommandAllowed(cmd) {
   if (/`|\$\(/.test(c)) return false;
   const stripped = c.replace(/"[^"]*"/g, '').replace(/'[^']*'/g, '');
   if (/[;&|><]/.test(stripped)) return false;
+  if (/^node\s+(-e|--eval|--print|-p)\b/.test(c)) return false;
   return true;
 }
 
@@ -589,6 +615,47 @@ function runCanaryCheck(opts) {
     out: String(r.out || '').slice(0, 500),
     err: String(r.err || '').slice(0, 500),
   };
+}
+
+var DIFF_SNAPSHOT_MAX_CHARS = 8000;
+
+function captureDiffSnapshot(repoRoot) {
+  var parts = [];
+  var unstaged = tryRunCmd('git diff', { cwd: repoRoot, timeoutMs: 30000 });
+  if (unstaged.ok && unstaged.out) parts.push(String(unstaged.out));
+  var staged = tryRunCmd('git diff --cached', { cwd: repoRoot, timeoutMs: 30000 });
+  if (staged.ok && staged.out) parts.push(String(staged.out));
+  var combined = parts.join('\n');
+  if (combined.length > DIFF_SNAPSHOT_MAX_CHARS) {
+    combined = combined.slice(0, DIFF_SNAPSHOT_MAX_CHARS) + '\n... [TRUNCATED]';
+  }
+  return combined || '';
+}
+
+function buildFailureReason(constraintCheck, validation, protocolViolations, canary) {
+  var reasons = [];
+  if (constraintCheck && Array.isArray(constraintCheck.violations)) {
+    for (var i = 0; i < constraintCheck.violations.length; i++) {
+      reasons.push('constraint: ' + constraintCheck.violations[i]);
+    }
+  }
+  if (Array.isArray(protocolViolations)) {
+    for (var j = 0; j < protocolViolations.length; j++) {
+      reasons.push('protocol: ' + protocolViolations[j]);
+    }
+  }
+  if (validation && Array.isArray(validation.results)) {
+    for (var k = 0; k < validation.results.length; k++) {
+      var r = validation.results[k];
+      if (r && !r.ok) {
+        reasons.push('validation_failed: ' + String(r.cmd || '').slice(0, 120) + ' => ' + String(r.err || '').slice(0, 200));
+      }
+    }
+  }
+  if (canary && !canary.ok && !canary.skipped) {
+    reasons.push('canary_failed: ' + String(canary.err || '').slice(0, 200));
+  }
+  return reasons.join('; ').slice(0, 2000) || 'unknown';
 }
 
 function rollbackTracked(repoRoot) {
@@ -667,6 +734,77 @@ function inferCategoryFromSignals(signals) {
   if (list.includes('log_error')) return 'repair';
   if (list.includes('protocol_drift')) return 'optimize';
   return 'optimize';
+}
+
+function buildSuccessReason({ gene, signals, blast, mutation, score }) {
+  const parts = [];
+
+  if (gene && gene.id) {
+    const category = gene.category || 'unknown';
+    parts.push(`Gene ${gene.id} (${category}) matched signals [${(signals || []).slice(0, 4).join(', ')}].`);
+  }
+
+  if (mutation && mutation.rationale) {
+    parts.push(`Rationale: ${String(mutation.rationale).slice(0, 200)}.`);
+  }
+
+  if (blast) {
+    parts.push(`Scope: ${blast.files} file(s), ${blast.lines} line(s) changed.`);
+  }
+
+  if (typeof score === 'number') {
+    parts.push(`Outcome score: ${score.toFixed(2)}.`);
+  }
+
+  if (gene && Array.isArray(gene.strategy) && gene.strategy.length > 0) {
+    parts.push(`Strategy applied: ${gene.strategy.slice(0, 3).join('; ').slice(0, 300)}.`);
+  }
+
+  return parts.join(' ').slice(0, 1000) || 'Evolution succeeded.';
+}
+
+var CAPSULE_CONTENT_MAX_CHARS = 8000;
+
+function buildCapsuleContent({ intent, gene, signals, blast, mutation, score }) {
+  var parts = [];
+
+  if (intent) {
+    parts.push('Intent: ' + String(intent).slice(0, 500));
+  }
+
+  if (gene && gene.id) {
+    parts.push('Gene: ' + gene.id + ' (' + (gene.category || 'unknown') + ')');
+  }
+
+  if (signals && signals.length > 0) {
+    parts.push('Signals: ' + signals.slice(0, 8).join(', '));
+  }
+
+  if (gene && Array.isArray(gene.strategy) && gene.strategy.length > 0) {
+    parts.push('Strategy:\n' + gene.strategy.map(function (s, i) { return (i + 1) + '. ' + s; }).join('\n'));
+  }
+
+  if (blast) {
+    var fileList = blast.changed_files || blast.all_changed_files || [];
+    parts.push('Scope: ' + blast.files + ' file(s), ' + blast.lines + ' line(s)');
+    if (fileList.length > 0) {
+      parts.push('Changed files:\n' + fileList.slice(0, 20).join('\n'));
+    }
+  }
+
+  if (mutation && mutation.rationale) {
+    parts.push('Rationale: ' + String(mutation.rationale).slice(0, 500));
+  }
+
+  if (typeof score === 'number') {
+    parts.push('Outcome score: ' + score.toFixed(2));
+  }
+
+  var result = parts.join('\n\n');
+  if (result.length > CAPSULE_CONTENT_MAX_CHARS) {
+    result = result.slice(0, CAPSULE_CONTENT_MAX_CHARS) + '\n... [TRUNCATED]';
+  }
+  return result || 'Evolution completed successfully.';
 }
 
 // ---------------------------------------------------------------------------
@@ -786,7 +924,7 @@ function buildAutoGene({ signals, intent }) {
         'skills/git-sync',
       ],
     },
-    validation: ['node -e "require(\'./src/gep/solidify\'); console.log(\'ok\')"'],
+    validation: ['node scripts/validate-modules.js ./src/gep/solidify'],
     epigenetic_marks: [], // Epigenetic marks: environment-specific expression modifiers
   };
   gene.asset_id = computeAssetId(gene);
@@ -943,6 +1081,9 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   const reusedAssetId = lastRun && lastRun.reused_asset_id ? String(lastRun.reused_asset_id) : null;
   const reusedChainId = lastRun && lastRun.reused_chain_id ? String(lastRun.reused_chain_id) : null;
 
+  // LessonL: carry applied lesson IDs for Hub effectiveness adjustment
+  const appliedLessons = lastRun && Array.isArray(lastRun.applied_lessons) ? lastRun.applied_lessons : [];
+
   const event = {
     type: 'EvolutionEvent',
     schema_version: SCHEMA_VERSION,
@@ -958,6 +1099,7 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
     capsule_id: capsuleId,
     source_type: sourceType,
     reused_asset_id: reusedAssetId,
+    ...(appliedLessons.length > 0 ? { applied_lessons: appliedLessons } : {}),
     env_fingerprint: envFp,
     validation_report_id: validationReport.id,
     meta: {
@@ -1009,6 +1151,11 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
         prevCapsule = Array.isArray(list) ? list.find(c => c && c.type === 'Capsule' && String(c.id) === selectedCapsuleId) : null;
       }
     } catch (e) {}
+    const successReason = buildSuccessReason({ gene: geneUsed, signals, blast, mutation, score });
+    const capsuleDiff = captureDiffSnapshot(repoRoot);
+    const capsuleContent = buildCapsuleContent({ intent, gene: geneUsed, signals, blast, mutation, score });
+    const capsuleStrategy = geneUsed && Array.isArray(geneUsed.strategy) && geneUsed.strategy.length > 0
+      ? geneUsed.strategy : undefined;
     capsule = {
       type: 'Capsule',
       schema_version: SCHEMA_VERSION,
@@ -1020,15 +1167,49 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       blast_radius: { files: blast.files, lines: blast.lines },
       outcome: { status: 'success', score },
       success_streak: 1,
+      success_reason: successReason,
       env_fingerprint: envFp,
       source_type: sourceType,
       reused_asset_id: reusedAssetId,
       a2a: { eligible_to_broadcast: false },
+      content: capsuleContent,
+      diff: capsuleDiff || undefined,
+      strategy: capsuleStrategy,
     };
     capsule.asset_id = computeAssetId(capsule);
   }
 
-  // Bug fix: dry-run must NOT trigger rollback (it should only observe, not mutate).
+  // Capture failed mutation as a FailedCapsule before rollback destroys the diff.
+  if (!dryRun && !success) {
+    try {
+      var diffSnapshot = captureDiffSnapshot(repoRoot);
+      if (diffSnapshot) {
+        var failedCapsule = {
+          type: 'Capsule',
+          schema_version: SCHEMA_VERSION,
+          id: 'failed_' + buildCapsuleId(ts),
+          outcome: { status: 'failed', score: score },
+          gene: geneUsed && geneUsed.id ? geneUsed.id : null,
+          trigger: Array.isArray(signals) ? signals.slice(0, 8) : [],
+          summary: geneUsed
+            ? 'Failed: ' + geneUsed.id + ' on signals [' + (signals.slice(0, 3).join(', ') || 'none') + ']'
+            : 'Failed evolution on signals [' + (signals.slice(0, 3).join(', ') || 'none') + ']',
+          diff_snapshot: diffSnapshot,
+          failure_reason: buildFailureReason(constraintCheck, validation, protocolViolations, canary),
+          constraint_violations: constraintCheck.violations || [],
+          env_fingerprint: envFp,
+          blast_radius: { files: blast.files, lines: blast.lines },
+          created_at: ts,
+        };
+        failedCapsule.asset_id = computeAssetId(failedCapsule);
+        appendFailedCapsule(failedCapsule);
+        console.log('[Solidify] Preserved failed mutation as FailedCapsule: ' + failedCapsule.id);
+      }
+    } catch (e) {
+      console.log('[Solidify] FailedCapsule capture error (non-fatal): ' + (e && e.message ? e.message : e));
+    }
+  }
+
   if (!dryRun && !success && rollbackOnFailure) {
     rollbackTracked(repoRoot);
     rollbackNewUntrackedFiles({ repoRoot, baselineUntracked: lastRun && lastRun.baseline_untracked ? lastRun.baseline_untracked : [] });
@@ -1076,7 +1257,6 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   // Search-First Evolution: auto-publish eligible capsules to the Hub (as Gene+Capsule bundle).
   let publishResult = null;
   if (!dryRun && capsule && capsule.a2a && capsule.a2a.eligible_to_broadcast) {
-    const sourceType = lastRun && lastRun.source_type ? String(lastRun.source_type) : 'generated';
     const autoPublish = String(process.env.EVOLVER_AUTO_PUBLISH || 'true').toLowerCase() !== 'false';
     const visibility = String(process.env.EVOLVER_DEFAULT_VISIBILITY || 'public').toLowerCase();
     const minPublishScore = Number(process.env.EVOLVER_MIN_PUBLISH_SCORE) || 0.78;
@@ -1104,9 +1284,17 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
               summary: capsule.summary || '',
             };
           }
+          var parentRef = reusedAssetId && sourceType === 'reference' && String(reusedAssetId).startsWith('sha256:')
+            ? reusedAssetId : null;
+          if (parentRef) {
+            publishGene.parent = parentRef;
+          }
           publishGene.asset_id = computeAssetId(publishGene);
 
           var sanitizedCapsule = sanitizePayload(capsule);
+          if (parentRef) {
+            sanitizedCapsule.parent = parentRef;
+          }
           sanitizedCapsule.asset_id = computeAssetId(sanitizedCapsule);
 
           var sanitizedEvent = (event && event.type === 'EvolutionEvent') ? sanitizePayload(event) : null;
@@ -1114,11 +1302,14 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
 
           var publishChainId = reusedChainId || null;
 
+          var evolverModelName = (process.env.EVOLVER_MODEL_NAME || '').trim().slice(0, 100);
+
           var msg = buildPublishBundle({
             gene: publishGene,
             capsule: sanitizedCapsule,
             event: sanitizedEvent,
             chainId: publishChainId,
+            modelName: evolverModelName || undefined,
           });
           var result = httpTransportSend(msg, { hubUrl });
           // httpTransportSend returns a Promise
@@ -1150,6 +1341,76 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
         : 'below_min_score';
       publishResult = { attempted: false, reason };
     }
+  }
+
+  // --- Anti-pattern auto-publish ---
+  // Publish high-information-value failures to the Hub as anti-pattern assets.
+  // Only enabled via EVOLVER_PUBLISH_ANTI_PATTERNS=true (opt-in).
+  // Only constraint violations or canary failures qualify (not routine validation failures).
+  var antiPatternPublishResult = null;
+  if (!dryRun && !success) {
+    var publishAntiPatterns = String(process.env.EVOLVER_PUBLISH_ANTI_PATTERNS || '').toLowerCase() === 'true';
+    var hubUrl = (process.env.A2A_HUB_URL || '').replace(/\/+$/, '');
+    var hasHighInfoFailure = (constraintCheck.violations && constraintCheck.violations.length > 0)
+      || (canary && !canary.ok && !canary.skipped);
+    if (publishAntiPatterns && hubUrl && hasHighInfoFailure) {
+      try {
+        var { buildPublishBundle: buildApBundle, httpTransportSend: httpApSend } = require('./a2aProtocol');
+        var { sanitizePayload: sanitizeAp } = require('./sanitize');
+        var apGene = geneUsed && geneUsed.type === 'Gene' && geneUsed.id
+          ? sanitizeAp(geneUsed)
+          : { type: 'Gene', id: 'gene_unknown_' + Date.now(), category: derivedIntent, signals_match: signals.slice(0, 8), summary: 'Failed evolution gene' };
+        apGene.anti_pattern = true;
+        apGene.failure_reason = buildFailureReason(constraintCheck, validation, protocolViolations, canary);
+        apGene.asset_id = computeAssetId(apGene);
+        var apCapsule = {
+          type: 'Capsule',
+          schema_version: SCHEMA_VERSION,
+          id: 'failed_' + buildCapsuleId(ts),
+          trigger: signals.slice(0, 8),
+          gene: apGene.id,
+          summary: 'Anti-pattern: ' + String(apGene.failure_reason).slice(0, 200),
+          confidence: 0,
+          blast_radius: { files: blast.files, lines: blast.lines },
+          outcome: { status: 'failed', score: score },
+          failure_reason: apGene.failure_reason,
+          a2a: { eligible_to_broadcast: false },
+        };
+        apCapsule.asset_id = computeAssetId(apCapsule);
+        var apModelName = (process.env.EVOLVER_MODEL_NAME || '').trim().slice(0, 100);
+        var apMsg = buildApBundle({ gene: apGene, capsule: sanitizeAp(apCapsule), event: null, modelName: apModelName || undefined });
+        var apResult = httpApSend(apMsg, { hubUrl });
+        if (apResult && typeof apResult.then === 'function') {
+          apResult
+            .then(function (res) {
+              if (res && res.ok) console.log('[AntiPatternPublish] Published failed bundle to Hub: ' + apCapsule.id);
+              else console.log('[AntiPatternPublish] Hub rejected: ' + JSON.stringify(res));
+            })
+            .catch(function (err) {
+              console.log('[AntiPatternPublish] Failed (non-fatal): ' + err.message);
+            });
+        }
+        antiPatternPublishResult = { attempted: true, asset_id: apCapsule.asset_id };
+      } catch (e) {
+        console.log('[AntiPatternPublish] Error (non-fatal): ' + e.message);
+        antiPatternPublishResult = { attempted: false, reason: e.message };
+      }
+    }
+  }
+
+  // --- LessonL: Auto-publish negative lesson to Hub (always-on, lightweight) ---
+  // Unlike anti-pattern publishing (opt-in, full capsule bundle), this publishes
+  // just the failure reason as a structured lesson via the EvolutionEvent.
+  // The Hub's solicitLesson() hook on handlePublish will extract the lesson.
+  // This is achieved by ensuring failure_reason is included in the event metadata,
+  // which we already do above. The Hub-side solicitLesson() handles the rest.
+  // For failures without a published event (no auto-publish), we still log locally.
+  if (!dryRun && !success && event && event.outcome) {
+    var failureContent = buildFailureReason(constraintCheck, validation, protocolViolations, canary);
+    event.failure_reason = failureContent;
+    event.summary = geneUsed
+      ? 'Failed: ' + geneUsed.id + ' on signals [' + (signals.slice(0, 3).join(', ') || 'none') + '] - ' + failureContent.slice(0, 200)
+      : 'Failed evolution on signals [' + (signals.slice(0, 3).join(', ') || 'none') + '] - ' + failureContent.slice(0, 200);
   }
 
   // --- Auto-complete Hub task ---
@@ -1186,7 +1447,7 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
     }
   }
 
-  return { ok: success, event, capsule, gene: geneUsed, constraintCheck, validation, validationReport, blast, publishResult, taskCompleteResult };
+  return { ok: success, event, capsule, gene: geneUsed, constraintCheck, validation, validationReport, blast, publishResult, antiPatternPublishResult, taskCompleteResult };
 }
 
 module.exports = {
@@ -1203,6 +1464,7 @@ module.exports = {
   applyEpigeneticMarks,
   getEpigeneticBoost,
   buildEpigeneticMark,
+  buildSuccessReason,
   BLAST_RADIUS_HARD_CAP_FILES,
   BLAST_RADIUS_HARD_CAP_LINES,
 };
