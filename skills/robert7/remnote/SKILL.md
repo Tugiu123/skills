@@ -26,12 +26,19 @@ metadata:
 
 Use this skill when a user wants to read or manage RemNote content from the command line with `remnote-cli`.
 
+If the user needs navigation across the whole knowledge base (for example: "where does this topic live in my notes?",
+"start from top-level note tree", "map main note groups"), prefer `remnote-kb-navigation` when it is available and
+customized for the current user, then return to this skill for general command policy and write gating. If
+`remnote-kb-navigation` is not available (or still template/unconfigured), continue with this skill alone and ask for
+skill customization when needed.
+
 ## Example Conversation Triggers
 
 - "Check if RemNote bridge is connected."
 - "Search my RemNote for sprint notes."
 - "Find notes tagged weekly-review in RemNote."
 - "Read this RemNote by ID: `<rem-id>`."
+- "Map the top-level structure of my whole RemNote knowledge base."
 - "Create a RemNote note titled X with this content." (requires `confirm write`)
 - "Append this to my journal in RemNote." (requires `confirm write`)
 
@@ -57,6 +64,16 @@ If any precondition is missing, stop and fix setup first.
 - Do not run mutating commands by default.
 - For writes (`create`, `update`, `journal`), require the exact phrase `confirm write` from the user in the same turn.
 - If `confirm write` is not present, ask for confirmation and do not execute writes.
+
+## Command Invocation Rule (critical)
+
+- Run exactly one `remnote-cli` command per execution.
+- Invoke `remnote-cli` directly; do not chain shell commands.
+- Do not use `&&`, `|`, `;`, subshells (`(...)`), command substitution (`$()`), `xargs`, or `echo` pipelines.
+- WRONG: `remnote-cli daemon status --text && echo '---' && remnote-cli status --text`
+- RIGHT: `remnote-cli daemon status --text`
+- RIGHT: `remnote-cli status --text`
+- Reason: command chaining can trigger exec approvals and break automation flow.
 
 ## Compatibility Check (mandatory before real work)
 
@@ -90,10 +107,27 @@ If any precondition is missing, stop and fix setup first.
 
 ### Read-Only Operations (default)
 
-- Search notes: `remnote-cli search "query" --text`
-- Search by tag: `remnote-cli search-tag "tag" --text`
-- Read note by Rem ID: `remnote-cli read <rem-id> --text`
-- Optional JSON mode (default): omit `--text`
+- Search notes: `remnote-cli search "query"`
+- Search by tag: `remnote-cli search-tag "tag"`
+- Read note by Rem ID: `remnote-cli read <rem-id>`
+- Optional text mode: add `--text`
+
+## Output Mode and Traversal Strategy
+
+- Use JSON output (default) for navigation, multi-step retrieval, and any flow that needs IDs for follow-up reads.
+- Use `--text` only for plain human summarization of exactly one note when no further navigation is needed.
+- For structure traversal, start with shallow reads and high child limit:
+  - `remnote-cli read <rem-id> --depth 1 --child-limit 500`
+
+### `--include-content` modes
+
+- `--include-content markdown`:
+  - Returns readable rendered child content.
+  - Best for summarization/presentation.
+  - Markdown content does not provide child IDs required for further navigation.
+- `--include-content structured`:
+  - Returns hierarchical `contentStructured` data including child rem IDs.
+  - Best for navigation and deterministic ID-first traversal.
 
 ### Mutating Operations (only after `confirm write`)
 
