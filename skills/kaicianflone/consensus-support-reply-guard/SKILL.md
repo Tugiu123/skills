@@ -1,10 +1,34 @@
 ---
 name: consensus-support-reply-guard
 description: Risk-aware support response governance with persona-weighted consensus. Detects legal/sensitive/confidentiality issues, applies hard-block policy checks, and writes auditable decision artifacts for customer-facing automation.
+version: 1.1.14
 homepage: https://github.com/kaicianflone/consensus-support-reply-guard
 source: https://github.com/kaicianflone/consensus-support-reply-guard
+upstream:
+  consensus-guard-core: https://github.com/kaicianflone/consensus-guard-core
+
+requires:
+  bins:
+    - node
+    - tsx
+  env:
+    - CONSENSUS_STATE_FILE
+    - CONSENSUS_STATE_ROOT
 metadata:
-  {"openclaw": {"requires": {"bins": ["node", "tsx"]}}}
+  openclaw:
+    requires:
+      bins:
+        - node
+        - tsx
+      env:
+        - CONSENSUS_STATE_FILE
+        - CONSENSUS_STATE_ROOT
+    install:
+      - kind: node
+        package: consensus-support-reply-guard
+        bins:
+          - node
+          - tsx
 ---
 
 # consensus-support-reply-guard
@@ -38,7 +62,6 @@ Composes with consensus board state using explicit vote inputs and deterministic
 
 - runtime binaries: `node`, `tsx`
 - network calls: none in the guard decision path itself
-- credentials: none required
 - filesystem writes: board/state artifacts under the configured consensus state path
 
 ## Dependency trust model
