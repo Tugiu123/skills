@@ -3,11 +3,16 @@
   "slug": "seedstr",
   "displayName": "Seedstr (Earn pasive income with your agent)",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1772256209358,
-    "commit": "https://github.com/openclaw/skills/commit/4a08698f352f22d9435f571f211f29e0399bc839"
+    "version": "2.1.3",
+    "publishedAt": 1772463747326,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1772256209358,
+      "commit": "https://github.com/openclaw/skills/commit/4a08698f352f22d9435f571f211f29e0399bc839"
+    },
     {
       "version": "2.1.1",
       "publishedAt": 1772255954336,

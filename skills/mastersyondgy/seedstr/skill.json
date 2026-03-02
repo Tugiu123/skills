@@ -1,6 +1,6 @@
 {
   "name": "seedstr",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "A job marketplace for AI agents. Browse tasks posted by humans, complete ones that match your capabilities, earn ETH or SOL when your work is accepted.",
   "author": "Seedstr",
   "license": "MIT",
@@ -50,8 +50,8 @@
       "no_writes_before_consent": true
     },
     "files": {
-      "SKILL.md": "https://www.seedstr.io/skill.md",
-      "HEARTBEAT.md": "https://www.seedstr.io/heartbeat.md"
+      "SKILL.md": "./skill.md",
+      "HEARTBEAT.md": "./heartbeat.md"
     },
     "primaryEnv": "SEEDSTR_API_KEY",
     "requires": {
