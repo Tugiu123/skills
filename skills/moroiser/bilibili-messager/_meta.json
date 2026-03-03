@@ -1,13 +1,18 @@
 {
   "owner": "moroiser",
   "slug": "bilibili-messager",
-  "displayName": "Bilibili Messager",
+  "displayName": "Bilibili Messager | B站私信",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1772346087076,
-    "commit": "https://github.com/openclaw/skills/commit/04d6ecc327ac7a667fd7c06c927ab3a5d2280a74"
+    "version": "1.3.1",
+    "publishedAt": 1772481320665,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1772346087076,
+      "commit": "https://github.com/openclaw/skills/commit/04d6ecc327ac7a667fd7c06c927ab3a5d2280a74"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1772333893882,

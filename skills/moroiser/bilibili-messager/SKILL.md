@@ -1,6 +1,6 @@
 ---
 name: bilibili-messager
-description: "Bilibili private messaging via browser automation. B站私信发送，通过浏览器自动化发送私信。Use when user needs to send B站私信、回复消息、获取聊天记录。Requires browser login."
+description: "Bilibili private messaging via browser automation. B站私信发送，通过浏览器自动化发送私信、获取聊天记录。Use when user needs to send B站私信、回复消息、获取聊天记录。Requires browser login. Triggers: B站, b站, bilibili, Bilibili, 哔哩哔哩, B站私信, bilibili dm, bilibili message, B站消息, B站发消息, send bilibili message, B站聊天, bilibili chat, B站回复, reply bilibili, 获取B站聊天记录, get bilibili chat history, B站私信发送, send bilibili dm, 给B站用户发消息, message bilibili user, B站私信自动化, bilibili dm automation, 哔哩哔哩私信, 哔哩哔哩消息."
 metadata: {"openclaw": {"emoji": "📺", "requires": {"config": ["browser.enabled"]}}}
 ---
 
