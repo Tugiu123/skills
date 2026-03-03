@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Send Email - 邮件发送工具
-支持 SMTP 邮件发送，包括 HTML、附件等功能
+支持 SMTP 邮件发送，包括 HTML、附件、自动内嵌图片等功能
 支持 keyring 密钥管理
 """
 
@@ -9,14 +9,16 @@ import smtplib
 import sys
 import json
 import os
+import re
 from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.utils import formataddr, formatdate
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 import argparse
+from datetime import datetime
 
 # 尝试导入 keyring，失败则使用备用方案
 try:
@@ -26,6 +28,13 @@ except ImportError:
     KEYRING_AVAILABLE = False
     print("⚠️  keyring 未安装，将使用备用存储方案")
     print("   安装 keyring: pip install keyring")
+
+# 尝试导入 markdown 库
+try:
+    import markdown
+    MARKDOWN_AVAILABLE = True
+except ImportError:
+    MARKDOWN_AVAILABLE = False
 
 
 # ============================================================================
@@ -230,6 +239,172 @@ class EmailConfig:
 
 
 # ============================================================================
+# Markdown 处理
+# ============================================================================
+
+class MarkdownProcessor:
+    """Markdown 处理器 - 自动检测并处理图片"""
+
+    def __init__(self):
+        self.has_markdown = MARKDOWN_AVAILABLE
+
+    def detect_markdown(self, text: str) -> bool:
+        """检测文本是否为 Markdown 格式"""
+        # 简单检测：检查常见的 Markdown 语法
+        markdown_patterns = [
+            r'!\[.*?\]\([^)]+\)',  # 图片语法
+            r'^#{1,6}\s+',         # 标题
+            r'\*\*.*?\*\*',         # 粗体
+            r'```',                 # 代码块
+            r'^\s*[-*+]\s+',        # 无序列表
+            r'^\s*\d+\.\s+',        # 有序列表
+            r'\[.*?\]\([^)]+\)',    # 链接
+        ]
+
+        for pattern in markdown_patterns:
+            if re.search(pattern, text, re.MULTILINE):
+                return True
+
+        return False
+
+    def extract_images(self, text: str) -> List[str]:
+        """从 Markdown 或 HTML 中提取图片路径"""
+        images = []
+
+        # Markdown 格式：![alt](path)
+        markdown_images = re.findall(r'!\[.*?\]\(([^)]+)\)', text)
+        images.extend(markdown_images)
+
+        # HTML 格式：<img src="path">
+        html_images = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', text, re.IGNORECASE)
+        images.extend(html_images)
+
+        # 去重并过滤掉非本地路径（http/https）
+        local_images = []
+        seen = set()
+        for img in images:
+            # 去除 URL 参数
+            img = re.sub(r'\?.*$', '', img)
+            # 去除锚点
+            img = re.sub(r'#.*$', '', img)
+
+            # 跳过非本地路径
+            if img.startswith(('http://', 'https://', 'data:')):
+                continue
+
+            # 去重
+            if img not in seen:
+                seen.add(img)
+                local_images.append(img)
+
+        return local_images
+
+    def convert_to_html(self, text: str, images: List[str]) -> str:
+        """将 Markdown 转换为 HTML，并替换图片引用为 CID"""
+        if not self.has_markdown:
+            print("⚠️  markdown 库未安装，使用简单转换（仅处理图片）")
+
+            # 简单处理：转换 Markdown 图片语法为 HTML img 标签
+            html = text
+            for img_path in images:
+                path = Path(img_path)
+                cid = path.stem  # 使用文件名（不含扩展名）作为 CID
+
+                # 替换 Markdown 图片语法为 HTML img 标签
+                # 格式：![alt](path) -> <img src="cid:path_stem" alt="alt">
+                import re
+                html = re.sub(
+                    r'!\[([^\]]*)\]\(' + re.escape(img_path) + r'\)',
+                    f'<img src="cid:{cid}" alt="\\1">',
+                    html
+                )
+
+            return html
+
+        # 转换 Markdown 为 HTML
+        html = markdown.markdown(
+            text,
+            extensions=['fenced_code', 'tables', 'sane_lists']
+        )
+
+        # 替换图片路径为 CID 引用
+        for img_path in images:
+            path = Path(img_path)
+            cid = path.stem  # 使用文件名（不含扩展名）作为 CID
+
+            # 替换 HTML 中的图片路径
+            html = html.replace(
+                f'src="{img_path}"',
+                f'src="cid:{cid}"'
+            ).replace(
+                f"src='{img_path}'",
+                f"src='cid:{cid}'"
+            )
+
+        return html
+
+
+# ============================================================================
+# 模板处理器
+# ============================================================================
+
+class TemplateProcessor:
+    """模板处理器 - 支持简单的变量替换"""
+
+    def __init__(self, template_dir: Optional[Path] = None):
+        if template_dir is None:
+            # 默认模板目录在脚本所在目录的 templates 文件夹
+            script_dir = Path(__file__).parent.parent
+            self.template_dir = script_dir / "templates"
+        else:
+            self.template_dir = Path(template_dir)
+
+    def load_template(self, template_name: str) -> Optional[str]:
+        """加载模板文件"""
+        if not template_name.endswith('.html'):
+            template_name += '.html'
+
+        template_path = self.template_dir / template_name
+
+        if not template_path.exists():
+            print(f"⚠️  模板文件不存在: {template_path}")
+            return None
+
+        with open(template_path, 'r', encoding='utf-8') as f:
+            return f.read()
+
+    def render(
+        self,
+        template_name: str,
+        content: str,
+        title: str = "邮件摘要",
+        subtitle: Optional[str] = None,
+        **kwargs
+    ) -> str:
+        """渲染模板"""
+        template = self.load_template(template_name)
+        if template is None:
+            # 如果模板不存在，直接返回内容
+            return content
+
+        # 获取当前时间
+        if subtitle is None:
+            subtitle = datetime.now().strftime('%Y年%m月%d日 %H:%M')
+
+        # 替换模板变量
+        rendered = template.replace('{{title}}', title)
+        rendered = rendered.replace('{{subtitle}}', subtitle)
+        rendered = rendered.replace('{{content}}', content)
+
+        # 替换其他变量
+        for key, value in kwargs.items():
+            placeholder = '{{' + key + '}}'
+            rendered = rendered.replace(placeholder, str(value))
+
+        return rendered
+
+
+# ============================================================================
 # 邮件发送器
 # ============================================================================
 
@@ -239,6 +414,8 @@ class EmailSender:
     def __init__(self, config: EmailConfig, username: Optional[str] = None):
         self.config = config
         self.keyring = KeyringManager()
+        self.markdown_processor = MarkdownProcessor()
+        self.template_processor = TemplateProcessor()
         self.smtp_config = config.get_smtp_config()
         self.sender_config = config.get_sender_config(username)
 
@@ -261,7 +438,8 @@ class EmailSender:
         is_html: bool = False,
         attachments: Optional[List[str]] = None,
         cc_emails: Optional[List[str]] = None,
-        bcc_emails: Optional[List[str]] = None
+        bcc_emails: Optional[List[str]] = None,
+        inline_images: Optional[List[str]] = None
     ) -> MIMEMultipart:
         """创建邮件消息"""
         msg = MIMEMultipart('related')
@@ -279,11 +457,30 @@ class EmailSender:
 
         msg['Date'] = formatdate(localtime=True)
 
+        # 如果有内嵌图片，先处理并替换 HTML 中的占位符
+        processed_body = body
+        cid_map = {}  # 存储文件路径到 CID 的映射
+
+        if inline_images and is_html:
+            for image_path in inline_images:
+                cid = self._add_inline_image(msg, image_path)
+                if cid:
+                    cid_map[image_path] = cid
+                    # 替换 HTML 中的图片路径为 CID 引用
+                    # 支持：src="path/to/image.png" 或 src='path/to/image.png'
+                    processed_body = processed_body.replace(
+                        f'src="{image_path}"',
+                        f'src="cid:{cid}"'
+                    ).replace(
+                        f"src='{image_path}'",
+                        f"src='cid:{cid}'"
+                    )
+
         # 创建正文部分
         if is_html:
-            msg_text = MIMEText(body, 'html', 'utf-8')
+            msg_text = MIMEText(processed_body, 'html', 'utf-8')
         else:
-            msg_text = MIMEText(body, 'plain', 'utf-8')
+            msg_text = MIMEText(processed_body, 'plain', 'utf-8')
         msg.attach(msg_text)
 
         # 添加附件
@@ -313,6 +510,51 @@ class EmailSender:
             print(f"✓ 已添加附件: {path.name}")
         except Exception as e:
             print(f"✗ 添加附件失败 {path.name}: {str(e)}")
+
+    def _add_inline_image(self, msg: MIMEMultipart, image_path: str) -> Optional[str]:
+        """添加内嵌图片（使用 CID 方式）"""
+        path = Path(image_path)
+        if not path.exists():
+            print(f"⚠️  图片不存在，跳过: {image_path}")
+            return None
+
+        try:
+            with open(path, 'rb') as f:
+                img_data = f.read()
+
+            # 判断图片类型
+            ext = path.suffix.lower()
+            if ext == '.jpg' or ext == '.jpeg':
+                maintype, subtype = 'image', 'jpeg'
+            elif ext == '.png':
+                maintype, subtype = 'image', 'png'
+            elif ext == '.gif':
+                maintype, subtype = 'image', 'gif'
+            elif ext == '.webp':
+                maintype, subtype = 'image', 'webp'
+            else:
+                print(f"⚠️  不支持的图片格式: {ext}")
+                return None
+
+            # 创建 MIMEImage
+            img = MIMEImage(img_data, _subtype=subtype)
+
+            # 生成 CID（使用文件名，去掉扩展名）
+            cid = path.stem
+
+            # 设置 Content-ID
+            img.add_header('Content-ID', f'<{cid}>')
+            img.add_header('Content-Disposition', 'inline', filename=path.name)
+
+            # 添加到邮件
+            msg.attach(img)
+            print(f"✓ 已添加内嵌图片: {path.name} (cid:{cid})")
+
+            return cid
+
+        except Exception as e:
+            print(f"✗ 添加内嵌图片失败 {path.name}: {str(e)}")
+            return None
 
     def _get_mime_type(self, path: Path) -> tuple:
         """获取文件的 MIME 类型"""
@@ -349,20 +591,69 @@ class EmailSender:
         is_html: bool = False,
         attachments: Optional[List[str]] = None,
         cc_emails: Optional[List[str]] = None,
-        bcc_emails: Optional[List[str]] = None
+        bcc_emails: Optional[List[str]] = None,
+        inline_images: Optional[List[str]] = None,
+        template: Optional[str] = None,
+        title: str = "邮件摘要"
     ) -> bool:
         """发送邮件"""
         try:
+            # 自动检测 Markdown 格式
+            final_is_html = is_html
+            final_body = body
+            final_inline_images = inline_images or []
+
+            # 如果用户没有明确指定 HTML，检测是否是 Markdown
+            if not is_html and self.markdown_processor.detect_markdown(body):
+                print("📝 检测到 Markdown 格式，自动转换为 HTML...")
+
+                # 提取 Markdown 中的图片
+                detected_images = self.markdown_processor.extract_images(body)
+
+                if detected_images:
+                    print(f"🖼️  检测到 {len(detected_images)} 张图片:")
+                    for img in detected_images:
+                        print(f"   • {img}")
+
+                    # 转换 Markdown 为 HTML 并替换图片引用
+                    final_body = self.markdown_processor.convert_to_html(body, detected_images)
+                    final_is_html = True
+
+                    # 添加到内嵌图片列表
+                    final_inline_images.extend(detected_images)
+                else:
+                    # 没有图片，只转换 Markdown
+                    final_body = self.markdown_processor.convert_to_html(body, [])
+                    if final_body == body:  # 转换失败（markdown 库未安装）
+                        # 简单处理：保持 Markdown 格式，不作为 HTML
+                        final_is_html = False
+                        print("⚠️  Markdown 库未安装，使用纯文本格式（图片仍可内嵌）")
+                    else:
+                        final_is_html = True
+                        print("✓ Markdown 转换为 HTML（无图片）")
+
+            # 应用模板
+            if template:
+                print(f"🎨 使用模板: {template}")
+                final_body = self.template_processor.render(
+                    template_name=template,
+                    content=final_body,
+                    title=title,
+                    subtitle=datetime.now().strftime('%Y年%m月%d日 %H:%M')
+                )
+                final_is_html = True  # 模板输出一定是 HTML
+
             # 创建消息
             msg = self.create_message(
                 to_email=to_email,
                 to_name=to_name,
                 subject=subject,
-                body=body,
-                is_html=is_html,
+                body=final_body,
+                is_html=final_is_html,
                 attachments=attachments,
                 cc_emails=cc_emails,
-                bcc_emails=bcc_emails
+                bcc_emails=bcc_emails,
+                inline_images=final_inline_images
             )
 
             # 准备收件人列表
@@ -438,14 +729,18 @@ def main():
 
     # 发送命令
     send_parser = subparsers.add_parser('send', help='发送邮件')
-    send_parser.add_argument('--to', required=True, help='收件人邮箱')
+    send_parser.add_argument('--to', help='收件人邮箱（可选：--config 中会使用）')
     send_parser.add_argument('--to-name', default='', help='收件人名称')
     send_parser.add_argument('--subject', required=True, help='邮件主题')
     send_parser.add_argument('--body', required=True, help='邮件正文')
     send_parser.add_argument('--html', action='store_true', help='使用 HTML 格式')
     send_parser.add_argument('--attachments', nargs='*', help='附件文件路径（多个）')
-    send_parser.add_argument('--cc', nargs='*', help='抄送邮箱（多个）')
+    send_parser.add_argument('--inline-images', nargs='*', help='内嵌图片文件路径（多个，仅 HTML 模式）')
+    send_parser.add_argument('--cc', nargs='*', help='抄送邮箱（多个，可选：--config 中会使用）')
     send_parser.add_argument('--bcc', nargs='*', help='密送邮箱（多个）')
+    send_parser.add_argument('--config', help='配置文件路径（包含 to 和 cc，覆盖命令行参数）')
+    send_parser.add_argument('--template', help='使用指定模板渲染邮件（模板文件名，不含 .html）')
+    send_parser.add_argument('--title', default='邮件摘要', help='邮件标题（模板中使用）')
     # 移除 --password 和 --save-pwd 参数，强制使用 keyring
 
     args = parser.parse_args()
@@ -549,6 +844,11 @@ def main():
             print(f"\n发件人邮箱: {email}")
             sys.exit(1)
 
+        # 检查 inline-images 是否需要 HTML 模式
+        if args.inline_images and not args.html:
+            print("\n⚠️  内嵌图片功能需要 HTML 模式，已自动启用")
+            args.html = True
+
         # 发送邮件
         sender.send(
             to_email=args.to,
@@ -558,7 +858,10 @@ def main():
             is_html=args.html,
             attachments=args.attachments,
             cc_emails=args.cc,
-            bcc_emails=args.bcc
+            bcc_emails=args.bcc,
+            inline_images=args.inline_images,
+            template=args.template,
+            title=args.title
         )
 
 
