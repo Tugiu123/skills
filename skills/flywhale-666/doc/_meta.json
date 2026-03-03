@@ -1,0 +1,11 @@
+{
+  "owner": "flywhale-666",
+  "slug": "doc",
+  "displayName": "Doc",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772540379556,
+    "commit": null
+  },
+  "history": []
+}
