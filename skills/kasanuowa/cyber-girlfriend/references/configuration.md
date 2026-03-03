@@ -50,8 +50,11 @@ Suggested fields:
 - `jobs_list_command`
 - `generate_command_template`
 - `send_command_template`
+- `generate_retry_attempts`
+- `generate_retry_delay_sec`
 
 Do not hardcode a provider or model here unless the user explicitly wants that.
+If the runtime depends on a remote model endpoint, expose retry behavior here rather than hardcoding it in prompts.
 
 ### `sources`
 

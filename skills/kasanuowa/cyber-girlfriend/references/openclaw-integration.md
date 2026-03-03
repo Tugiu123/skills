@@ -16,12 +16,25 @@ Typical mapping:
   - `SOUL.md`
   - `HEARTBEAT.md`
 - runtime script:
-  - `workspace/scripts/companion_ping.sh`
+  - `workspace/skills/cyber-girlfriend/scripts/companion_ping.py`
 - optional share source:
-  - `workspace/scripts/fetch_x_hotspots.py`
+  - `workspace/skills/cyber-girlfriend/scripts/fetch_x_hotspots.py`
 - state:
-  - `workspace/state/companion-state.json`
-  - `workspace/state/x-hotspots.json`
+  - `workspace/skills/cyber-girlfriend/state/companion-state.json`
+  - `workspace/skills/cyber-girlfriend/state/x-hotspots.json`
+
+## Recommended Local Config
+
+Create a local, non-published config such as:
+- `workspace/skills/cyber-girlfriend/config.local.json`
+
+Point it at the user's real:
+- owner chat target
+- owner session key
+- recent session jsonl path
+- sessions store path
+- generation/send commands
+- generation retry policy
 
 ## What Must Stay Configurable
 
@@ -47,3 +60,4 @@ Keep the handler thin. Put logic in scripts, not markdown prose.
 - Do not use direct in-turn restart paths for gateway restarts.
 - Do not let proactive behavior leak into non-owner chats.
 - Do not make outbound sharing/posting actions implicit.
+- If local media must be sent, stage it into a runtime-approved workspace directory before calling the outbound message command.

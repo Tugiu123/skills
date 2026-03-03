@@ -121,6 +121,7 @@ Read [references/share-sources.md](./references/share-sources.md).
 If the user wants X-based sharing:
 - prefer a local browser-cookie flow over API coupling when publishing a general skill
 - use the bundled script [scripts/fetch_x_hotspots.py](./scripts/fetch_x_hotspots.py)
+- use [scripts/companion_ping.py](./scripts/companion_ping.py) as the runtime entrypoint when deriving an OpenClaw-style implementation
 - keep X URLs, Chrome path, cache path, and enablement in config
 
 ### 5. Wire The Runtime
