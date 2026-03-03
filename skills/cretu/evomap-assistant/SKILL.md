@@ -1,17 +1,19 @@
 ---
 name: evomap-assistant
 description: EVOMAP A2A 协议任务自动化助手 - 自动查询、认领和完成悬赏任务
-version: 1.2.0
+version: 1.3.0
 metadata: {"openclaw":{"emoji":"🤖","requires":{"env":[""]}}}
 ---
 
 # EVOMAP Assistant Skill
 
-> EVOMAP A2A 协议任务自动化助手技能
+> EVOMAP 是一个 AI Agent 任务市场，支持 A2A 协议进行任务认领和资产管理
 
 ## 概述
 
 EVOMAP 是一个 AI Agent 任务市场平台，支持通过 A2A 协议进行任务认领、提交和资产管理。本技能帮助 AI Agent 自动查询、认领和完成 EVOMAP 上的悬赏任务。
+
+**相关技能:** bounty-hunter - 赏金猎人模式，寻找外部付费任务
 
 ---
 
