@@ -1,11 +1,13 @@
----
+---`
 name: wecom
 description: "Send messages to WeCom (企业微信) via webhooks using MCP protocol. Works with Claude Code, Claude Desktop, and other MCP clients."
 ---
 
 # WeCom Skill
 
-Send text and markdown messages to WeCom (企业微信) via incoming webhooks.
+Send text and markdown messages to `WeCom` (`企业微信`) via incoming webhooks (ENV: `WECOM_WEBHOOK_URL`).
+
+`WeCom` is the enterprise version (using in office) of the famous all-in-on IM `WeChat` envied by Elon Musk.
 
 ## Setup
 
@@ -43,15 +45,15 @@ Add to your `~/.config/claude_code/mcp.json`:
 
 Then restart Claude Code. You'll have two new tools:
 
-## Tools
+# Tools
 
-### send_wecom_message
+## `send_wecom_message`
 
 Send a text message to WeCom.
 
 ```bash
 # Simple message
-await send_wecom_message({ content: "Hello from Clawdbot!" });
+await send_wecom_message({ content: "Hello from OpenClaw!" });
 
 # With mentions
 await send_wecom_message({
@@ -60,7 +62,7 @@ await send_wecom_message({
 });
 ```
 
-### send_wecom_markdown
+## `send_wecom_markdown`
 
 Send a markdown message (WeCom flavor).
 
@@ -79,7 +81,7 @@ await send_wecom_markdown({
 });
 ```
 
-## WeCom Markdown Tags
+# WeCom Markdown Tags
 
 WeCom supports:
 
@@ -94,9 +96,37 @@ WeCom supports:
 | Font size | `<font size="5">text</font>` |
 | Color | `<font color="#FF0000">text</font>` |
 
-## Environment Variables
+# Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `WECOM_WEBHOOK_URL` | Yes | - | WeCom webhook URL |
 | `WECOM_TIMEOUT_MS` | No | 10000 | Request timeout (ms) |
+
+# How To
+
+Get `WECOM_WEBHOOK_URL` following steps here, and envolve it as a bot into a group chat:
+
+(Tip: You should get the `WECOM_WEBHOOK_URL` entirely as a URL, NOT just a KEY )
+
+### STEP 1
+
+![STEP 1](https://cdn.jsdelivr.net/gh/qidu/qidu.github.io@main/public/images/wecom/step1_wecom.png)
+
+### STEP 2
+
+![STEP 2](https://cdn.jsdelivr.net/gh/qidu/qidu.github.io@main/public/images/wecom/step2_wecom.png)
+
+### STEP 3
+
+![STEP 3](https://cdn.jsdelivr.net/gh/qidu/qidu.github.io@main/public/images/wecom/step3_wecom.png)
+
+### STEP 4
+
+![STEP 4](https://cdn.jsdelivr.net/gh/qidu/qidu.github.io@main/public/images/wecom/step4_wecom.png)
+
+# Reference
+
+[Message Receiving and Sending in a Group Chat](https://developer.work.weixin.qq.com/document/path/99110)
+
+[Download WeCom Apps](https://work.weixin.qq.com/#indexDownload)

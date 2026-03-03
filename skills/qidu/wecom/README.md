@@ -6,7 +6,7 @@ Send messages to WeCom (企业微信) via incoming webhooks.
 
 ```bash
 # Set your webhook URL
-export WECOM_WEBHOOK_URL="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
+export WECOM_WEBHOOK_URL="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_WECOM_KEY"
 
 # Install globally
 npm install -g wecom-bot-mcp-server

@@ -1,7 +1,7 @@
 {
   "name": "wecom-bot-mcp-server",
-  "version": "1.0.0",
-  "description": "WeCom (企业微信) MCP Server for Clawdbot",
+  "version": "1.0.2",
+  "description": "WeCom (企业微信) MCP Server for OpenClaw",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
