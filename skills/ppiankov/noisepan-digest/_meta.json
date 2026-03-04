@@ -3,9 +3,15 @@
   "slug": "noisepan-digest",
   "displayName": "Noisepan Digest",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772107827936,
-    "commit": "https://github.com/openclaw/skills/commit/011db290843803f8f2c69dd2729af655200ca43e"
+    "version": "1.0.3",
+    "publishedAt": 1772620296650,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772107827936,
+      "commit": "https://github.com/openclaw/skills/commit/011db290843803f8f2c69dd2729af655200ca43e"
+    }
+  ]
 }

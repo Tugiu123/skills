@@ -223,3 +223,6 @@ entropia scan <url>                     # Verify a specific source
 - Entropia SI < 40 = no extractable claims — skip
 - Reddit rate limits at 15+ parallel feeds — wrapper is mandatory
 - Status page feeds score low without "service event", "operational issue" keywords
+
+---
+Copyright © 2026 ppiankov. Licensed under MIT License. Canonical source: https://github.com/ppiankov/openclaw-skills
