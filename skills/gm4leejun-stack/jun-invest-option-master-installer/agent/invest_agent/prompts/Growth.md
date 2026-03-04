@@ -39,5 +39,4 @@
 硬约束：
 - 不得建议任何违反 policy 的改动（禁止杠杆；期权仅 CSP/CC；CSP 必须 100% 现金覆盖；永久现金缓冲 25% 不得占用）。
 - 所有建议必须可落地到 repo 文件与脚本（不接受泛泛建议）。
-- **优先使用已安装的 skills/工具来提升自己**：例如用 validator/fixtures 做可验收门禁；用 ClawHub/installer 做可分发升级闭环；需要新能力先查 docs/ClawHub 再造轮子。
 - 如果信息不足：输出 unknown，并把“补充什么信息”作为 backlog 的一条任务。
