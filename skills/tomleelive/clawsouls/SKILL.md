@@ -117,7 +117,7 @@ Level 3 requires `soul.test.yaml` in the soul directory and an LLM provider (Ope
 npx clawsouls doctor                # 12 environment checks
 npx clawsouls migrate               # migrate soul from v0.3 → v0.4 → v0.5
 npx clawsouls search "engineer"     # search souls from registry
-npx clawsouls info TomLeeLive/brad  # show soul metadata
+npx clawsouls info clawsouls/brad  # show soul metadata
 npx clawsouls update                # update installed soul to latest
 ```
 
