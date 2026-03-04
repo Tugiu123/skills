@@ -1,57 +1,66 @@
 ---
 name: white-stone-mem
-description: 记忆系统 - 包含常识记忆、项目记忆、错题本和每日回顾。按需加载，避免记忆污染。
+description: Memory system with 5 categories - knowledge, projects, error log, daily review, and tasks. Load on demand to avoid memory pollution. 记忆系统 - 包含常识记忆、项目记忆、错题本、每日回顾和任务追踪。按需加载，避免记忆污染。
 metadata:
   openclaw:
     emoji: 🧠
 ---
 
-# 白石记忆系统 (White Stone Memory)
+# White Stone Memory / 白石记忆系统
 
-你的个人记忆系统，包含4类记忆，按需加载。
+Your personal memory system with 5 categories, loaded on demand.
 
-## 记忆分类
+## Memory Categories / 记忆分类
 
-### 1. 常识记忆
-- **位置**: `memory/knowledge/common.md`
-- **内容**: 工作习惯、逻辑思维、产品意识
-- **加载**: Agent启动时自动读取
+### 1. Knowledge / 常识记忆
+- **Path**: `memory/knowledge/common.md`
+- **Content**: Work habits, logical thinking, product sense / 工作习惯、逻辑思维、产品意识
+- **Loading**: Auto-loaded on agent startup / Agent启动时自动读取
 
-### 2. 项目记忆
-- **位置**: `memory/projects/[项目名].md`
-- **加载**: 用户明确提及项目时加载
-- **不加载**: Agent工作时禁止主动读取，避免污染
+### 2. Projects / 项目记忆
+- **Path**: `memory/projects/[project_name].md`
+- **Loading**: Only when user explicitly mentions a project / 用户明确提及项目时加载
+- **Do NOT load**: Agents must not proactively read project memory to avoid pollution / 避免污染
 
-### 3. 错题本
-- **位置**: `memory/errors/`
-- **内容**: 使用错误、经验总结
-- **加载**: 所有Agent/Sub-Agent启动时自动加载
+### 3. Error Log / 错题本
+- **Path**: `memory/errors/`
+- **Content**: Past mistakes, lessons learned / 使用错误、经验总结
+- **Loading**: Auto-loaded by all Agents and Sub-Agents on startup / 所有Agent启动时加载
 
-### 4. 每日回顾
-- **位置**: `memory/daily/[日期].md`
-- **时间**: 每天凌晨自动创建
-- **内容**: 工作总结、待提炼内容
+### 4. Daily Review / 每日回顾
+- **Path**: `memory/diary/[date].md`
+- **Timing**: Auto-created daily / 每天自动创建
+- **Content**: Work summary, insights to distill / 工作总结、待提炼内容
+
+### 5. Tasks / 子任务追踪
+- **Path**: `memory/tasks/[task_name].md`
+- **Content**: Subagent task specs, config, progress / 任务规格、配置、进度
+- **Loading**: On demand when managing subagents / 管理 subagent 时按需加载
 
 ## 目录结构
 
 ```
 ~/.openclaw/workspace/memory/
-├── knowledge/
-│   └── common.md
-├── projects/
+├── knowledge/          # 常识记忆 (启动加载)
+│   ├── common.md
+│   └── reflection-log.md
+├── projects/           # 项目记忆 (按需加载)
 │   └── [项目名].md
-├── errors/
+├── errors/             # 错题本 (全局加载)
 │   └── [类别].md
-└── daily/
-    └── YYYY-MM-DD.md
+├── diary/              # 每日回顾 (日期命名)
+│   └── YYYY-MM-DD.md
+└── tasks/              # 子任务追踪 (subagent 任务)
+    └── [任务名].md
 ```
 
-## 重要规则
+## Rules / 重要规则
 
-1. 不主动读取项目记忆 - 只有用户明确要求时才加载
-2. 错题本全局共享 - 所有Agent启动时必须加载
-3. 常识记忆启动加载 - Agent启动时自动读取
-4. 每日回顾定时 - 凌晨创建，可 later 手动补充
+1. **No proactive project reads** — Only load project memory when user explicitly asks / 不主动读取项目记忆
+2. **Error log is global** — All Agents must load on startup / 错题本全局共享
+3. **Knowledge loads at startup** — Auto-read on agent init / 常识记忆启动加载
+4. **Daily review is scheduled** — Created daily, can be updated manually / 每日回顾定时创建
+5. **Bilingual logging** — ALL memory entries must be written in bilingual format (English + Chinese). Titles use `EN / 中文`, details include both languages. This applies regardless of which language the original context was in. / 所有记忆条目必须双语记录
 
 ---
 

@@ -3,9 +3,15 @@
   "slug": "white-stone-mem",
   "displayName": "White Stone Memory",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772257958787,
-    "commit": "https://github.com/openclaw/skills/commit/a84272faf0c3049bf180a00abecfb595b13ea6a3"
+    "version": "1.1.0",
+    "publishedAt": 1772512637349,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772257958787,
+      "commit": "https://github.com/openclaw/skills/commit/a84272faf0c3049bf180a00abecfb595b13ea6a3"
+    }
+  ]
 }
