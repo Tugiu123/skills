@@ -845,20 +845,8 @@ def main():
                        help='报告格式 (默认: txt json)')
     parser.add_argument('--no-visual', action='store_true',
                        help='禁止生成可视化图片')
-    parser.add_argument('--user-id', default='default_user',
-                       help='用户ID（用于计费）')
     
     args = parser.parse_args()
-    
-    # SkillPay 计费检查
-    import billing
-    payment_url = billing.require_payment(args.user_id if hasattr(args, 'user_id') else 'default_user')
-    if payment_url:
-        print(f"""
-❌ 需要支付后才能使用
-💳 支付链接: {payment_url}
-""")
-        sys.exit(1)
     
     print(f"""
 ╔{'='*50}╗

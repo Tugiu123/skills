@@ -1,7 +1,7 @@
 ---
 name: image-annotation-qc
 description: Image Annotation Quality Control Tool - Automatically detect quality issues in bounding box and polygon segmentation annotations, generate visual reports. Supports COCO/YOLO/VOC/LabelMe formats, suitable for autonomous driving, industrial inspection, security monitoring and other AI training data quality control scenarios.
-metadata: {"openclaw":{"emoji":"🔍","requires":{"bins":["python3"],"pip":["Pillow","openpyxl","requests"]},"pricing":{"price":0.001,"unit":"USDT","per":"call"}}}
+metadata: {"openclaw":{"emoji":"🔍","requires":{"bins":["python3"],"pip":["Pillow","openpyxl"]}}}
 ---
 
 # Image Annotation QC Tool
@@ -16,7 +16,6 @@ Automatically detect quality issues in image annotations and generate detailed r
 - ✅ **Auto-save Reports**: Save to `qc_report/` directory automatically
 - ✅ **Visualization**: Generate images with error annotations (red boxes)
 - ✅ **Multi-format Reports**: TXT / JSON / Excel
-- ✅ **Optional Billing**: Supports SkillPay for paid usage
 
 ## Quick Start
 
@@ -24,10 +23,20 @@ Automatically detect quality issues in image annotations and generate detailed r
 # Basic usage (auto-detect format)
 python3 scripts/qc_tool.py -i <image_dir> -a <annotation_dir>
 
-# With billing (set env vars to enable payment)
-export SKILL_BILLING_API_KEY=your_api_key
-export SKILL_ID=your_skill_id
-python3 scripts/qc_tool.py -i ./images -a ./annotations
+# Specify format
+python3 scripts/qc_tool.py -i ./images -a ./annotations -f labelme
+
+# Industrial inspection scenario
+python3 scripts/qc_tool.py -i ./images -a ./annotations -d industrial
+
+# Sample 100 images
+python3 scripts/qc_tool.py -i ./images -a ./annotations -s 100
+
+# Specify output directory
+python3 scripts/qc_tool.py -i ./images -a ./annotations -o ./my_report
+
+# Generate Excel report
+python3 scripts/qc_tool.py -i ./images -a ./annotations --formats txt json xlsx
 ```
 
 ### Parameters
@@ -42,7 +51,6 @@ python3 scripts/qc_tool.py -i ./images -a ./annotations
 | `--output` | `-o` | Output directory | `./qc_report` |
 | `--formats` | - | Report formats | `txt json` |
 | `--no-visual` | - | Disable visualization | false |
-| `--user-id` | - | User ID for billing | `default_user` |
 
 ### Scenarios
 
@@ -50,18 +58,6 @@ python3 scripts/qc_tool.py -i ./images -a ./annotations
 - **road**: Autonomous driving (small objects, occlusions)
 - **industrial**: Industrial inspection (micro-defects)
 - **security**: Security monitoring
-
-## Billing (Optional)
-
-To enable payment via SkillPay:
-
-1. Set environment variables:
-   ```bash
-   export SKILL_BILLING_API_KEY=your_api_key
-   export SKILL_ID=your_skill_id
-   ```
-
-2. Users will be charged 1 token per call
 
 ## Output Example
 
@@ -117,7 +113,7 @@ Grading:
 ## Installation
 
 ```bash
-pip install Pillow openpyxl requests
+pip install Pillow openpyxl
 ```
 
 ## As Module
