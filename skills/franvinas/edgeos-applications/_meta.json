@@ -1,0 +1,11 @@
+{
+  "owner": "franvinas",
+  "slug": "edgeos-applications",
+  "displayName": "EdgeOS applications",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772727521968,
+    "commit": null
+  },
+  "history": []
+}
