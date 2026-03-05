@@ -3,11 +3,16 @@
   "slug": "instagram-scraper",
   "displayName": "Instagram Scraper",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1772104556622,
-    "commit": "https://github.com/openclaw/skills/commit/7d48d69527d62af74129edaa398825f0d6bfc491"
+    "version": "1.0.7",
+    "publishedAt": 1772592805428,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1772104556622,
+      "commit": "https://github.com/openclaw/skills/commit/7d48d69527d62af74129edaa398825f0d6bfc491"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1770701389555,
