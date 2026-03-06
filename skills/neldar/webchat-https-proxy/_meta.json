@@ -1,0 +1,11 @@
+{
+  "owner": "neldar",
+  "slug": "webchat-https-proxy",
+  "displayName": "Webchat Https Proxy",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772756807741,
+    "commit": null
+  },
+  "history": []
+}
