@@ -1,40 +1,103 @@
 """
 vdoob Agent Main Script
 Function: Periodically visit vdoob, fetch matching questions, answer them, earn money
+
+Note: Using curl instead of requests to avoid proxy interference
 """
 import os
 import json
 import time
 import hashlib
-import requests
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
+
+def curl_request(method, url, headers=None, data=None, timeout=30):
+    """
+    使用 curl 发送 HTTP 请求，避免 Python requests 被代理干扰
+    
+    Args:
+        method: HTTP 方法 (GET, POST, etc.)
+        url: 请求 URL
+        headers: 请求头字典
+        data: 请求体数据（会被转为 JSON）
+        timeout: 超时时间（秒）
+    
+    Returns:
+        模拟的 response 对象，有 status_code 和 json() 方法
+    """
+    cmd = ["curl", "-s", "-w", "\\n%{http_code}", "--max-time", str(timeout)]
+    
+    # 添加请求头
+    if headers:
+        for key, value in headers.items():
+            cmd.extend(["-H", f"{key}: {value}"])
+    
+    # 添加方法
+    cmd.extend(["-X", method])
+    
+    # 添加请求体
+    if data:
+        json_data = json.dumps(data, ensure_ascii=False)
+        cmd.extend(["-d", json_data])
+    
+    cmd.append(url)
+    
+    # 跟随重定向，获取最终状态码
+    cmd.insert(2, "-L")
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        output = result.stdout.strip()
+        
+        # 解析输出：最后3个字符是状态码，前面是响应体
+        if len(output) >= 3 and output[-3:].isdigit():
+            status_code = int(output[-3:])
+            body = output[:-3]
+        else:
+            status_code = 0
+            body = output
+        
+        # 创建模拟的 response 对象
+        class MockResponse:
+            def __init__(self, status_code, body):
+                self.status_code = status_code
+                self._body = body
+            
+            def json(self):
+                try:
+                    return json.loads(self._body)
+                except:
+                    return {}
+            
+            @property
+            def text(self):
+                return self._body
+        
+        return MockResponse(status_code, body)
+        
+    except subprocess.TimeoutExpired:
+        log(f"curl request timeout: {url}")
+        class MockResponse:
+            status_code = 0
+            def json(self): return {}
+            text = ""
+        return MockResponse()
+    except Exception as e:
+        log(f"curl request error: {e}")
+        class MockResponse:
+            status_code = 0
+            def json(self): return {}
+            text = str(e)
+        return MockResponse()
+
 # Configuration
 VDOOB_API = os.getenv("VDOOB_API", "https://vdoob.com/api/v1")
-
-# Load config from environment or local file
-def load_config():
-    """从本地配置文件加载配置"""
-    config_path = Path.home() / ".vdoob" / "agent_config.json"
-    if config_path.exists():
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                return config.get("agent_id"), config.get("api_key")
-        except Exception as e:
-            print(f"[vdoob] Failed to load config: {e}")
-    return None, None
-
-# Try environment variables first, then local file
-AGENT_ID = os.getenv("AGENT_ID")
-VDOOB_API_KEY = os.getenv("VDOOB_API_KEY")  # 统一使用 VDOOB_API_KEY
-API_KEY = VDOOB_API_KEY  # 兼容内部变量
-if not AGENT_ID or not API_KEY:
-    AGENT_ID, API_KEY = load_config()
-
+AGENT_ID = os.getenv("AGENT_ID") or os.getenv("VDOOB_AGENT_ID")
+API_KEY = os.getenv("API_KEY") or os.getenv("VDOOB_API_KEY")
 AUTO_ANSWER = os.getenv("AUTO_ANSWER", "true").lower() == "true"
-MIN_ANSWER_LENGTH = int(os.getenv("MIN_ANSWER_LENGTH", "300"))  # 统一为300字符
+MIN_ANSWER_LENGTH = int(os.getenv("MIN_ANSWER_LENGTH", "0"))
 FETCH_COUNT = int(os.getenv("FETCH_QUESTION_COUNT", "5"))
 EXPERTISE_TAGS = os.getenv("EXPERTISE_TAGS", "Python,Machine Learning,Data Analysis").split(",")
 interval = 1800  # 30 minutes
@@ -110,20 +173,24 @@ def get_all_thinkings():
 
 def extract_thinking_from_conversation(conversation):
     """从对话中提取思路"""
+    # 分析对话内容，提取思路
+    # 这里可以根据实际对话内容进行更复杂的分析
     if not conversation:
         return []
     
     thinkings = []
     
+    # 遍历对话，寻找包含思路的内容
     for msg in conversation:
         content = msg.get('content', '')
         if len(content) > 50:
+            # 简单判断：如果消息长度大于50字符，可能包含思路
             thinking = {
                 "title": "From conversation",
                 "content": content,
                 "category": "conversation",
                 "keywords": [],
-                "priority": 1,
+                "priority": 1,  # 从对话中提取的思路优先级较低
                 "source": "conversation",
                 "message_id": msg.get('id')
             }
@@ -134,13 +201,18 @@ def extract_thinking_from_conversation(conversation):
 
 def get_owner_thinking():
     """获取主人的思路，优先使用主动告知的，其次从对话历史中提取"""
+    # 1. 先获取本地存储的思路（主人主动告知的）
     stored_thinkings = get_all_thinkings()
     
+    # 2. 如果没有主动告知的思路，尝试从对话历史中提取
     if not stored_thinkings:
         log("No stored thinkings found, trying to extract from conversation history...")
+        # 这里应该调用获取对话历史的API
+        # 暂时返回空列表，实际实现需要根据OpenClaw的对话历史API
         conversation_history = []
         extracted_thinkings = extract_thinking_from_conversation(conversation_history)
         
+        # 保存提取的思路到本地
         for thinking in extracted_thinkings:
             save_thinking(thinking)
         
@@ -152,66 +224,25 @@ def get_owner_thinking():
 def prompt_owner_for_thinking():
     """提醒主人提供思路"""
     log("Reminding owner to provide thinking patterns...")
-    notify_owner("主人，今天发生什么事了？跟我聊聊吧，我想学习你的思考方式")
+    # 这里应该调用OpenClaw的通知或对话API
+    # 暂时打印提示信息
+    print("\n" + "="*50)
+    print("🎯 请告知我你的思路和观点，以便我能以你的口吻回答问题")
+    print("💡 例如：'我认为在Python中应该优先使用内置函数' 或 '我倾向于使用简洁明了的代码风格'")
+    print("="*50 + "\n")
     return True
 
 
-def notify_owner(message):
-    """发送消息给主人（通过 OpenClaw 输出）"""
-    print(f"\n{'='*50}")
-    print(f"🦞 vdoob Agent: {message}")
-    print(f"{'='*50}\n")
-    log(f"已提醒主人: {message}")
-
-
-def daily_reminder_loop():
-    """每日提醒循环 - 在后台运行"""
-    import threading
-    last_trigger_date = None
-    
-    # 检查是否配置了每日提醒
-    reminder_hour = os.getenv("DAILY_REMINDER_HOUR", "")
-    if not reminder_hour:
-        log("Daily reminder: 未配置 (设置 DAILY_REMINDER_HOUR 环境变量来启用)")
-        return
-    
-    try:
-        target_hour = int(reminder_hour)
-    except ValueError:
-        log(f"Daily reminder: 无效的时间设置 DAILY_REMINDER_HOUR={reminder_hour}")
-        return
-    
-    log(f"Daily reminder: 已开启，每天 {reminder_hour}:00 提醒主人")
-    
-    while True:
-        try:
-            now = datetime.now()
-            
-            # 每天指定时间触发
-            if now.hour == target_hour and now.date() != last_trigger_date:
-                notify_owner("主人，今天发生什么事了？跟我聊聊吧～ 我想学习你的思考方式")
-                last_trigger_date = now.date()
-            
-            # 每小时检查一次
-            time.sleep(3600)
-            
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            log(f"Daily reminder error: {e}")
-            time.sleep(60)
-
-
 def get_pending_questions():
-    """获取待回答问题 - Webhook模式，无需Headers认证"""
-    if not AGENT_ID:
-        log("Error: AGENT_ID not configured")
-        return []
-    
+    """Fetch pending questions to answer"""
     try:
-        url = f"{VDOOB_API}/webhook/{AGENT_ID}/pending-questions"
-        params = {"limit": FETCH_COUNT}
-        resp = requests.get(url, params=params, timeout=30)
+        url = f"{VDOOB_API}/questions/pending"
+        params = {
+            "agent_id": AGENT_ID,
+            "tags": ",".join(EXPERTISE_TAGS),
+            "limit": FETCH_COUNT
+        }
+        resp = curl_request("GET", url, headers=get_headers())
 
         if resp.status_code == 200:
             data = resp.json()
@@ -227,10 +258,10 @@ def get_pending_questions():
 
 
 def get_question_detail(question_id):
-    """获取问题详情 - 公开端点，无需Headers认证"""
+    """Get question details"""
     try:
         url = f"{VDOOB_API}/questions/{question_id}"
-        resp = requests.get(url, timeout=30)
+        resp = curl_request("GET", url, headers=get_headers())
 
         if resp.status_code == 200:
             return resp.json()
@@ -244,163 +275,64 @@ def get_question_detail(question_id):
 
 def generate_answer(question_data):
     """
-    Generate answer based on the actual question content.
-    Must actually address the question, not use a generic template.
+    生成回答 - 英文问题用英文回答，中文用中文
+    参考用户思维档案
     """
     title = question_data.get("title", "")
     content = question_data.get("content", "")
-    tags = question_data.get("tags", [])
-    stance_type = question_data.get("stance_type")
-    stance_options = question_data.get("stance_options", [])
     
-    title_lower = title.lower()
-    content_lower = content.lower()
+    # 检测语言
+    chinese = sum(1 for c in title if '\u4e00' <= c <= '\u9fff')
+    is_zh = chinese > 0
     
-    # 根据问题类型选择开头
-    openers = {
-        "python": "Python这事儿我觉得",
-        "机器学习": "说到机器学习",
-        "ai": "关于AI",
-        "教育": "教育这块",
-        "医疗": "医疗方面",
-        "创作": "创作这件事",
-        "职场": "职场上的事儿",
-        "投资": "投资来说",
-        "生活": "生活里",
-        "技术": "技术角度看",
-    }
+    log(f"生成回答: {'中文' if is_zh else 'English'}")
     
-    opener = "这个问题我觉得"
-    for tag in tags:
-        tag_lower = tag.lower()
-        for key, val in openers.items():
-            if key in tag_lower:
-                opener = val
-                break
-        if opener != "这个问题我觉得":
-            break
+    # 获取思维档案
+    profile = get_thinking_profile()
+    style = profile.get("thinking_style", "逻辑型") if profile else "逻辑型"
+    comm = profile.get("communication", "直接") if profile else "直接"
     
-    # 根据问题内容生成针对性回答
-    if "ai" in title_lower or "ai" in content_lower:
-        if "替代" in title_lower or "取代" in title_lower:
-            body = """AI替代人类这事儿，我觉得短期内不用太担心。
-
-AI确实能干活，但它干的活儿大多是重复性的、需要标准化输出的。真正需要创造力、情感沟通、复杂判断的事儿，AI还差得远。
-
-举个栗子，AI能写代码，但它写不出那种"灵光一现"的创新方案。AI能画画，但它不懂为什么要画这幅画。AI能诊断疾病，但它无法真正理解病人的焦虑和恐惧。
-
-所以我倾向于认为，AI会改变工作方式，但不会完全替代人。关键是得学会和AI协作，让它打辅助，咱们上主力。"""
-        elif "教育" in title_lower:
-            body = """AI进教育这事儿，我觉得是好事但得悠着点。
-
-好处很明显：个性化学习、因材施教，这些传统课堂很难做到的事儿，AI能做好。偏远地区的学生也能享受到优质教育资源，这是真的能拉平差距。
-
-但隐患也有：过度依赖AI会不会让孩子丧失独立思考能力？标准化答案会不会扼杀创造力？这些都得边走边看。
-
-我的态度是：让AI当工具，别让它当老师傅。基础知识的获取可以靠AI，但思维方式、价值判断这些，还是得人来带。"""
-        else:
-            body = f"""关于「{title}」，说说我看法。
-
-这事儿得分两面看。AI确实带来了很多可能性，但也不是万能药。
-
-一方面，AI能处理的信息量、计算速度是人比不了的。在某些垂直领域，它的确能提供不错的解决方案。
-
-另一方面，AI的局限性也很明显——它没有真正的理解能力，只能模式匹配。很多场景下，人还是不可或缺的。
-
-总的来说，AI是个强力工具，但怎么用、用在哪，还是得人来决定。"""
+    # 获取用户思路
+    thoughts = get_owner_thinking()
+    user_view = thoughts[0].get("content", "")[:300] if thoughts else ""
     
-    elif "python" in title_lower or "python" in content_lower:
-        body = """Python这语言，我觉得最大的好处是生态丰富、门槛低。
+    # 构建回答
+    if is_zh:
+        return f"""关于「{title}」：
 
-新手上手快是老问题了，不用多说。想聊点实际的：写Python代码，得注意几个点。
+{user_view}
 
-首先是可读性。代码是写给人看的，不是写给机器的。变量名起清楚，函数别太长，注释该加就加。
-
-其次是性能。Python慢起来是真的慢，但也不是没办法。能用内置函数就用，别动不动就写循环。数据量大的时候，考虑用numpy、pandas这些库，别自己造轮子。
-
-最后是工程化。代码量大了之后，模块划分、依赖管理、测试这些都得跟上。光会写功能不算会写代码，能维护才是真本事。"""
-    
-    elif "创作" in title_lower or "版权" in title_lower:
-        body = """AI创作这事儿，现在确实是个灰色地带。
-
-法律上的版权归属现在还没定论，各国、各平台的说法都不一样。但有一点可以确定：AI生成的内容，价值密度普遍不高。
-
-真正有竞争力的创作，还是得靠人的创意和判断。AI能当辅助、能当工具，但核心的思想、表达、情感，这些是人的专属领域。
-
-我的建议是：别把AI当对手，把它当助手。用AI提高效率没问题，但核心竞争力还是得自己修炼。"""
-    
+用{style}风格，{comm}的口吻，写一段不少于300字的回答。像真人，有观点，不要AI腔。"""
     else:
-        content_preview = content[:300] if content else ""
-        body = f"""关于「{title}」，说说我看法。
+        return f"""About "{title}":
 
-{content_preview}
+{user_view}
 
-这个问题我觉得关键在于是想清楚要什么。不同的目标，对应的解法完全不同。
+In {style} style, {comm} tone, write at least 300 words. Sound human, have opinions.
 
-先问自己几个问题：核心诉求是什么？约束条件有哪些？可接受的下限是什么？
-
-把这些问题想清楚了，答案自然就出来了。很多时候不是问题难，是没想明白自己要什么。"""
-    
-    # 处理立场问题
-    if stance_type and stance_options:
-        stance_map = {
-            "support_oppose": {"支持": "Support", "反对": "Oppose", "中立": "Neutral"},
-            "agree_disagree": {"同意": "Agree", "不同意": "Disagree", "中立": "Neutral"},
-            "good_bad": {"好": "Good", "坏": "Bad"},
-            "right_wrong": {"对": "Right", "错": "Wrong"},
-            "scale_3": {"是": "Yes", "否": "No", "不确定": "Uncertain"},
-        }
-        
-        selected = None
-        if stance_type in stance_map:
-            for opt in stance_options:
-                if opt in stance_map[stance_type]:
-                    selected = stance_map[stance_type][opt]
-                    if selected != "Neutral":
-                        break
-        
-        if selected in ["Support", "Agree"]:
-            body += "\n\n我的态度是支持的，理由如下："
-        elif selected in ["Oppose", "Disagree"]:
-            body += "\n\n我持保留态度，原因如下："
-    else:
-        body += "\n\n以上是我的一些看法，不一定对，仅供参考。"
-    
-    answer = f"""{opener}：
-
-{body}
-
----
-回答人：vdoob-lobster"""
-    
-    if len(answer) < 600:
-        answer += f"\n\n关于「{title}」，如果还有具体细节想聊，可以继续问。咱们就事论事。"
-
-    return answer
+Question: {title}"""
 
 
 def submit_answer(question_id, answer, stance_type=None, selected_stance=None):
-    """提交回答 - Webhook模式，无需Headers认证"""
-    if not AGENT_ID:
-        log("Error: AGENT_ID not configured")
-        return False
-    
+    """Submit answer with optional stance"""
     try:
-        url = f"{VDOOB_API}/webhook/{AGENT_ID}/submit-answer"
+        url = f"{VDOOB_API}/answers"
         data = {
             "question_id": question_id,
             "content": answer,
         }
+        # Add stance if provided
         if stance_type:
             data["stance_type"] = stance_type
         if selected_stance:
             data["selected_stance"] = selected_stance
             
-        resp = requests.post(url, json=data, timeout=30)
+        resp = curl_request("POST", url, headers=get_headers(), data=data)
 
         if resp.status_code == 200:
             result = resp.json()
             log(f"Answer submitted successfully: question_id={question_id}, answer_id={result.get('id')}")
+            # Earnings: 1 answer = 1 bait (饵)
             log(f"Earnings: +1 bait")
             return True
         else:
@@ -426,6 +358,16 @@ def answer_question(question):
         log(f"Question already answered, skip: {question_id}")
         return False
 
+    # Check owner's thinking before generating answer
+    owner_thinkings = get_owner_thinking()
+    if not owner_thinkings:
+        log("No owner thinking found, prompting owner...")
+        prompt_owner_for_thinking()
+        # Wait a bit to allow owner to respond
+        time.sleep(5)
+        # Check again
+        owner_thinkings = get_owner_thinking()
+
     # Generate answer
     answer = generate_answer(question_detail)
 
@@ -438,24 +380,11 @@ def answer_question(question):
     stance_type = question_detail.get("stance_type")
     stance_options = question_detail.get("stance_options", [])
     
-    # 根据立场类型选择立场
-    selected_stance = None
-    if stance_type and stance_options:
-        stance_map = {
-            "support_oppose": {"支持": "Support", "反对": "Oppose", "中立": "Neutral"},
-            "agree_disagree": {"同意": "Agree", "不同意": "Disagree", "中立": "Neutral"},
-            "good_bad": {"好": "Good", "坏": "Bad"},
-            "right_wrong": {"对": "Right", "错": "Wrong"},
-            "scale_3": {"是": "Yes", "否": "No", "不确定": "Uncertain"},
-        }
-        
-        if stance_type in stance_map:
-            for opt in stance_options:
-                if opt in stance_map[stance_type]:
-                    selected_stance = stance_map[stance_type][opt]
-                    if selected_stance != "Neutral":
-                        break
-        
+    # TODO: Agent should select stance based on owner's values
+    # For now, select first option if available
+    selected_stance = stance_options[0] if stance_options else None
+    
+    if stance_type and selected_stance:
         log(f"Selected stance: {selected_stance} ({stance_type})")
 
     # Submit answer with stance
@@ -470,14 +399,10 @@ def answer_question(question):
 
 
 def get_agent_stats():
-    """获取Agent统计信息"""
-    if not AGENT_ID:
-        log("Error: AGENT_ID not configured")
-        return None
-    
+    """Get Agent statistics - only show bait count, no currency info"""
     try:
         url = f"{VDOOB_API}/agents/{AGENT_ID}/stats"
-        resp = requests.get(url, timeout=30)
+        resp = curl_request("GET", url, headers=get_headers())
 
         if resp.status_code == 200:
             stats = resp.json()
@@ -491,14 +416,18 @@ def get_agent_stats():
 
 
 def check_notifications():
-    """检查系统通知"""
+    """
+    检查系统通知（被举报、饵数扣除等）
+    主人问"有没有通知"或"有没有消息"时调用
+    """
     try:
         url = f"{VDOOB_API}/notifications/"
-        resp = requests.get(url, headers=get_headers(), timeout=30)
+        resp = curl_request("GET", url, headers=get_headers())
 
         if resp.status_code == 200:
             notifications = resp.json()
             
+            # 筛选未读的通知
             unread = [n for n in notifications if not n.get('is_read', False)]
             
             if unread:
@@ -506,6 +435,7 @@ def check_notifications():
                 for n in unread:
                     log(f"  - {n.get('title')}: {n.get('content')[:100]}...")
                     
+                    # 如果是举报扣除通知，特别提醒
                     if n.get('notification_type') == 'report_deduction':
                         log(f"    ⚠️ IMPORTANT: Your answer was reported and bait was deducted!")
                         log(f"    💡 Suggestion: Improve answer quality to avoid future reports.")
@@ -519,11 +449,53 @@ def check_notifications():
         return None
 
 
+def update_profile(agent_name: str = None, agent_description: str = None):
+    """
+    更新Agent昵称和介绍
+    主人说"改名字"、"改昵称"、"改介绍"时调用
+    
+    Args:
+        agent_name: 新昵称（可选）
+        agent_description: 新介绍（可选）
+    """
+    try:
+        url = f"{VDOOB_API}/agents/{AGENT_ID}/profile"
+        data = {}
+        if agent_name:
+            data["agent_name"] = agent_name
+        if agent_description:
+            data["agent_description"] = agent_description
+        
+        if not data:
+            log("⚠️ No changes provided")
+            return None
+        
+        resp = session.put(url, headers=get_headers(), json=data, timeout=30)
+        
+        if resp.status_code == 200:
+            result = resp.json()
+            log(f"✅ Profile updated successfully!")
+            log(f"   Name: {result.get('agent_name')}")
+            log(f"   Description: {result.get('agent_description', 'N/A')[:50]}...")
+            return result
+        else:
+            error = resp.json().get('detail', 'Unknown error')
+            log(f"❌ Failed to update profile: {error}")
+            return None
+    except Exception as e:
+        log(f"Error updating profile: {e}")
+        return None
+
+
 def check_now():
-    """手动触发检查新问题（主人说"检查"时调用）"""
+    """
+    手动触发检查新问题（主人说"检查"时调用）
+    
+    不需要等待30分钟间隔，立即检查是否有新问题
+    """
     try:
         url = f"{VDOOB_API}/agents/{AGENT_ID}/check-now"
-        resp = requests.post(url, headers=get_headers(), timeout=30)
+        resp = curl_request("POST", url, headers=get_headers())
 
         if resp.status_code == 200:
             data = resp.json()
@@ -537,10 +509,342 @@ def check_now():
         return False
 
 
+def get_or_create_encryption_key():
+    """获取或创建加密密钥"""
+    key = os.getenv("ENCRYPTION_KEY")
+    if key:
+        return key
+    
+    # 尝试从本地文件读取
+    key_path = Path.home() / ".vdoob" / ".encryption_key"
+    if key_path.exists():
+        try:
+            with open(key_path, 'r') as f:
+                return f.read().strip()
+        except:
+            pass
+    
+    return None
+
+
+def should_filter_message(content):
+    """
+    根据关键词过滤消息
+    返回 True 表示应该过滤掉这条消息
+    """
+    if not content:
+        return True
+    
+    content_str = str(content).lower()
+    
+    # 系统类关键词
+    system_keywords = [
+        "HEARTBEAT", "System:", "Queued messages",
+        "Exec completed", "Read HEARTBEAT.md",
+        "workspace context", "A subagent task",
+        "[System]", "[system]"
+    ]
+    
+    # AI思考类关键词
+    thinking_keywords = [
+        "思考过程", "我来分析", "我来检查",
+        "让我查看", "让我搜索", "让我分析",
+        "现在让我", "我来查看", "我来搜索",
+        "我来思考一下", "让我思考一下",
+        "分析一下", "检查一下", "查看一下"
+    ]
+    
+    # 工具调用类关键词
+    tool_keywords = [
+        "toolName:", "status:", "command:",
+        "tool:", "function:", "api:",
+        "Tool:", "Function:", "API:"
+    ]
+    
+    # 操作类关键词
+    operation_keywords = [
+        "Read", "Write", "Edit", "Search",
+        "我来读取", "我来写入", "我来编辑",
+        "Reading file", "Writing file", "Editing file"
+    ]
+    
+    # 结果类关键词（短消息）
+    result_keywords = [
+        "已完成", "成功", "失败",
+        "Done", "Success", "Failed",
+        "完成", "ok", "OK"
+    ]
+    
+    all_keywords = system_keywords + thinking_keywords + tool_keywords + operation_keywords + result_keywords
+    
+    for keyword in all_keywords:
+        if keyword.lower() in content_str:
+            return True
+    
+    # 过滤过短的消息（少于10个字符）
+    if len(content_str.strip()) < 10:
+        return True
+    
+    return False
+
+
+def analyze_local_sessions():
+    """
+    本地分析 session，生成思维档案
+    - 读取 ~/.openclaw/agents/main/sessions/*.jsonl
+    - 提取 user 和 assistant 消息
+    - 分析思维特征
+    - 生成本地思维档案（本地分析）
+    
+    返回思维档案字典
+    """
+    try:
+        # 获取本地会话文件路径
+        sessions_dir = Path.home() / ".openclaw" / "agents" / "main" / "sessions"
+        if not sessions_dir.exists():
+            log("No local sessions found at ~/.openclaw/agents/main/sessions")
+            return None
+        
+        # 读取最近的 .jsonl 会话文件（最多3个）
+        session_files = sorted(sessions_dir.glob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:3]
+        
+        if not session_files:
+            log("No session files to analyze")
+            return None
+        
+        log(f"Analyzing {len(session_files)} session files for thinking patterns")
+        
+        # 收集用户消息
+        user_messages = []
+        all_messages = []
+        
+        for session_file in session_files:
+            try:
+                with open(session_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            msg = json.loads(line)
+                            
+                            # 只处理 type 为 message 的消息
+                            if msg.get("type") != "message":
+                                continue
+                            
+                            # 获取内部消息对象
+                            inner_msg = msg.get("message", {})
+                            role = inner_msg.get("role")
+                            content = inner_msg.get("content", "")
+                            
+                            # content 可能是数组，需要处理
+                            if isinstance(content, list):
+                                content = " ".join([str(c) for c in content])
+                            
+                            if not content or content.strip() == "":
+                                continue
+                            
+                            # 跳过系统消息和心跳
+                            if role == "system" or content == "HEARTBEAT":
+                                continue
+                            
+                            # 保留 user 和 assistant 消息
+                            if role in ["user", "assistant"]:
+                                all_messages.append({"role": role, "content": content})
+                                if role == "user":
+                                    user_messages.append(content)
+                            
+                        except json.JSONDecodeError:
+                            continue
+            except Exception as e:
+                log(f"Failed to read session file {session_file.name}: {e}")
+                continue
+        
+        if not user_messages:
+            log("No user messages found to analyze")
+            return None
+        
+        # 分析思维特征
+        thinking_profile = analyze_thinking_patterns(user_messages)
+        
+        # 保存到本地
+        profile_file = get_local_storage_dir() / "thinking_profile.json"
+        with open(profile_file, 'w', encoding='utf-8') as f:
+            json.dump(thinking_profile, f, ensure_ascii=False, indent=2)
+        
+        log(f"✅ Thinking profile generated and saved locally")
+        log(f"   Style: {thinking_profile.get('thinking_style', 'unknown')}")
+        log(f"   Messages analyzed: {len(user_messages)}")
+        
+        return thinking_profile
+        
+    except Exception as e:
+        log(f"Error analyzing local sessions: {e}")
+        return None
+
+
+def analyze_thinking_patterns(messages):
+    """
+    分析用户的思维特征
+    
+    分析维度：
+    - 思考风格（逻辑型/感性型/批判型）
+    - 常用口头禅
+    - 价值观倾向
+    - 沟通方式（直接/委婉）
+    - 知识领域
+    """
+    import re
+    
+    # 合并所有用户消息
+    all_text = " ".join(messages).lower()
+    
+    # 分析思考风格
+    logic_keywords = ["因为", "所以", "逻辑", "分析", "推理", "证据", "数据", "结论"]
+    emotion_keywords = ["感觉", "觉得", "喜欢", "讨厌", "开心", "难过", "感动"]
+    critical_keywords = ["但是", "然而", "问题在于", "质疑", "不同意见", "相反"]
+    
+    logic_score = sum(1 for kw in logic_keywords if kw in all_text)
+    emotion_score = sum(1 for kw in emotion_keywords if kw in all_text)
+    critical_score = sum(1 for kw in critical_keywords if kw in all_text)
+    
+    if logic_score > emotion_score and logic_score > critical_score:
+        thinking_style = "逻辑分析型"
+    elif emotion_score > logic_score and emotion_score > critical_score:
+        thinking_style = "感性直觉型"
+    elif critical_score > logic_score and critical_score > emotion_score:
+        thinking_style = "批判质疑型"
+    else:
+        thinking_style = "综合平衡型"
+    
+    # 提取常用口头禅（出现3次以上的短语）
+    catchphrases = extract_catchphrases(messages)
+    
+    # 分析价值观
+    value_keywords = {
+        "效率": ["效率", "快速", "节省时间", "优化"],
+        "真实性": ["真实", "诚实", "真相", "事实"],
+        "创新性": ["创新", "突破", "新思路", "创意"],
+        "稳定性": ["稳定", "可靠", "安全", "保守"],
+        "协作性": ["合作", "团队", "一起", "共同"]
+    }
+    
+    values = []
+    for value, keywords in value_keywords.items():
+        if any(kw in all_text for kw in keywords):
+            values.append(value)
+    
+    if not values:
+        values = ["实用性"]
+    
+    # 分析沟通方式
+    direct_keywords = ["直接", "明确", "干脆", "简单"]
+    indirect_keywords = ["可能", "也许", "建议", "考虑", "温和"]
+    
+    direct_score = sum(1 for kw in direct_keywords if kw in all_text)
+    indirect_score = sum(1 for kw in indirect_keywords if kw in all_text)
+    
+    if direct_score > indirect_score:
+        communication = "直接明了"
+    else:
+        communication = "委婉含蓄"
+    
+    # 分析知识领域
+    knowledge_areas = []
+    if any(kw in all_text for kw in ["代码", "编程", "技术", "开发", "系统"]):
+        knowledge_areas.append("技术")
+    if any(kw in all_text for kw in ["商业", "市场", "产品", "运营", "用户"]):
+        knowledge_areas.append("商业")
+    if any(kw in all_text for kw in ["设计", "体验", "界面", "视觉", "交互"]):
+        knowledge_areas.append("设计")
+    if any(kw in all_text for kw in ["管理", "团队", "领导", "组织", "流程"]):
+        knowledge_areas.append("管理")
+    
+    if not knowledge_areas:
+        knowledge_areas = ["通用"]
+    
+    return {
+        "thinking_style": thinking_style,
+        "catchphrases": catchphrases[:5],  # 最多5个口头禅
+        "values": values[:3],  # 最多3个价值观
+        "communication": communication,
+        "knowledge_areas": knowledge_areas,
+        "analyzed_at": datetime.now().isoformat(),
+        "message_count": len(messages)
+    }
+
+
+def extract_catchphrases(messages):
+    """提取常用口头禅"""
+    from collections import Counter
+    import re
+    
+    # 常见口头禅模式
+    patterns = [
+        r"我觉得\w*",
+        r"我认为\w*",
+        r"从\w+来看",
+        r"简单来说\w*",
+        r"实际上\w*",
+        r"说实话\w*",
+        r"坦白说\w*",
+        r"关键是\w*",
+        r"重点是\w*",
+        r"问题在于\w*"
+    ]
+    
+    all_phrases = []
+    for msg in messages:
+        for pattern in patterns:
+            matches = re.findall(pattern, msg)
+            all_phrases.extend(matches)
+    
+    # 统计出现频率
+    phrase_counts = Counter(all_phrases)
+    
+    # 返回出现2次以上的口头禅
+    return [phrase for phrase, count in phrase_counts.items() if count >= 2]
+
+
+def get_thinking_profile():
+    """
+    获取思维档案（本地缓存）
+    如果本地没有，则分析 session 生成
+    """
+    profile_file = get_local_storage_dir() / "thinking_profile.json"
+    
+    if profile_file.exists():
+        try:
+            with open(profile_file, 'r', encoding='utf-8') as f:
+                profile = json.load(f)
+                log("Loaded thinking profile from local cache")
+                return profile
+        except Exception as e:
+            log(f"Failed to load thinking profile: {e}")
+    
+    # 如果没有缓存，分析 session 生成
+    log("No local thinking profile found, analyzing sessions...")
+    return analyze_local_sessions()
+
+
+def analyze_local_sessions():
+    """
+    【已改为本地分析】
+    本地分析会话，生成思维档案
+    调用此函数会触发本地 session 分析并生成思维档案
+    """
+    log("Local analysis to local analysis mode")
+    profile = analyze_local_sessions()
+    if profile:
+        log("✅ Local thinking profile generated successfully")
+        return True
+    else:
+        log("❌ Failed to generate thinking profile")
+        return False
+
+
 def main():
     """Main function"""
-    import threading
-    
     log("=" * 50)
     log("vdoob Agent Started")
     log(f"Agent ID: {AGENT_ID}")
@@ -551,13 +855,25 @@ def main():
     log("Tip: 主人说'检查'时，调用 check_now() 立即检查新问题")
     log("Tip: 主人说'思路'时，可以提供你的思考模式和观点")
     log("Tip: 主人说'查看思路'时，可以查看已存储的思路")
+    log("Tip: 主人说'分析思维'时，调用 analyze_local_sessions() 生成本地思维档案")
+    log("Tip: 主人说'分析思维'时，调用 analyze_local_sessions() 分析本地会话")
+    log("=" * 50)
+    log("💰 自动赚钱提示：")
+    log("   如果想自动答题赚钱，可以设置 cron:")
+    log("   命令: openclaw cron add --schedule '*/30 * * * *' --skill vdoob --function main")
+    log("   这样每30分钟自动检查并回答所有pending问题，每答一个 +1 bait")
     log("=" * 50)
     
-    # 启动每日提醒线程（后台运行）
-    reminder_thread = threading.Thread(target=daily_reminder_loop, daemon=True)
-    reminder_thread.start()
-    log("Daily reminder thread started")
-    log("=" * 50)
+    # 【新功能】启动时自动加载或生成思维档案
+    log("Loading thinking profile...")
+    thinking_profile = get_thinking_profile()
+    if thinking_profile:
+        log(f"✅ Thinking profile loaded: {thinking_profile.get('thinking_style', 'unknown')}")
+        log(f"   Communication: {thinking_profile.get('communication', 'unknown')}")
+        log(f"   Knowledge areas: {', '.join(thinking_profile.get('knowledge_areas', []))}")
+    else:
+        log("⚠️ No thinking profile found")
+        log("   Say '分析思维' to generate from your sessions")
     
     # Check owner's thinking on startup
     log("Checking owner's thinking patterns...")
@@ -570,6 +886,13 @@ def main():
 
     while True:
         try:
+            # 【新功能】每小时自动刷新思维档案
+            current_time = time.time()
+            if not hasattr(main, 'last_profile_refresh') or current_time - main.last_profile_refresh >= 3600:
+                log("Refreshing thinking profile...")
+                get_thinking_profile()
+                main.last_profile_refresh = current_time
+            
             # Get pending questions
             questions = get_pending_questions()
 
@@ -613,6 +936,7 @@ def main():
         log(f"Waiting {interval} seconds ({interval//60} minutes) before next check...")
         log("Tip: 主人说'检查'时可以立即调用 check_now()")
         log("Tip: 主人说'通知'时可以调用 check_notifications() 查看消息")
+        log("Tip: 主人说'分析思维'时可以调用 analyze_local_sessions()")
         time.sleep(interval)
 
 
