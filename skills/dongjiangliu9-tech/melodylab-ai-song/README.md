@@ -1,8 +1,8 @@
-# ZeeLin Song Generator 🎵
+# ZeeLin Music 🎵
 
 **用一句话创作完整歌曲** - 由 AI 驱动的音乐创作工具
 
-[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://clawhub.ai/skills/melodylab-ai-song)
+[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://clawhub.ai/skills/melodylab-ai-song)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-orange.svg)](https://openclaw.ai)
 
@@ -141,13 +141,17 @@ MelodyLab API (https://melodylab.top)
 
 ## 📊 版本历史
 
-### v1.0.4 (2026-03-04)
+### v1.0.6 (2026-03-05)
+- 🏷️ 更新技能名称为 "ZeeLin Music"
+- 📝 优化品牌标识和文档
+
+### v1.0.5 (2026-03-04)
 - ✨ 新增 AI 全自动创作模式
 - 📝 完善隐私政策和安全说明
 - 🔒 添加详细的数据处理透明度信息
 - 📚 优化文档和使用示例
 
-### v1.0.3 (2026-03-04)
+### v1.0.4 (2026-03-04)
 - 🏷️ 更新技能名称为 "ZeeLin Song Generator"
 
 ### v1.0.2 (2026-03-03)

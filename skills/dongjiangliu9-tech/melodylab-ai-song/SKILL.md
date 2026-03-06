@@ -1,7 +1,7 @@
 ---
-name: ZeeLin Song Generator
+name: ZeeLin Music
 slug: melodylab-ai-song
-version: 1.0.5
+version: 1.0.7
 description: AI 全自动音乐创作神器：一句话描述，瞬间生成完整歌曲，支持人声演唱/纯音乐、流行/摇滚/民谣等多种风格 - Powered by ZeeLin
 author: 刘东江 (@lidngjing317853)
 license: MIT
