@@ -3,11 +3,16 @@
   "slug": "crypto-lens",
   "displayName": "CryptoLens",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1772686734941,
-    "commit": "https://github.com/openclaw/skills/commit/691ca744f4d1b172b32d352f2149a622dc261a1e"
+    "version": "2.0.1",
+    "publishedAt": 1772686967906,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1772686734941,
+      "commit": "https://github.com/openclaw/skills/commit/691ca744f4d1b172b32d352f2149a622dc261a1e"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1772684616196,

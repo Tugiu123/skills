@@ -35,6 +35,19 @@ metadata:
 
 AI-driven multi-coin cryptocurrency analysis with technical indicators.
 
+## ⚠️ Billing Disclosure
+
+This is a **paid skill**. Each command costs 1 token (0.001 USDT) via [SkillPay.me](https://skillpay.me).
+
+**How billing works:**
+1. You provide your BNB Chain wallet address via `--user-id` — this is your billing identity
+2. The skill calls SkillPay to deduct 1 token from your balance before executing
+3. If you have no balance, you receive a payment link to top up with USDT (BNB Chain)
+4. You are **never charged without explicit action** — you must click the payment link and approve the transaction in your wallet
+5. The embedded API key belongs to the skill publisher and can only initiate charges, not access your wallet or withdraw funds
+
+**You control your spending:** deposit only what you want to use. No subscriptions, no auto-renewal.
+
 ## Commands
 
 ### 1. Multi-Coin Compare
