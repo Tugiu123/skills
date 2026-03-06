@@ -1,11 +1,17 @@
 {
   "owner": "brunobuddy",
   "slug": "manifest-build",
-  "displayName": "Manifest",
+  "displayName": "Manifest LLM Router",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772515872138,
-    "commit": "https://github.com/openclaw/skills/commit/7152e6180dd003675bdfd489fbf7f200980fb41a"
+    "version": "1.0.5",
+    "publishedAt": 1772691099887,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772515872138,
+      "commit": "https://github.com/openclaw/skills/commit/7152e6180dd003675bdfd489fbf7f200980fb41a"
+    }
+  ]
 }
