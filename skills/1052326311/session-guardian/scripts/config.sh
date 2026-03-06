@@ -195,6 +195,28 @@ PUSH_CHANNEL="${DELIVERY_CHANNEL}"
 PUSH_TARGET="${DELIVERY_TARGET}"
 
 # ============================================
+# v2.0 新增配置
+# ============================================
+
+# 固定Agent vs 临时Subagent
+FIXED_AGENT_SESSION_LIMIT_MB=5
+SUBAGENT_SESSION_LIMIT_MB=1
+FIXED_AGENT_KEEP_DAYS=90
+SUBAGENT_KEEP_DAYS=7
+
+# 协作追踪
+COLLABORATION_TRACKING_ENABLED=true
+COLLABORATION_GRAPH_ENABLED=true
+
+# 知识提取
+KNOWLEDGE_EXTRACTION_ENABLED=true
+KNOWLEDGE_EXTRACTION_INTERVAL="0 0 * * 0"  # 每周日
+
+# 协作健康度
+COLLABORATION_HEALTH_CHECK_ENABLED=true
+COLLABORATION_HEALTH_THRESHOLD=70  # 低于70分告警
+
+# ============================================
 # 内部变量（不要修改）
 # ============================================
 

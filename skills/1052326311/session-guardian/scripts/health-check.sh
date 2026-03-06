@@ -25,7 +25,7 @@ alert() {
 
 # 1. 检查 session 文件大小
 check_session_size() {
-    log "=== 检查 session 文件大小 ==="
+    log "=== 检查 session 文件大小（v2.0智能策略）==="
     
     local total_cleaned=0
     
@@ -33,27 +33,32 @@ check_session_size() {
         [ -d "$agent_dir" ] || continue
         
         local agent=$(basename $(dirname "$agent_dir"))
-        local large_files=$(find "$agent_dir" -name "*.jsonl" -size +${SESSION_SIZE_LIMIT_MB}M 2>/dev/null)
         
-        if [ -n "$large_files" ]; then
-            local count=$(echo "$large_files" | wc -l | tr -d ' ')
-            alert "[$agent] 发现 $count 个过大的 session 文件 (>${SESSION_SIZE_LIMIT_MB}MB)"
+        # 判断agent类型：固定agent在agents目录下有独立目录
+        # 所有在 ~/.openclaw/agents/*/sessions 下的都是固定agent
+        local limit_mb=$FIXED_AGENT_SESSION_LIMIT_MB
+        local agent_type="固定Agent"
+        
+        for session_file in "$agent_dir"/*.jsonl; do
+            [ -f "$session_file" ] || continue
             
-            # 备份后删除
-            echo "$large_files" | while read -r file; do
-                local size=$(du -h "$file" | cut -f1)
-                log "  清理: $(basename "$file") ($size)"
+            local filename=$(basename "$session_file")
+            local size_mb=$(du -m "$session_file" | cut -f1)
+            
+            if [ $size_mb -gt $limit_mb ]; then
+                alert "[$agent/$filename] $agent_type session过大: ${size_mb}MB (限制${limit_mb}MB)"
                 
                 # 备份到专门目录
                 local backup_dir="$BACKUP_ROOT/large-sessions/$(date +%Y%m%d)"
                 mkdir -p "$backup_dir"
-                cp "$file" "$backup_dir/" 2>/dev/null || true
+                cp "$session_file" "$backup_dir/${agent}_${filename}" 2>/dev/null || true
                 
                 # 删除原文件
-                rm "$file"
+                rm "$session_file"
                 ((total_cleaned++))
-            done
-        fi
+                log "  已清理并备份"
+            fi
+        done
     done
     
     if [ $total_cleaned -gt 0 ]; then

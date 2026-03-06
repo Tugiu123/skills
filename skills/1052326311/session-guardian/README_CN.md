@@ -1,42 +1,60 @@
 # Session Guardian 🛡️
 
-**对话永不丢失，任务永不混淆** - 企业级对话备份 + 项目管理解决方案
+**[OpenClaw](https://openclaw.ai) 企业级对话备份与项目管理插件**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/cyber-axin/session-guardian)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/1052326311/session-guardian)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-0.9.0+-orange.svg)](https://openclaw.ai)
+[![ClawHub](https://img.shields.io/badge/ClawHub-安装-brightgreen.svg)](https://clawhub.com)
+
+> 一个为 OpenClaw 提供企业级对话备份、恢复和项目管理能力的技能插件。让你的 AI 对话和任务状态永不丢失。
+
+[English](README.md) | 中文文档
 
 ---
 
-## 使用场景
+## 什么是 OpenClaw？
 
-遇到这些问题？Session Guardian 帮你解决：
+[OpenClaw](https://openclaw.ai) 是一个 AI 智能体框架，支持多智能体协作和自动化。Session Guardian 是 OpenClaw 的一个技能/插件，用于保护你的对话记录和管理复杂任务。
 
-- 🔴 **模型频繁掉线**，对话内容丢失，工作白做
-- 🔴 **Gateway 重启**，不知道之前在做什么，任务状态全忘
-- 🔴 **跨渠道混淆**，把私人信息发到群聊，或把群聊内容发到 DM
-- 🔴 **复杂任务难追踪**，任务跨越多个 session，状态记不住
-- 🔴 **多智能体协作混乱**，多个 agent 同时工作，不知道谁在做什么
-- 🔴 **Session 文件过大**，导致超时、响应慢、Token 消耗大
+---
+
+## 为什么需要 Session Guardian？
+
+使用 OpenClaw 时遇到这些问题？Session Guardian 帮你解决：
+
+- 🔴 **模型频繁掉线** → 对话内容丢失，工作白做
+- 🔴 **Gateway 重启** → 不知道之前在做什么，任务状态全忘
+- 🔴 **跨渠道混淆** → 把私人信息发到群聊，或把群聊内容发到 DM
+- 🔴 **复杂任务难追踪** → 任务跨越多个 session，状态记不住
+- 🔴 **多智能体协作混乱** → 多个 agent 同时工作，不知道谁在做什么
+- 🔴 **Session 文件过大** → 导致超时、响应慢、Token 消耗大
 
 ---
 
 ## 快速开始
 
+### 前置要求
+
+- 已安装并运行 [OpenClaw](https://openclaw.ai)
+- 已安装 [ClawHub CLI](https://clawhub.com)（用于安装插件）
+
+### 安装步骤
+
 ```bash
-# 1. 安装
+# 从 ClawHub 安装
 clawhub install session-guardian
 
-# 2. 一键部署（自动配置所有定时任务）
+# 一键部署（自动配置所有定时任务）
 cd ~/.openclaw/workspace/skills/session-guardian
 bash scripts/install.sh
 
-# 3. 验证安装
+# 验证安装
 crontab -l | grep session-guardian
 openclaw cron list
 ```
 
-**就这么简单！** 现在你的对话和任务状态都受到保护了。
+**就这么简单！** 你的 OpenClaw 对话和任务状态现在都受到保护了。
 
 ---
 
@@ -173,6 +191,16 @@ bash scripts/plan-manager.sh archive "智能巡检产品v1.0"
 - [完整文档](SKILL.md) - 详细功能说明和配置
 - [使用示例](EXAMPLES.md) - 实战案例和常见问题
 - [发布说明](RELEASE-v1.0.md) - 完整功能详解
+- [English Documentation](README.md) - 英文文档
+
+---
+
+## 系统要求
+
+- OpenClaw >= 0.9.0
+- macOS、Linux 或 Windows (WSL)
+- Bash shell
+- Cron（用于定时任务）
 
 ---
 
@@ -185,8 +213,15 @@ bash scripts/plan-manager.sh archive "智能巡检产品v1.0"
 - ✨ GatewayRestart 强制恢复
 - 🔧 健康检查与自动修复
 - 📝 完整文档
+- 🌍 中英文双语支持
 
 [查看完整更新日志](RELEASE-v1.0.md)
+
+---
+
+## 贡献
+
+欢迎贡献代码！请随时提交 Pull Request。
 
 ---
 
@@ -196,7 +231,7 @@ bash scripts/plan-manager.sh archive "智能巡检产品v1.0"
 - Lobster Studio 创始人
 - King（龙虾之王）- 主控 AI Agent，统筹五大智能体军团
 
-基于 Lobster Studio 多智能体军团协作的实战经验打造。
+基于 Lobster Studio 在 OpenClaw 上的多智能体军团协作实战经验打造。
 
 ---
 
@@ -204,7 +239,16 @@ bash scripts/plan-manager.sh archive "智能巡检产品v1.0"
 
 - **Email**：zhuangxin@szbit.cn
 - **WeChat**：sixsixsix_666-
-- **GitHub**：https://github.com/cyber-axin/session-guardian
+- **GitHub**：https://github.com/1052326311/session-guardian
+
+---
+
+## 相关链接
+
+- [OpenClaw 官网](https://openclaw.ai)
+- [OpenClaw 文档](https://docs.openclaw.ai)
+- [ClawHub - 技能市场](https://clawhub.com)
+- [OpenClaw GitHub](https://github.com/openclaw/openclaw)
 
 ---
 
@@ -214,4 +258,10 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-**Session Guardian v1.0** - 让你的 AI 对话永不丢失，任务状态永不混淆 🛡️
+## 关键词
+
+`openclaw` `openclaw-skill` `openclaw插件` `对话备份` `项目管理` `多智能体` `ai-agent` `任务管理` `数据保护` `自动化`
+
+---
+
+**Session Guardian v1.0** - 让你的 OpenClaw 对话永不丢失，任务状态永不混淆 🛡️
