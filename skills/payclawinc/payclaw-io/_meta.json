@@ -1,13 +1,18 @@
 {
   "owner": "payclawinc",
   "slug": "payclaw-io",
-  "displayName": "PayClaw — Badge + Spend",
+  "displayName": "Payclaw Io Pub",
   "latest": {
-    "version": "0.7.0",
-    "publishedAt": 1772575243939,
-    "commit": "https://github.com/openclaw/skills/commit/0c25a44c241a4ed02fff148d4fcd3f39d7d7298f"
+    "version": "0.7.1",
+    "publishedAt": 1772684521915,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.7.0",
+      "publishedAt": 1772575243939,
+      "commit": "https://github.com/openclaw/skills/commit/0c25a44c241a4ed02fff148d4fcd3f39d7d7298f"
+    },
     {
       "version": "0.6.0",
       "publishedAt": 1772405116938,
