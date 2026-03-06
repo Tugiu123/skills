@@ -534,7 +534,7 @@ def main() -> None:
             "scan_date": datetime.now().isoformat(),
             "input_type": "topic_keywords_with_seed_evidence" if seed_patents else "topic_keywords",
             "industry": "generic",
-            "source": "patent-retriever-bigquery:build_query_plan(scanner-style)",
+            "source": "zeelin-patent-retriever:build_query_plan(scanner-style)",
             "seed_sample_size": len(seed_patents),
         },
         "patterns": patterns,
