@@ -1,0 +1,11 @@
+{
+  "owner": "yourlin",
+  "slug": "douyin-sensitive-check",
+  "displayName": "抖音违禁词检测",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772719332295,
+    "commit": null
+  },
+  "history": []
+}
