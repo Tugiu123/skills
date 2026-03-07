@@ -1,0 +1,11 @@
+{
+  "owner": "globalcaos",
+  "slug": "model-prompt-adapter",
+  "displayName": "Model Prompt Adapter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772832549193,
+    "commit": null
+  },
+  "history": []
+}
