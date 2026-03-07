@@ -1,13 +1,18 @@
 {
   "owner": "h8kxrfp68z-lgtm",
   "slug": "icalendar-sync",
-  "displayName": "Icalendar Sync",
+  "displayName": "iCalendar Sync",
   "latest": {
-    "version": "2.4.0",
-    "publishedAt": 1772704312059,
-    "commit": "https://github.com/openclaw/skills/commit/298620278a518d0832a56cf69fc5624d6b331a25"
+    "version": "2.4.1",
+    "publishedAt": 1772801065318,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.4.0",
+      "publishedAt": 1772704312059,
+      "commit": "https://github.com/openclaw/skills/commit/298620278a518d0832a56cf69fc5624d6b331a25"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1770985875290,
