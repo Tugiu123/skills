@@ -1,6 +1,6 @@
 ---
 name: reddi-humanizer
-version: 1.0.0
+version: 2.1.1
 metadata:
   {
     "openclaw": {
@@ -10,7 +10,7 @@ metadata:
     }
   }
 description: |
-  Fork of humanizer by biostartechnology — enhanced for technical blog writing.
+  reddi.tech fork of humanizer. Fork of humanizer by biostartechnology — enhanced for technical blog writing.
   Remove signs of AI-generated writing from text. Use when editing or reviewing
   text to make it sound more natural and human-written. Based on Wikipedia's
   comprehensive "Signs of AI writing" guide. Detects and fixes patterns including:
@@ -19,8 +19,7 @@ description: |
   parallelisms, and excessive conjunctive phrases.
   
   Enhancements over original: personality/soul injection guidance, technical
-  writing patterns, voice guide integration, stronger "soulless writing" detection.
-attribution: |
+  writing patterns, voice guide integration, stronger "soulless writing" detection.attribution: |
   Original skill: humanizer by biostartechnology (https://clawhub.com/skills/humanizer)
   Forked and modified by ReddiTech (nissan)
 allowed-tools:
@@ -30,6 +29,8 @@ allowed-tools:
   - Grep
   - Glob
   - AskUserQuestion
+fork-of: humanizer
+
 ---
 
 # Reddi Humanizer: Remove AI Writing Patterns
