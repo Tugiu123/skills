@@ -3,11 +3,16 @@
   "slug": "best-for-coding",
   "displayName": "Best For Coding",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772781153693,
-    "commit": "https://github.com/openclaw/skills/commit/bb48c7eec56e5d15eb61aee84fde24b412c21fd4"
+    "version": "1.0.2",
+    "publishedAt": 1772866147306,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772781153693,
+      "commit": "https://github.com/openclaw/skills/commit/bb48c7eec56e5d15eb61aee84fde24b412c21fd4"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772452592512,
