@@ -1,6 +1,6 @@
 ---
 name: memory-transfer
-description: Transfer memory files from one OpenClaw agent to another. Use when you need to migrate memory, configuration, or context from one agent to another agent.
+description: Transfer memory between OpenClaw agents with advanced features: topic-specific filtering, user info privacy protection, and intelligent agent identity adaptation. Use when: (1) Migrating context between agents, (2) Sharing knowledge without leaking user personal info, (3) Backing up agent memory. Supports share mode (filters user data + adapts to target agent) and clone mode (verbatim copy).
 metadata:
   {
     "openclaw": { "emoji": "📦" }
