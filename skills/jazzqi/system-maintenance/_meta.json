@@ -3,9 +3,15 @@
   "slug": "system-maintenance",
   "displayName": "System Maintenance",
   "latest": {
-    "version": "1.2.1",
-    "publishedAt": 1772935125241,
-    "commit": "https://github.com/openclaw/skills/commit/2f42a6d4b0a16d063e637bba58cf2986f0e7576d"
+    "version": "1.3.0",
+    "publishedAt": 1772938560855,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.1",
+      "publishedAt": 1772935125241,
+      "commit": "https://github.com/openclaw/skills/commit/2f42a6d4b0a16d063e637bba58cf2986f0e7576d"
+    }
+  ]
 }
