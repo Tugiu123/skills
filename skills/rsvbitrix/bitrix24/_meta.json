@@ -1,13 +1,18 @@
 {
   "owner": "rsvbitrix",
   "slug": "bitrix24",
-  "displayName": "Bitrix24 Битрикс24",
+  "displayName": "Bitrix24",
   "latest": {
-    "version": "0.5.1",
-    "publishedAt": 1771761771320,
-    "commit": "https://github.com/openclaw/skills/commit/9e1313dd1cd4a48cc82b4ffa68ec80ea2c47a476"
+    "version": "0.5.4",
+    "publishedAt": 1772989826523,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.5.1",
+      "publishedAt": 1771761771320,
+      "commit": "https://github.com/openclaw/skills/commit/9e1313dd1cd4a48cc82b4ffa68ec80ea2c47a476"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1771716889252,
