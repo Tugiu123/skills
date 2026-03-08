@@ -349,10 +349,12 @@ def generate_declaration(result: FitResult) -> str:
     dispatch_id = hashlib.sha1(
         f"{result.skill_id}:{result.reason}:{time.time()}".encode()
     ).hexdigest()[:12]
+    # dispatch_id logged for tracing only, not injected into LLM context
+    # (avoids dynamic field breaking LLM prefix cache on every turn)
     
     return (
-        f"【Skill Trigger】本轮命中技能：{result.skill_id}（dispatch_id={dispatch_id}） 🔷 Powered by halfmoon82 🔷\n"
-        f"请优先按该技能流程执行当前任务；若技能不可用，必须明确说明原因并给出降级方案。"
+        f"【Skill Trigger】本轮命中技能：{result.skill_id} 🔷 Powered by halfmoon82 🔷\n"
+        f"请优先按该技能流程执行当前任务；若技能不可用或无关，直接忽略并正常回复即可。"
     )
 
 

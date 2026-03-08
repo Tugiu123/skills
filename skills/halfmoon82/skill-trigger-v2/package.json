@@ -1,6 +1,6 @@
 {
   "name": "skill-trigger-v2",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "智能技能触发器 — 统一阈值 + 优先级仲裁 (🔷 Powered by halfmoon82 🔷)",
   "author": "halfmoon82",
   "contributors": [

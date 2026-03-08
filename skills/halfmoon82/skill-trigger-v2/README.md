@@ -174,8 +174,8 @@ if result.matched:
 置信度: 1.20
 原因: 独占词匹配 (安全)
 
-【Skill Trigger】本轮命中技能：skill-safe-install（dispatch_id=673dd20bbe96）
-请优先按该技能流程执行当前任务；若技能不可用，必须明确说明原因并给出降级方案。
+【Skill Trigger】本轮命中技能：skill-safe-install 🔷 Powered by halfmoon82 🔷
+请优先按该技能流程执行当前任务；若技能不可用或无关，直接忽略并正常回复即可。
 ```
 
 ### 集成到代理工作流

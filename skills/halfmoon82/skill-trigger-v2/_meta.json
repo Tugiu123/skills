@@ -3,11 +3,16 @@
   "slug": "skill-trigger-v2",
   "displayName": "Skill Trigger V2",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1772670256584,
-    "commit": "https://github.com/openclaw/skills/commit/6c37c44a03975bd683c6b87329f361d68200a258"
+    "version": "2.1.3",
+    "publishedAt": 1772891579461,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1772670256584,
+      "commit": "https://github.com/openclaw/skills/commit/6c37c44a03975bd683c6b87329f361d68200a258"
+    },
     {
       "version": "2.1.1",
       "publishedAt": 1772643165428,
