@@ -12,9 +12,13 @@ from typing import Any, Dict, List, Optional
 try:
     from .guardian_db import GuardianDB
     from .settings import definitions_dir, load_config
+    from .trust_levels import resolve_trust_level, should_block as trust_should_block
+    from .context_modifiers import apply_context_modifiers
 except ImportError:
     from guardian_db import GuardianDB
     from settings import definitions_dir, load_config
+    from trust_levels import resolve_trust_level, should_block as trust_should_block
+    from context_modifiers import apply_context_modifiers
 
 
 class GuardianScanner:
@@ -101,10 +105,37 @@ class GuardianScanner:
                         continue
         return compiled
 
-    def scan(self, text: str, channel: str = "unknown", role: str = "unknown") -> Dict[str, Any]:
-        """Scan text and return a structured threat result without DB writes."""
+    def scan(
+        self,
+        text: str,
+        channel: str = "unknown",
+        role: str = "unknown",
+        source_info: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Scan text and return a structured threat result without DB writes.
+
+        Args:
+            text:        Content to scan.
+            channel:     Source channel name (used for trust level resolution).
+            role:        Message role (``"user"``, ``"assistant"``, etc.).
+            source_info: Optional dict with additional source metadata, e.g.::
+
+                            {"type": "web_fetch", "url": "https://..."}
+                            {"type": "workspace_file", "path": "SOUL.md"}
+
+                         When provided, ``source_info["channel"]`` overrides
+                         the *channel* argument for trust resolution.
+        """
         if not text or len(text) < 3:
             return {"clean": True, "score": 0, "threats": [], "channel": channel, "blocked": False}
+
+        # Resolve effective channel from source_info if provided
+        effective_channel = channel
+        if source_info and "channel" in source_info:
+            effective_channel = str(source_info["channel"])
+
+        # Resolve trust level for this source
+        trust_level = resolve_trust_level(effective_channel, self.config)
 
         # Check allowlist patterns - if text matches any allowlist pattern, skip scanning
         suppress_config = self.config.get("false_positive_suppression", {})
@@ -149,32 +180,49 @@ class GuardianScanner:
                 has_financial_context = any(keyword in context for keyword in financial_keywords)
                 if not has_financial_context:
                     continue  # Skip this match - likely a false positive
-            
+
+            # Apply context modifiers to adjust raw score
+            raw_score = int(pattern_obj["score"])
+            adjusted_score = apply_context_modifiers(raw_score, text, match.start(), match.end())
+
             hits.append(
                 {
                     "id": pattern_obj["id"],
                     "category": pattern_obj["category"],
                     "severity": pattern_obj["severity"],
-                    "score": pattern_obj["score"],
+                    "score": adjusted_score,
                     "evidence": match.group(0)[:80],
                     "description": pattern_obj["description"],
                 }
             )
 
         if not hits:
-            return {"clean": True, "score": 0, "threats": [], "channel": channel, "blocked": False}
+            return {
+                "clean": True, "score": 0, "threats": [], "channel": channel,
+                "blocked": False, "trust_level": trust_level,
+            }
 
         best = max(hits, key=lambda hit: hit["score"])
-        blocked = bool(best["score"] >= self.threshold_score)
-        return {
+
+        # Apply trust-level blocking policy (overrides threshold_score)
+        trust_blocked, block_reason = trust_should_block(best["score"], trust_level)
+        # Fall back to threshold-based blocking only for untrusted levels
+        if block_reason is None:
+            trust_blocked = bool(best["score"] >= self.threshold_score)
+
+        result: Dict[str, Any] = {
             "clean": False,
             "score": best["score"],
-            "blocked": blocked,
+            "blocked": trust_blocked,
             "threats": hits,
             "top_threat": best,
             "channel": channel,
+            "trust_level": trust_level,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+        if block_reason is not None:
+            result["block_reason"] = block_reason
+        return result
 
     def scan_and_record(self, text: str, channel: str = "unknown", source_id: str = "", role: str = "unknown") -> Dict[str, Any]:
         """Scan text and persist top threat to DB when a detection occurs."""

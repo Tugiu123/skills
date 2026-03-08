@@ -15,7 +15,7 @@ Learned from BL-051: real gateway tokens were shipped in `audit_exports/` data.
 |---|---|---|
 | `audit_exports/` files included in publish | CRITICAL | Must never be shipped — may contain live tokens/context |
 | SQLite `.db` / `.db-shm` / `.db-wal` files | CRITICAL | Database files must never be shipped |
-| Long hex strings ≥40 chars | CRITICAL | Potential SHA hashes or hex-encoded secrets |
+| Long hex strings >24 chars | CRITICAL | Potential hex-encoded secrets/tokens |
 | Mixed alphanumeric strings ≥32 chars (no underscores) | CRITICAL | Potential API keys / bearer tokens |
 | `gateway_token = "..."` assignments | CRITICAL | Real token value assignments (not mentions/comments) |
 | Known secret values from `~/.openclaw/openclaw.json` | CRITICAL | Actual credentials from your local config |

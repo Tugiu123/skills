@@ -87,5 +87,23 @@
       "_user_id_header_note": "HTTP header used to identify the user for subscription lookup"
     }
   },
+  "trust_levels": {
+    "_note": "Source Trust Level system. Governs blocking behaviour per channel. Level 0=internal (log only), 1=owner (flag only), 2=semi_trusted (block at score>85), 3=external (block any threat).",
+    "channel_map": {
+      "_note": "Override default channel\u2192trust-level mapping. Keys are channel names, values are integers 0\u20133.",
+      "cron": 0,
+      "system": 0,
+      "workspace": 0,
+      "file": 0,
+      "telegram": 1,
+      "email": 2,
+      "unknown": 2,
+      "webhook": 3
+    },
+    "email_allowlist": {
+      "_note": "Known trusted email addresses promoted to trust level 2 (semi_trusted).",
+      "addresses": []
+    }
+  },
   "_comment": "Guardian Security Skill \u2014 Configuration. See README.md and BILLING.md for details."
 }

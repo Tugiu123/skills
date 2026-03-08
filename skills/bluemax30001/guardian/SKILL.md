@@ -1,7 +1,7 @@
 ---
 name: clawguardian
 description: One layer in a multi-layer security stack for OpenClaw agents. Intercepts prompt injection, exfiltration attempts, tool abuse, and social engineering before they reach the model. Use alongside OpenClaw's built-in capability restrictions for defense-in-depth.
-version: 2.4.3
+version: 2.4.5
 homepage: https://github.com/bluemax30001/guardian
 metadata:
   openclaw:
@@ -98,6 +98,16 @@ before reloading (`rm ~/.openclaw/workspace/.guardian-activate-pending`).
 ## Scan scope and privacy
 Guardian scans configured workspace paths to detect threats. Depending on `scan_paths`, this can include other skill/config files in your OpenClaw workspace.
 If you handle sensitive files, set narrow `scan_paths` in `config.json`.
+
+## Pre-publish safety workflow
+
+Before any `clawhub publish`, run:
+
+```bash
+python3 scripts/pre_publish_check.py
+```
+
+If the check exits non-zero, **do not publish** until issues are fixed. The check respects `.clawhubignore` and blocks likely secret leaks (including token-like hex strings >24 chars and `audit_exports/*.json` if included).
 
 ## Quick Start
 
