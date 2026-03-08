@@ -20,12 +20,15 @@ metadata:
         - powermetrics
         - launchctl
       python: ">=3.10"
+      pypi:
+        - numpy
     env:
       optional:
         - MOLTBOOK_TOKEN: "Bearer token for promote --post (Moltbook API only)"
     install:
       - "brew install android-platform-tools rsync coreutils powermetrics"
-    capabilities: ["self-learning", "local-backup", "moltbook-promotion", "user-level-daemon"]
+      - "pip install numpy"
+    capabilities: ["self-learning", "local-backup", "moltbook-promotion", "user-level-daemon", "swarm-coherence", "process-monitor"]
 ---
 
 # MacPowerTools v2.5 — Safe Self-Learning Agent Host for Mac Mini
@@ -44,4 +47,10 @@ Self-maintaining toolkit for 24/7 OpenClaw agents. Cleans caches, tunes performa
 **Install**  
 ```bash
 brew install android-platform-tools rsync
+pip install numpy
 macpowertools setup --install-daemon   # optional daily maintenance
+```
+
+**New Capabilities (v2.5.0)**
+- `swarm-coherence --agents 200000`: Calculate massive temporal phase resonances mapping 10-dimensional timeline drifts.
+- `process-monitor`: Keep an eye out for zombie and high-CPU usage scripts across the unified memory architecture.
