@@ -1,0 +1,11 @@
+{
+  "owner": "bigbubbaagent-bot",
+  "slug": "miro-api",
+  "displayName": "Miro REST API Reference",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772890328277,
+    "commit": null
+  },
+  "history": []
+}
