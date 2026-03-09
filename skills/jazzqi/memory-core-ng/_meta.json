@@ -1,0 +1,11 @@
+{
+  "owner": "jazzqi",
+  "slug": "memory-core-ng",
+  "displayName": "一套优雅的模块化智能记忆系统，支持 embeddings、reranker 和 Flomo 笔记集成。",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772885628650,
+    "commit": null
+  },
+  "history": []
+}
