@@ -3,9 +3,15 @@
   "slug": "qwen-asr-skill",
   "displayName": "Qwen Asr Skill",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773074754121,
-    "commit": "https://github.com/openclaw/skills/commit/67f916a3c08461039fe3abcb93e314a81aac254f"
+    "version": "1.2.0",
+    "publishedAt": 1773075406395,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773074754121,
+      "commit": "https://github.com/openclaw/skills/commit/67f916a3c08461039fe3abcb93e314a81aac254f"
+    }
+  ]
 }

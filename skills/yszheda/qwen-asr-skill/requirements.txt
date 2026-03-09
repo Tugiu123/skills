@@ -8,7 +8,3 @@ protobuf>=4.25.0
 torchaudio>=2.0.0
 numpy>=1.24.0
 ffmpeg-python>=0.2.0
-
-# CPU 优化可选依赖
-# torch-cpu  # 如果需要专门的CPU版本
-# intel-extension-for-pytorch  # Intel CPU优化

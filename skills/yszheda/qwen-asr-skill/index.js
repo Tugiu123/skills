@@ -108,8 +108,6 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
     const normalizedLanguage = language ? dialectMap.normalize(language) : null;
     
     // 处理音频输入
-    
-    // 处理音频输入
     if (req.file) {
       // 上传的文件
       audioPath = req.file.path;
@@ -146,21 +144,6 @@ app.post('/transcribe', upload.single('audio'), async (req, res) => {
 
     if (normalizedLanguage) {
       options.args.push('--language', normalizedLanguage);
-    }
-    const options = {
-      mode: 'json',
-      pythonPath: process.env.PYTHON_PATH || 'python3',
-      scriptPath: __dirname,
-      args: [
-        audioPath,
-        '--model', modelConfig.modelName,
-        '--device', modelConfig.device,
-        '--dtype', modelConfig.dtype,
-      ],
-    };
-
-    if (language) {
-      options.args.push('--language', language);
     }
     
     if (timestamps === 'true' || timestamps === true) {
@@ -208,21 +191,16 @@ app.post('/align', upload.single('audio'), async (req, res) => {
       });
     }
     
-    // 标准化方言名称
-    const normalizedLanguage = language ? dialectMap.normalize(language) : null;
+    if (!language) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少language参数，强制对齐需要指定语言'
+      });
+    }
     
-    if (!normalizedLanguage) {
-      return res.status(400).json({
-        success: false,
-        error: '缺少language参数，强制对齐需要指定语言'
-      });
-    }
-      return res.status(400).json({
-        success: false,
-        error: '缺少language参数，强制对齐需要指定语言'
-      });
-    }
-
+    // 标准化方言名称
+    const normalizedLanguage = dialectMap.normalize(language);
+    
     // 处理音频输入
     if (req.file) {
       audioPath = req.file.path;
@@ -299,10 +277,6 @@ app.post('/webhook', async (req, res) => {
         
         // 调用转录接口
         const transcribeResult = await new Promise((resolve, reject) => {
-        const { audio, userId, sessionId, language } = payload;
-        
-        // 调用转录接口
-        const transcribeResult = await new Promise((resolve, reject) => {
           const options = {
             mode: 'json',
             pythonPath: process.env.PYTHON_PATH || 'python3',
@@ -316,8 +290,6 @@ app.post('/webhook', async (req, res) => {
           
           if (normalizedLanguage) {
             options.args.push('--language', normalizedLanguage);
-          }
-            options.args.push('--language', language);
           }
           
           PythonShell.run('asr.py', options, (err, results) => {

@@ -1,7 +1,7 @@
 {
-  "name": "openclaw-skill-qwen-asr",
-  "version": "1.0.0",
-  "description": "OpenClaw ASR skill using Qwen3-ASR-0.6B model with dialect support",
+  "name": "qwen-asr-skill",
+  "version": "1.1.0",
+  "description": "Qwen方言语音识别Skill - 基于Qwen3-ASR-0.6B模型的语音转文字服务",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -16,7 +16,7 @@
     "qwen",
     "dialect"
   ],
-  "author": "",
+  "author": "OpenClaw Team",
   "license": "Apache-2.0",
   "dependencies": {
     "express": "^4.18.2",
@@ -32,7 +32,7 @@
     "skillId": "qwen-asr-skill",
     "name": "Qwen ASR Skill",
     "description": "语音转文字服务，支持22种中文方言和多语言识别",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "OpenClaw Team",
     "icon": "🎤",
     "type": "audio",
@@ -45,18 +45,7 @@
       "transcribe": {
         "path": "/transcribe",
         "method": "POST",
-        "description": "音频转文字接口",
-        "request": {
-          "audio": "音频文件路径或base64数据",
-          "language": "可选，指定语言/方言（如：Chinese, Cantonese, Sichuan等）",
-          "format": "可选，音频格式（默认：wav）"
-        },
-        "response": {
-          "text": "识别结果文本",
-          "language": "检测到的语言/方言",
-          "confidence": "置信度",
-          "duration": "处理时长"
-        }
+        "description": "音频转文字接口"
       }
     },
     "dependencies": {
