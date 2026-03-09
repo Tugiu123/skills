@@ -1,0 +1,11 @@
+{
+  "owner": "agisearch",
+  "slug": "game",
+  "displayName": "Game",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772998850879,
+    "commit": null
+  },
+  "history": []
+}
