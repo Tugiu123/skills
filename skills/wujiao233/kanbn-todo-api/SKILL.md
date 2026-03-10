@@ -14,9 +14,25 @@ Set auth before running commands:
 - `KANBN_TOKEN` for bearer auth, or
 - `KANBN_API_KEY` for API-key auth.
 
+Auth lookup order in `kanbn_todo.py`:
+
+1. CLI flags (`--token`, `--api-key`, `--base-url`)
+2. Process environment (`KANBN_TOKEN`, `KANBN_API_KEY`, `KANBN_BASE_URL`)
+3. `~/.bashrc` `export` values (for non-interactive runs)
+
 Optional:
 
 - `KANBN_BASE_URL` (defaults to `https://kan.bn/api/v1`)
+
+## Priority Label Policy
+
+When a request asks to set, mark, sort, or batch-assign priorities, use labels (`P0`-`P4`) as the source of truth.
+
+- Apply priority via label changes.
+- For existing cards, use `python3 scripts/kanbn_todo.py todo-label-toggle --card-id <cardPublicId> --label-id <labelPublicId>`.
+- Do not encode priority in titles (for example, do not prepend `[P0]`/`[P1]` to the TODO title).
+- Keep task titles focused on the actual work item text.
+- Note: official Kan.bn docs expose label changes on a dedicated endpoint, not `todo-update`.
 
 ## Execute Core TODO Workflows
 
@@ -59,6 +75,14 @@ python3 scripts/kanbn_todo.py todo-update \
 python3 scripts/kanbn_todo.py todo-move \
   --card-id <cardPublicId> \
   --to-list-id <doingListPublicId>
+```
+
+- Add or remove a priority label on an existing TODO:
+
+```bash
+python3 scripts/kanbn_todo.py todo-label-toggle \
+  --card-id <cardPublicId> \
+  --label-id <p1LabelPublicId>
 ```
 
 ### 4) Delete TODO

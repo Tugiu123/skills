@@ -10,6 +10,7 @@ Environment variables:
 import argparse
 import json
 import os
+from pathlib import Path
 import sys
 import urllib.error
 import urllib.parse
@@ -23,6 +24,34 @@ def _parse_bool(value):
     if v in {"0", "false", "no", "n", "off"}:
         return False
     raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
+
+def _load_bashrc_env(names):
+    """Fallback to ~/.bashrc exports for non-interactive executions."""
+    out = {}
+    bashrc = Path.home() / ".bashrc"
+    try:
+        lines = bashrc.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.startswith("export "):
+            continue
+        body = stripped[len("export ") :]
+        if "=" not in body:
+            continue
+        key, value = body.split("=", 1)
+        key = key.strip()
+        if key not in names or key in out:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and ((value[0] == '"' and value[-1] == '"') or (value[0] == "'" and value[-1] == "'")):
+            value = value[1:-1]
+        out[key] = value
+
+    return out
 
 
 class KanbnClient:
@@ -41,9 +70,14 @@ class KanbnClient:
         headers = {
             "Accept": "application/json",
         }
+        # Some Kan.bn PUT endpoints require a JSON content-type even when the
+        # request body is logically empty, so send an empty JSON object there.
         if body is not None:
             headers["Content-Type"] = "application/json"
             data = json.dumps(body).encode("utf-8")
+        elif method.upper() in {"POST", "PUT", "PATCH"}:
+            headers["Content-Type"] = "application/json"
+            data = b"{}"
         else:
             data = None
 
@@ -78,20 +112,22 @@ class KanbnClient:
 
 
 def _build_parser():
+    bashrc_env = _load_bashrc_env({"KANBN_BASE_URL", "KANBN_TOKEN", "KANBN_API_KEY"})
+
     parser = argparse.ArgumentParser(description="Kan.bn TODO API helper")
     parser.add_argument(
         "--base-url",
-        default=os.getenv("KANBN_BASE_URL", "https://kan.bn/api/v1"),
+        default=os.getenv("KANBN_BASE_URL") or bashrc_env.get("KANBN_BASE_URL") or "https://kan.bn/api/v1",
         help="Kan.bn API base URL",
     )
     parser.add_argument(
         "--token",
-        default=os.getenv("KANBN_TOKEN"),
+        default=os.getenv("KANBN_TOKEN") or bashrc_env.get("KANBN_TOKEN"),
         help="Bearer token (or set KANBN_TOKEN)",
     )
     parser.add_argument(
         "--api-key",
-        default=os.getenv("KANBN_API_KEY"),
+        default=os.getenv("KANBN_API_KEY") or bashrc_env.get("KANBN_API_KEY"),
         help="x-api-key value (or set KANBN_API_KEY)",
     )
     parser.add_argument(
@@ -200,6 +236,13 @@ def _build_parser():
     p_todo_move.add_argument("--card-id", required=True)
     p_todo_move.add_argument("--to-list-id", required=True)
     p_todo_move.add_argument("--index", type=int)
+
+    p_todo_label_toggle = sub.add_parser(
+        "todo-label-toggle",
+        help="Add or remove a label on an existing TODO card",
+    )
+    p_todo_label_toggle.add_argument("--card-id", required=True)
+    p_todo_label_toggle.add_argument("--label-id", required=True)
 
     p_todo_delete = sub.add_parser("todo-delete", help="Delete TODO card")
     p_todo_delete.add_argument("--card-id", required=True)
@@ -364,6 +407,8 @@ def main():
         if args.index is not None:
             body["index"] = args.index
         out = client.request("PUT", f"/cards/{args.card_id}", body=body)
+    elif args.cmd == "todo-label-toggle":
+        out = client.request("PUT", f"/cards/{args.card_id}/labels/{args.label_id}")
     elif args.cmd == "todo-delete":
         out = client.request("DELETE", f"/cards/{args.card_id}")
     elif args.cmd == "comment-add":

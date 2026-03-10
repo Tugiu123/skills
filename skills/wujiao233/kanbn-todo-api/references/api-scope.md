@@ -30,6 +30,15 @@ This skill intentionally focuses on personal TODO flows.
 - Checklist item completion status
   - `PATCH /checklists/items/{checklistItemPublicId}` with `completed`
 
+## Priority Labels
+
+- Create-time labels
+  - `POST /cards` with `labelPublicIds`
+- Existing-card label changes
+  - `PUT /cards/{cardPublicId}/labels/{labelPublicId}`
+  - Endpoint toggles the label on the card and returns `newLabel: true|false`
+- Do not expect `PUT /cards/{cardPublicId}` to update labels; official docs only list `title`, `description`, `index`, `listPublicId`, and `dueDate` there.
+
 ## Personal Productivity Features
 
 - Workspace and board discovery
