@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pytz"]
+# ///
 """
 资本市场简报生成器
-根据交易时间判断使用实时行情或收盘点位
+始终获取所有数据，根据交易时间判断仅用于显示标注
 """
 
 import subprocess
@@ -62,13 +66,16 @@ def is_dst(dt: datetime) -> bool:
     """判断是否为夏令时"""
     year = dt.year
     # 3月第二个周日
-    dst_start = datetime(year, 3, 8 + (6 - datetime(year, 3, 1).weekday()) % 7, 2, 0)
+    dst_start = pytz.timezone('America/New_York').localize(datetime(year, 3, 8 + (6 - datetime(year, 3, 1).weekday()) % 7, 2, 0))
     # 11月第一个周日
-    dst_end = datetime(year, 11, 1 + (6 - datetime(year, 11, 1).weekday()) % 7, 2, 0)
-    return dst_start <= dt < dst_end
+    dst_end = pytz.timezone('America/New_York').localize(datetime(year, 11, 1 + (6 - datetime(year, 11, 1).weekday()) % 7, 2, 0))
+    # 转换为北京时间进行比较
+    tz = pytz.timezone('Asia/Shanghai')
+    dt_utc = dt.astimezone(pytz.UTC)
+    return dst_start.astimezone(pytz.UTC) <= dt_utc < dst_end.astimezone(pytz.UTC)
 
 def is_market_open(market: str, dt: datetime) -> bool:
-    """判断市场是否开盘"""
+    """判断市场是否开盘（仅用于显示标注）"""
     if market not in TRADING_HOURS:
         return False
     
@@ -102,29 +109,38 @@ def get_beijing_time() -> datetime:
     tz = pytz.timezone('Asia/Shanghai')
     return datetime.now(tz)
 
-def get_stock_data() -> Dict[str, List[Dict]]:
-    """获取股价数据"""
-    all_names = []
+def get_stock_data() -> Dict[str, Dict]:
+    """获取所有股价数据（始终获取，不管市场是否开盘）"""
+    # 构建代码到显示名称的映射
+    code_to_name = {}
+    all_codes = []
     for market, stocks in INDICES.items():
-        all_names.extend([s[0] for s in stocks])
+        for display_name, code in stocks:
+            code_to_name[code] = display_name
+            all_codes.append(display_name)  # query_stock.py 支持名称查询
     
     # 调用腾讯财经API
     script_path = "~/.openclaw/skills/tencent-finance-stock-price/scripts/query_stock.py"
-    cmd = f"uv run {script_path} {' '.join(all_names)}"
+    cmd = f"uv run {script_path} {' '.join(all_codes)}"
     
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-        # 解析输出
+        # 解析输出 - 按顺序匹配
         lines = result.stdout.strip().split('\n')[2:]  # 跳过表头
         data = {}
-        for line in lines:
+        code_list = list(code_to_name.keys())
+        for i, line in enumerate(lines):
             parts = line.split()
             if len(parts) >= 5:
-                name = parts[0]
+                # 使用原始查询顺序的显示名称作为key
+                if i < len(all_codes):
+                    key = all_codes[i]
+                else:
+                    key = parts[0]
                 price = parts[2]
                 change = parts[3]
                 pct = parts[4]
-                data[name] = {
+                data[key] = {
                     "price": price,
                     "change": change,
                     "pct": pct,
@@ -149,77 +165,46 @@ def get_crypto_price(symbol: str = "BTC") -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
-def get_commodity_prices() -> Dict:
-    """获取大宗商品价格（使用 web_search）"""
-    # 这里可以扩展为实际抓取网页数据
-    return {
-        "gold": {"price": None, "change": None, "pct": None},
-        "oil": {"price": None, "change": None, "pct": None},
-    }
-
-def format_report(stock_data: Dict, crypto_data: Dict, commodity_data: Dict) -> str:
-    """格式化报告，根据交易时间显示不同状态"""
+def format_report(stock_data: Dict, crypto_data: Dict) -> str:
+    """格式化报告，交易时间判断仅用于显示标注"""
     now = get_beijing_time()
     time_str = now.strftime("%Y-%m-%d %H:%M")
     
-    # 判断各市场状态
+    # 判断各市场状态（仅用于显示标注）
     market_status = {}
     for market in ["A股", "港股", "美股"]:
         market_status[market] = is_market_open(market, now)
-    
-    # 分类市场
-    trading_markets = [m for m, status in market_status.items() if status]
-    closed_markets = [m for m, status in market_status.items() if not status]
     
     report = f"""📊 资本市场简报 | {time_str}
 
 ---
 """
     
-    # 交易中市场
-    if trading_markets:
-        report += "\n### 🟢 交易中（实时行情）\n"
-        for market in trading_markets:
-            report += f"\n**{market}**\n"
-            if market in INDICES:
-                for name, code in INDICES[market]:
-                    if name in stock_data and "error" not in stock_data:
-                        d = stock_data[name]
-                        report += f"• {name}：{d['price']}点 ({d['change']} / {d['pct']})\n"
-                    else:
-                        report += f"• {name}：[获取失败]\n"
+    # 按市场分类显示
+    for market in ["A股", "港股", "美股"]:
+        is_open = market_status[market]
+        status_icon = "🟢" if is_open else "🔴"
+        status_text = "交易中" if is_open else "休市"
+        
+        report += f"\n### {status_icon} {market}（{status_text}）\n"
+        
+        if market in INDICES:
+            for name, code in INDICES[market]:
+                if name in stock_data and "error" not in stock_data:
+                    d = stock_data[name]
+                    report += f"• {name}：{d['price']}点 ({d['change']} / {d['pct']})\n"
+                else:
+                    report += f"• {name}：[获取失败]\n"
     
     # 大宗商品（24小时交易）
-    report += "\n**大宗商品**\n"
-    if commodity_data.get("gold", {}).get("price"):
-        g = commodity_data["gold"]
-        report += f"• 黄金：${g['price']}/oz ({g['change']} / {g['pct']})\n"
-    else:
-        report += "• 黄金：[使用 web_search 获取实时价格]\n"
-    
-    if commodity_data.get("oil", {}).get("price"):
-        o = commodity_data["oil"]
-        report += f"• 原油(WTI)：${o['price']}/桶 ({o['change']} / {o['pct']})\n"
-    else:
-        report += "• 原油(WTI)：[使用 web_search 获取实时价格]\n"
+    report += "\n### 🟢 大宗商品（24小时交易）\n"
+    report += "• 黄金：[使用 web_search 获取实时价格]\n"
+    report += "• 原油(WTI)：[使用 web_search 获取实时价格]\n"
     
     if crypto_data.get("price"):
         report += f"• 比特币：${crypto_data['price']}\n"
     else:
         report += "• 比特币：[获取失败]\n"
-    
-    # 休市市场
-    if closed_markets:
-        report += "\n---\n\n### 🔴 市场休市（上一交易日收盘）\n"
-        for market in closed_markets:
-            report += f"\n**{market}**\n"
-            if market in INDICES:
-                for name, code in INDICES[market]:
-                    if name in stock_data and "error" not in stock_data:
-                        d = stock_data[name]
-                        report += f"• {name}：{d['price']}点 ({d['change']} / {d['pct']})\n"
-                    else:
-                        report += f"• {name}：[获取失败]\n"
     
     report += """
 ---
@@ -253,7 +238,7 @@ def format_report(stock_data: Dict, crypto_data: Dict, commodity_data: Dict) -> 
 """
     
     # 添加交易时间说明
-    report += "\n⏰ **交易时间参考**（北京时间）：\n"
+    report += "⏰ **交易时间参考**（北京时间）：\n"
     report += "• A股：09:30-11:30, 13:00-15:00（周一至周五）\n"
     report += "• 港股：09:30-12:00, 13:00-16:00（周一至周五）\n"
     report += "• 美股：21:30-04:00（夏令时）/ 22:30-05:00（冬令时）\n"
@@ -267,18 +252,18 @@ def main():
     print(f"当前北京时间: {beijing_now.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"夏令时: {'是' if is_dst(beijing_now) else '否'}")
     
-    # 检查各市场状态
+    # 检查各市场状态（仅用于显示）
     for market in ["A股", "港股", "美股"]:
         status = "交易中" if is_market_open(market, beijing_now) else "休市"
         print(f"{market}: {status}")
     
     print("\n正在获取数据...")
     
+    # 始终获取所有数据
     stock_data = get_stock_data()
     crypto_data = get_crypto_price("BTC")
-    commodity_data = get_commodity_prices()
     
-    report = format_report(stock_data, crypto_data, commodity_data)
+    report = format_report(stock_data, crypto_data)
     print("\n" + "="*50)
     print(report)
 

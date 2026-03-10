@@ -3,11 +3,16 @@
   "slug": "capital-market-report",
   "displayName": "Capital Market Report",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773024872310,
-    "commit": "https://github.com/openclaw/skills/commit/6bcaf78ec7da751f07f2716841bcb2953ceac26d"
+    "version": "1.2.0",
+    "publishedAt": 1773026088785,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773024872310,
+      "commit": "https://github.com/openclaw/skills/commit/6bcaf78ec7da751f07f2716841bcb2953ceac26d"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772887337357,
