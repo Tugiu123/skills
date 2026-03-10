@@ -1,13 +1,18 @@
 {
   "owner": "pleasechooseusername",
   "slug": "aegis",
-  "displayName": "AEGIS",
+  "displayName": "Aegis",
   "latest": {
-    "version": "3.0.3",
-    "publishedAt": 1772870384984,
-    "commit": "https://github.com/openclaw/skills/commit/71da2a4a343c4a1abc404169f9d5b1781c983466"
+    "version": "3.2.0",
+    "publishedAt": 1773129302768,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.3",
+      "publishedAt": 1772870384984,
+      "commit": "https://github.com/openclaw/skills/commit/71da2a4a343c4a1abc404169f9d5b1781c983466"
+    },
     {
       "version": "1.4.1",
       "publishedAt": 1772811347433,

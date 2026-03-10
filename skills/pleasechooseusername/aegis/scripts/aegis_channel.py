@@ -22,25 +22,53 @@ from pathlib import Path
 
 
 def _load_openclaw_dotenv():
-    """Best-effort loader for ~/.openclaw/.env (KEY=VALUE, comments allowed).
+    """Best-effort loader for decrypted secrets from tmpfs.
 
-    This keeps tokens OUT of the repo and avoids hardcoding secrets in cron payloads.
+    Reads from /run/user/<uid>/openclaw-secrets/.env (decrypted by
+    openclaw-secrets.service) with fallback to ~/.openclaw/.env for
+    development. Also resolves simple ${VAR} and $VAR references.
     """
-    env_path = Path(os.path.expanduser("~/.openclaw/.env"))
+    import pwd
+    uid = os.getuid()
+    # Primary: tmpfs-decrypted secrets (production)
+    env_path = Path(f'/run/user/{uid}/openclaw-secrets/.env')
+    if not env_path.exists():
+        # Fallback: direct .env (development only)
+        env_path = Path(Path.home() / '.openclaw' / '.env')
     if not env_path.exists():
         return {}
     out = {}
+    # first pass: parse
     for line in env_path.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+        if not line or line.startswith('#') or '=' not in line:
             continue
-        k, v = line.split("=", 1)
+        k, v = line.split('=', 1)
         k = k.strip()
         v = v.strip().strip('"').strip("'")
-        if k and v and k not in os.environ:
+        if k and v:
             out[k] = v
+    # second pass: resolve ${VAR} and $VAR using values from out and os.environ
+    import re
+    pattern = re.compile(r"\$(?:\{([^}]+)\}|(\w+))")
+    def resolve_val(val, depth=0):
+        if depth>5 or not isinstance(val,str):
+            return val
+        def repl(m):
+            name = m.group(1) or m.group(2)
+            return out.get(name, os.environ.get(name, ''))
+        new = pattern.sub(repl, val)
+        if new==val:
+            return new
+        return resolve_val(new, depth+1)
+    for k in list(out.keys()):
+        out[k]=resolve_val(out[k])
+    # do not override existing environment variables
+    for k,v in list(out.items()):
+        if k not in os.environ:
+            # put into os.environ temporarily for other code paths
+            os.environ[k]=v
     return out
-
 
 def load_env():
     """Load bot token and channel from aegis-config or environment."""
