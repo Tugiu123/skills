@@ -3,9 +3,15 @@
   "slug": "call",
   "displayName": "Call",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772927398501,
-    "commit": "https://github.com/openclaw/skills/commit/125e8c16832c84c113216def49907b060de03c1c"
+    "version": "2.1.0",
+    "publishedAt": 1773117411561,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772927398501,
+      "commit": "https://github.com/openclaw/skills/commit/125e8c16832c84c113216def49907b060de03c1c"
+    }
+  ]
 }
