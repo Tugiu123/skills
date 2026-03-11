@@ -1,0 +1,11 @@
+{
+  "owner": "unixlamadev-spec",
+  "slug": "sentiment-bot",
+  "displayName": "Sentiment Bot",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773254197786,
+    "commit": null
+  },
+  "history": []
+}
