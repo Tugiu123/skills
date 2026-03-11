@@ -1,31 +1,47 @@
 ---
 name: puresnap
-version: 1.1.0
+version: 1.3.0
 author: "wells"
 description: >
-  Download videos, images, and audio without watermarks from 999+ platforms
-  (TikTok, YouTube, Instagram, Twitter, Bilibili, Sora2, etc.). Zero config,
-  built-in API key. Use when the user wants to download media, extract
-  video/image/audio from a URL, remove watermarks, or grab content from
-  social media links.
+  TikTok video downloader, YouTube video downloader, Instagram Reels downloader,
+  Twitter/X video downloader, Bilibili video downloader, Reddit video downloader,
+  Facebook video downloader, Xiaohongshu image downloader, Sora2 watermark remover
+  — all-in-one no-watermark media downloader for 999+ platforms. Save videos,
+  images, audio, subtitles. Zero config, built-in API key. Use when the user
+  wants to download or save any video/image/audio from a social media URL,
+  remove watermarks, rip media, or extract content from any link.
 homepage: https://github.com/wells1137/meowload-downloader
 license: MIT
 tags:
-  - video
-  - downloader
-  - watermark
-  - media
-  - tiktok
-  - youtube
-  - instagram
+  - video-downloader
+  - tiktok-downloader
+  - youtube-downloader
+  - instagram-downloader
+  - twitter-downloader
+  - bilibili-downloader
+  - facebook-downloader
+  - reddit-downloader
+  - watermark-remover
+  - media-downloader
+  - no-watermark
+  - save-video
+  - sora2
+  - xiaohongshu
+  - download
 ---
 
-# PureSnap — Watermark-Free Media Downloader
+# PureSnap — TikTok / YouTube / Instagram / Twitter Video Downloader (No Watermark)
 
-Grab pure, watermark-free videos, images, and audio from 999+ platforms. Zero config — just paste a link.
+All-in-one video downloader: save videos, images, and audio without watermarks from TikTok, YouTube, Instagram, Twitter/X, Bilibili, Facebook, Reddit, Xiaohongshu, and 999+ platforms. Just paste a link.
 
 **API Key built-in, ready to use immediately.**
 To use your own key, set `MEOWLOAD_API_KEY` env var.
+
+## Privacy & Data Disclosure
+
+> **Important**: This skill sends user-provided URLs to the MeowLoad API (`api.meowload.net`) for media extraction. No personal data, cookies, or credentials are transmitted — only the URL itself. The API is operated by [MeowLoad (哼哼猫)](https://www.henghengmao.com). By using this skill, the user acknowledges that their URLs will be processed by this third-party service.
+>
+> The embedded API key is provided by the skill author for convenience. Users may replace it with their own key via the `MEOWLOAD_API_KEY` environment variable.
 
 ## API Key
 
@@ -37,13 +53,14 @@ To use your own key, set `MEOWLOAD_API_KEY` env var.
 
 When the user provides a URL to download:
 
-1. **Determine URL type**:
+1. **Inform the user** (first use only): briefly mention that the URL will be sent to the MeowLoad API for processing, and ask for confirmation before proceeding.
+2. **Determine URL type**:
    - Single post / single video (including Sora2) → Extract Post API
    - Playlist / channel / profile page → Playlist API
    - YouTube subtitle request → Subtitles API
-2. **Call the API** with curl (see examples below).
-3. **Parse JSON response**, present `resource_url` download links to the user.
-4. **Download files** if user wants local copies: `curl -L -o filename "resource_url"` (include any `headers` from response).
+3. **Call the API** with curl (see examples below).
+4. **Parse JSON response**, present `resource_url` download links to the user.
+5. **Download files** if user wants local copies: `curl -L -o filename "resource_url"` (include any `headers` from response).
 
 ## 1. Extract Media from Single Post
 
