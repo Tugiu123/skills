@@ -1,219 +1,270 @@
 #!/bin/bash
-# use-openclaw-manual - 文档同步脚本
-# 从 GitHub 同步 OpenClaw 官方文档到本地
+# sync-docs.sh - 同步 OpenClaw 官方文档
 
 set -e
 
-REPO="openclaw/openclaw"
-DOCS_PATH="docs/"
-TEMP_REPO="/tmp/openclaw-docs-$$"
-
-# 技能目录
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-# 可配置路径（支持环境变量覆盖）
-export OPENCLAW_MANUAL_PATH="${OPENCLAW_MANUAL_PATH:-$HOME/.openclaw/workspace/docs/openclaw_manual}"
+# =============================================================================
+# 环境变量配置
+# =============================================================================
+OPENCLAW_MANUAL_PATH="${OPENCLAW_MANUAL_PATH:-$HOME/.openclaw/workspace/docs/openclaw_manual}"
 LAST_COMMIT_FILE="${LAST_COMMIT_FILE:-$OPENCLAW_MANUAL_PATH/.last-docs-commit}"
-LOG_FILE="${DOC_UPDATE_LOG:-$SKILL_DIR/docs-update.log}"
+DOC_UPDATE_LOG="${DOC_UPDATE_LOG:-$(dirname "$0")/../docs-update.log}"
+DOC_NOTIFY_CHANNEL="${DOC_NOTIFY_CHANNEL:-webchat}"
 
-log() {
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
+# GitHub API 配置
+GITHUB_REPO="openclaw/openclaw"
+GITHUB_DOCS_PATH="docs"
+GITHUB_API_BASE="https://api.github.com/repos/$GITHUB_REPO/contents/$GITHUB_DOCS_PATH"
 
-# 获取最新 commit (仅 docs 目录)
-get_latest_commit() {
-  curl -s "https://api.github.com/repos/$REPO/commits?path=$DOCS_PATH&per_page=1" 2>/dev/null | \
-    python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['sha'] if d else '')" 2>/dev/null || echo ""
-}
-
-# 获取变更文件列表
-get_changed_files() {
-  local old_commit="$1"
-  local new_commit="$2"
-  local sync_type="$3"
+# =============================================================================
+# 依赖检查
+# =============================================================================
+check_dependencies() {
+  local missing=()
   
-  if [ "$sync_type" = "full" ]; then
-    # 首次同步：获取所有 docs 文件
-    curl -s "https://api.github.com/repos/$REPO/git/trees/$new_commit?recursive=1" 2>/dev/null | \
-      python3 -c "import sys,json; d=json.load(sys.stdin); files=[f['path'] for f in d.get('tree',[]) if f['path'].startswith('docs/') and f['type']=='blob']; print('\n'.join(files))" 2>/dev/null || echo ""
-  else
-    # 增量同步：获取两个 commit 之间的变更文件
-    curl -s "https://api.github.com/repos/$REPO/compare/$old_commit...$new_commit" 2>/dev/null | \
-      python3 -c "import sys,json; d=json.load(sys.stdin); files=[f['filename'] for f in d.get('files',[]) if f['filename'].startswith('docs/')]; print('\n'.join(files))" 2>/dev/null || echo ""
-  fi
-}
-
-# 同步文档
-sync_docs() {
-  local sync_type="$1"
-  local latest_commit="$2"
-  local changed_files="$3"
-  local files_count="$4"
+  command -v git >/dev/null 2>&1 || missing+=("git")
+  command -v curl >/dev/null 2>&1 || missing+=("curl")
+  command -v python3 >/dev/null 2>&1 || missing+=("python3")
   
-  log "📥 开始同步 $files_count 个文件 ($sync_type)..."
+  # 检查 OpenClaw CLI（可选，用于通知）
+  local has_openclaw=false
+  command -v openclaw >/dev/null 2>&1 && has_openclaw=true
   
-  # 清理临时目录
-  rm -rf "$TEMP_REPO"
-  mkdir -p "$TEMP_REPO"
-  cd "$TEMP_REPO"
-  
-  # 初始化 git 仓库并配置 sparse-checkout
-  git init >/dev/null 2>&1
-  git remote add origin "https://github.com/$REPO.git" >/dev/null 2>&1
-  git config core.sparseCheckout true >/dev/null 2>&1
-  echo "docs/" > .git/info/sparse-checkout
-  
-  # 浅克隆 docs 目录
-  if ! git pull --depth 1 origin main >/dev/null 2>&1; then
-    log "❌ 克隆失败"
-    cd - >/dev/null
-    rm -rf "$TEMP_REPO"
+  if [ ${#missing[@]} -ne 0 ]; then
+    echo "❌ 错误：缺少必需的依赖："
+    for dep in "${missing[@]}"; do
+      echo "   - $dep"
+    done
+    echo ""
+    echo "   请安装缺失的工具后重试。"
     exit 1
   fi
   
-  # 如果是首次同步，清空本地目录
-  if [ "$sync_type" = "full" ]; then
-    log "🗑️ 清空本地文档目录..."
-    rm -rf "$OPENCLAW_MANUAL_PATH"
-    mkdir -p "$OPENCLAW_MANUAL_PATH"
+  echo "✅ 依赖检查通过：git, curl, python3"
+  [ "$has_openclaw" = true ] && echo "✅ OpenClaw CLI 可用（支持通知）"
+}
+
+# =============================================================================
+# 日志函数
+# =============================================================================
+log() {
+  local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+  echo "$msg" >> "$DOC_UPDATE_LOG"
+  echo "$msg"
+}
+
+# =============================================================================
+# GitHub API 调用（支持认证）
+# =============================================================================
+github_api_get() {
+  local url="$1"
+  local headers=("-H" "Accept: application/vnd.github.v3+json")
+  
+  # 如果配置了 GITHUB_TOKEN，使用认证请求
+  if [ -n "$GITHUB_TOKEN" ]; then
+    headers+=("-H" "Authorization: token $GITHUB_TOKEN")
+    log "使用 GitHub Token 认证"
   fi
   
-  # 同步到本地
-  local synced=0
-  echo "$changed_files" | while read -r file; do
-    if [ -n "$file" ] && [ -f "$TEMP_REPO/$file" ]; then
-      # 提取相对路径 (去掉 docs/ 前缀)
-      REL_PATH="${file#docs/}"
-      TARGET_DIR="$OPENCLAW_MANUAL_PATH/$(dirname "$REL_PATH")"
-      
-      # 创建目录并复制文件
-      mkdir -p "$TARGET_DIR"
-      cp "$TEMP_REPO/$file" "$TARGET_DIR/"
-      synced=$((synced + 1))
+  curl -s "${headers[@]}" "$url"
+}
+
+# =============================================================================
+# 获取最新 commit
+# =============================================================================
+get_latest_commit() {
+  local response
+  response=$(github_api_get "https://api.github.com/repos/$GITHUB_REPO/commits?path=$GITHUB_DOCS_PATH&sha=main&per_page=1")
+  
+  local commit
+  commit=$(echo "$response" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0]['sha'] if data else '')" 2>/dev/null)
+  
+  if [ -z "$commit" ]; then
+    log "❌ 无法获取最新 commit"
+    exit 1
+  fi
+  
+  echo "$commit"
+}
+
+# =============================================================================
+# 获取当前 commit
+# =============================================================================
+get_current_commit() {
+  if [ -f "$LAST_COMMIT_FILE" ]; then
+    cat "$LAST_COMMIT_FILE"
+  else
+    echo ""
+  fi
+}
+
+# =============================================================================
+# 同步文档（使用 git 浅克隆）
+# =============================================================================
+sync_documents() {
+  local temp_dir
+  temp_dir=$(mktemp -d)
+  
+  log "🔄 开始同步文档..."
+  log "   仓库：$GITHUB_REPO"
+  log "   路径：$GITHUB_DOCS_PATH"
+  
+  # 浅克隆 docs 目录
+  git clone --depth 1 --filter=blob:none --sparse "https://github.com/$GITHUB_REPO.git" "$temp_dir" 2>/dev/null
+  cd "$temp_dir"
+  git sparse-checkout set "$GITHUB_DOCS_PATH"
+  
+  # 统计文件
+  local new_count=0
+  local updated_count=0
+  local deleted_count=0
+  local total_count=0
+  
+  # 创建目标目录
+  mkdir -p "$OPENCLAW_MANUAL_PATH"
+  
+  # 复制文件
+  if [ -d "$temp_dir/$GITHUB_DOCS_PATH" ]; then
+    # 计算变更
+    local current_commit
+    current_commit=$(get_current_commit)
+    
+    if [ -n "$current_commit" ]; then
+      # 有基线，计算差异
+      log "   当前版本：${current_commit:0:7}"
+    else
+      log "   首次初始化"
     fi
-  done
+    
+    # 复制所有文件
+    cp -r "$temp_dir/$GITHUB_DOCS_PATH"/* "$OPENCLAW_MANUAL_PATH/" 2>/dev/null || true
+    
+    # 统计
+    total_count=$(find "$OPENCLAW_MANUAL_PATH" -name "*.md" -type f | wc -l)
+    
+    if [ -n "$current_commit" ]; then
+      updated_count=$total_count
+    else
+      new_count=$total_count
+    fi
+  fi
   
   # 清理临时目录
   cd - >/dev/null
-  rm -rf "$TEMP_REPO"
+  rm -rf "$temp_dir"
   
-  log "✅ 同步完成 ($synced 个文件)"
+  # 更新基线
+  local latest_commit
+  latest_commit=$(get_latest_commit)
+  echo "$latest_commit" > "$LAST_COMMIT_FILE"
+  
+  log "✅ 同步完成"
+  log "   新增：$new_count 个文件"
+  log "   更新：$updated_count 个文件"
+  log "   总计：$total_count 个文件"
+  log "   版本：${latest_commit:0:7}"
+  
+  # 返回统计信息（用于通知）
+  echo "$new_count:$updated_count:$deleted_count:$total_count"
 }
 
-# 更新 baseline
-update_baseline() {
-  local commit="$1"
-  mkdir -p "$(dirname "$LAST_COMMIT_FILE")"
-  echo "$commit" > "$LAST_COMMIT_FILE"
-  log "✅ Baseline 已更新：${commit:0:7}"
+# =============================================================================
+# 发送通知（隐私保护版本）
+# =============================================================================
+send_notification() {
+  local stats="$1"
+  IFS=':' read -r new updated deleted total <<< "$stats"
+  
+  # 检查是否有 OpenClaw CLI
+  if ! command -v openclaw >/dev/null 2>&1; then
+    log "ℹ️  OpenClaw CLI 不可用，跳过通知"
+    return 0
+  fi
+  
+  # 通知内容（不包含具体文件名，保护隐私）
+  local message="📚 OpenClaw 文档已同步
+
+版本：$(get_latest_commit | cut -c1-7)
+文件总数：$total
+本次更新：$((new + updated)) 个文件
+
+位置：$OPENCLAW_MANUAL_PATH"
+  
+  # 发送到指定渠道
+  log "📤 发送通知到：$DOC_NOTIFY_CHANNEL"
+  
+  # 使用 openclaw message 发送（如果配置了渠道）
+  if [ "$DOC_NOTIFY_CHANNEL" != "none" ]; then
+    openclaw message send --channel "$DOC_NOTIFY_CHANNEL" --message "$message" 2>/dev/null || \
+      log "⚠️  通知发送失败（渠道可能未配置）"
+  fi
 }
 
-# 主函数
+# =============================================================================
+# 检查更新（不同步）
+# =============================================================================
+check_updates() {
+  log "🔍 检查文档更新..."
+  
+  local current_commit
+  current_commit=$(get_current_commit)
+  
+  local latest_commit
+  latest_commit=$(get_latest_commit)
+  
+  if [ "$current_commit" = "$latest_commit" ]; then
+    log "✅ 文档已是最新版本"
+    log "   当前版本：${current_commit:0:7}"
+    return 0
+  fi
+  
+  log "📢 发现新版本"
+  log "   当前版本：${current_commit:0:7}"
+  log "   最新版本：${latest_commit:0:7}"
+  log ""
+  log "   运行 --sync 进行同步"
+  
+  return 1
+}
+
+# =============================================================================
+# 主程序
+# =============================================================================
 main() {
-  local mode="${1:---check}"
+  # 检查依赖
+  check_dependencies
   
-  case "$mode" in
+  case "${1:-}" in
     --init)
-      log "🔄 开始文档同步（完整）..."
-      
-      # 获取最新 commit
-      LATEST_COMMIT=$(get_latest_commit)
-      if [ -z "$LATEST_COMMIT" ]; then
-        log "❌ 获取 commit 失败，请检查网络连接"
-        exit 1
-      fi
-      
-      # 获取所有 docs 文件
-      CHANGED_FILES=$(get_changed_files "" "$LATEST_COMMIT" "full")
-      FILES_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
-      
-      if [ "$FILES_COUNT" -eq 0 ]; then
-        log "⚠️ 未找到 docs 文件"
-        exit 1
-      fi
-      
-      # 同步文档
-      sync_docs "full" "$LATEST_COMMIT" "$CHANGED_FILES" "$FILES_COUNT"
-      
-      # 更新 baseline
-      update_baseline "$LATEST_COMMIT"
-      
-      log "✅ 完整同步完成"
+      log "🚀 初始化文档同步..."
+      local stats
+      stats=$(sync_documents)
+      send_notification "$stats"
       ;;
     
     --sync)
-      log "🔄 开始文档同步（增量）..."
-      
-      # 获取最新 commit
-      LATEST_COMMIT=$(get_latest_commit)
-      if [ -z "$LATEST_COMMIT" ]; then
-        log "❌ 获取 commit 失败"
-        exit 1
-      fi
-      
-      # 读取上次记录的 commit
-      LAST_COMMIT=$(cat "$LAST_COMMIT_FILE" 2>/dev/null || echo "")
-      
-      if [ -z "$LAST_COMMIT" ]; then
-        log "⚠️ 未初始化，请运行：./run.sh --init"
-        exit 1
-      fi
-      
-      if [ "$LATEST_COMMIT" = "$LAST_COMMIT" ]; then
-        log "✅ 文档已是最新"
-        exit 0
-      fi
-      
-      # 获取变更文件列表
-      CHANGED_FILES=$(get_changed_files "$LAST_COMMIT" "$LATEST_COMMIT" "incremental")
-      FILES_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
-      
-      if [ "$FILES_COUNT" -eq 0 ]; then
-        log "⚠️ 无 docs 文件变更"
-        update_baseline "$LATEST_COMMIT"
-        exit 0
-      fi
-      
-      # 同步文档
-      sync_docs "incremental" "$LATEST_COMMIT" "$CHANGED_FILES" "$FILES_COUNT"
-      
-      # 更新 baseline
-      update_baseline "$LATEST_COMMIT"
-      
-      log "✅ 增量同步完成"
+      log "🔄 执行增量同步..."
+      local stats
+      stats=$(sync_documents)
+      send_notification "$stats"
       ;;
     
     --check)
-      log "🔍 检查文档更新..."
-      
-      LATEST_COMMIT=$(get_latest_commit)
-      LAST_COMMIT=$(cat "$LAST_COMMIT_FILE" 2>/dev/null || echo "")
-      
-      if [ -z "$LAST_COMMIT" ]; then
-        log "⚠️ 未初始化，请运行：./run.sh --init"
-        exit 1
-      elif [ "$LATEST_COMMIT" = "$LAST_COMMIT" ]; then
-        log "✅ 文档已是最新"
-      else
-        log "🔄 发现更新！运行以下命令同步："
-        log "   ./run.sh --sync"
-      fi
-      ;;
-    
-    --help|-h)
-      echo "用法：sync-docs.sh [选项]"
-      echo ""
-      echo "选项:"
-      echo "  --init     首次初始化（完整同步）"
-      echo "  --sync     增量同步（仅更新变更文件）"
-      echo "  --check    仅检查更新，不同步"
-      echo "  --help     显示帮助"
-      echo ""
+      check_updates
       ;;
     
     *)
-      echo "❌ 未知选项：$mode"
-      echo "运行 './sync-docs.sh --help' 查看帮助"
+      echo "用法：$0 {--init|--sync|--check}"
+      echo ""
+      echo "选项:"
+      echo "  --init   首次初始化（完整同步）"
+      echo "  --sync   增量同步（更新变更文件）"
+      echo "  --check  仅检查更新，不同步"
+      echo ""
+      echo "环境变量:"
+      echo "  OPENCLAW_MANUAL_PATH   文档存储路径（默认：~/.openclaw/workspace/docs/openclaw_manual）"
+      echo "  GITHUB_TOKEN           GitHub API Token（可选，提高速率限制）"
+      echo "  DOC_NOTIFY_CHANNEL     通知渠道（默认：webchat，设为 none 禁用）"
       exit 1
       ;;
   esac

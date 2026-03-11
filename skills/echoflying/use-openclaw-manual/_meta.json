@@ -3,11 +3,16 @@
   "slug": "use-openclaw-manual",
   "displayName": "Use Openclaw Manual",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773163763260,
-    "commit": "https://github.com/openclaw/skills/commit/a13fd6739587c8b87127dce72da37db7dff5bbb4"
+    "version": "2.0.2",
+    "publishedAt": 1773237382606,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773163763260,
+      "commit": "https://github.com/openclaw/skills/commit/a13fd6739587c8b87127dce72da37db7dff5bbb4"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772670703083,
