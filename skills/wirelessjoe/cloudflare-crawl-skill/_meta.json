@@ -1,0 +1,11 @@
+{
+  "owner": "wirelessjoe",
+  "slug": "cloudflare-crawl-skill",
+  "displayName": "Cloudflare Crawl",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773188962609,
+    "commit": null
+  },
+  "history": []
+}
