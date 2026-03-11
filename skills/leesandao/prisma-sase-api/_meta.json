@@ -1,0 +1,11 @@
+{
+  "owner": "leesandao",
+  "slug": "prisma-sase-api",
+  "displayName": "Prisma SASE API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773129225424,
+    "commit": null
+  },
+  "history": []
+}
