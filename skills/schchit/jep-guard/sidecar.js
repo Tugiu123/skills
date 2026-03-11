@@ -1,129 +1,180 @@
 /**
- * JEP Guard for OpenClaw
- * Sidecar - Intercepts high-risk commands and requires user approval
- * Now with JEP Receipt generation and config command
+ * JEP Guard v1.0.2 - Complete Fix
+ * Fixed issues:
+ * 1. Privacy: Configurable logging levels with defaults to minimal
+ * 2. Environment: Proper JSON serialization for auth tokens
+ * 3. Keys: Removed ALL placeholder keys - no signing without real key
  */
 
-const HIGH_RISK_COMMANDS = [
-  'rm', 'rmdir', 'mv', 'cp', 'format', 'dd', 'truncate'
-];
+const fs = require('fs').promises;
+const crypto = require('crypto');
+const path = require('path');
 
-const LOG_PATH = process.env.HOME + '/.jep-guard-audit.log';
-const CONFIG_PATH = process.env.HOME + '/.jep-guard-config.json';
+const HIGH_RISK_COMMANDS = ['rm', 'rmdir', 'mv', 'cp', 'format', 'dd', 'truncate'];
+const CONFIG_PATH = path.join(process.env.HOME || '.', '.jep-guard-config.json');
+const DEFAULT_LOG_PATH = path.join(process.env.HOME || '.', '.jep-guard-audit.log');
 
-// Try to load JEP SDK
+// Try to load JEP SDK quietly - no errors if not found
 let jepSdk;
 try {
   jepSdk = require('@jep-eth/sdk');
-} catch (e) {
-  // SDK not available, will use fallback
-  console.log('JEP SDK not found, using basic logging');
+} catch {
+  // SDK not available - JEP features disabled
 }
 
 /**
- * Read user configuration
+ * Read config with defaults
  */
 async function readConfig() {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf8');
     return JSON.parse(data);
-  } catch (e) {
-    // Default config if file doesn't exist
-    return { 
-      enabled: true, 
-      autoApprove: [],
-      logLevel: 'verbose',
-      jepEnabled: true
+  } catch {
+    // Default: minimal logging, no key, warn on install
+    return {
+      logLevel: 'minimal',
+      jepPrivateKey: null,
+      warnOnInstall: true,
+      logPath: DEFAULT_LOG_PATH
     };
   }
 }
 
 /**
- * Save user configuration
+ * Save config
  */
 async function saveConfig(config) {
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
 /**
- * Generate UUID v4
+ * Safely parse auth token from environment
+ * Fixes issue #2: Environment values are strings, not objects
  */
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+function parseAuthToken(envValue) {
+  if (!envValue) return null;
+  
+  // If it's already an object (unlikely but possible)
+  if (typeof envValue === 'object' && envValue !== null) {
+    return envValue;
+  }
+  
+  // Try to parse as JSON string
+  if (typeof envValue === 'string') {
+    try {
+      const parsed = JSON.parse(envValue);
+      // Validate it has the expected structure
+      if (parsed && typeof parsed === 'object' && 
+          parsed.id && typeof parsed.expires === 'number') {
+        return parsed;
+      }
+    } catch {
+      // Not valid JSON, ignore
+    }
+  }
+  
+  return null;
 }
 
 /**
- * Generate JEP Receipt for an action
+ * Generate JEP receipt - ONLY with real key
+ * Fixes issue #3: No placeholder keys, no signing without valid key
  */
-async function generateJEPReceipt(command, args, context, auth) {
-  if (!jepSdk || !context.config?.jepEnabled) {
-    return { hash: 'pending-' + generateUUID() };
+async function generateJEPReceipt(action, context, config) {
+  // No key = no receipt
+  if (!jepSdk || !config.jepPrivateKey) {
+    return { hasReceipt: false };
   }
   
   try {
-    const decisionData = {
-      command,
-      args,
-      user: context.user,
-      timestamp: new Date().toISOString(),
-      auth: auth
-    };
+    // Validate private key format (hex string)
+    let privateKey;
+    try {
+      privateKey = Buffer.from(config.jepPrivateKey, 'hex');
+      if (privateKey.length !== 32) {
+        throw new Error('Invalid key length');
+      }
+    } catch {
+      // Key is invalid, disable it
+      config.jepPrivateKey = null;
+      await saveConfig(config);
+      return { hasReceipt: false, error: 'Invalid private key' };
+    }
     
     const receipt = jepSdk.createReceipt({
       actor: context.user,
-      decisionHash: await jepSdk.hashReceipt(decisionData),
+      decisionHash: crypto.createHash('sha256')
+        .update(JSON.stringify(action))
+        .digest('hex'),
       authorityScope: 'clawbot-command',
       valid: {
         from: Math.floor(Date.now() / 1000),
-        until: Math.floor(Date.now() / 1000) + 86400 * 365 // 1 year
+        until: Math.floor(Date.now() / 1000) + 86400 * 30 // 30 days
       }
     });
     
-    // In production, user would provide their private key
-    const signed = await jepSdk.signReceipt(receipt, 'dev-key-placeholder');
+    const signed = await jepSdk.signReceipt(receipt, privateKey);
     const hash = await jepSdk.hashReceipt(receipt);
     
     return {
-      receipt: signed,
-      hash: hash
+      hasReceipt: true,
+      receiptHash: hash,
+      signed: signed
     };
   } catch (e) {
-    console.error('Failed to generate JEP receipt:', e);
-    return { hash: 'error-' + generateUUID() };
+    return { hasReceipt: false, error: e.message };
   }
 }
 
 /**
- * Log action to audit file with JEP Receipt
+ * Log action with privacy controls
+ * Fixes issue #1: Configurable logging levels, defaults to minimal
  */
-async function logAction(command, args, auth, context) {
-  // Generate JEP Receipt
-  const { receipt, hash } = await generateJEPReceipt(command, args, context, auth);
-  
+async function logAction(command, args, auth, context, config) {
+  // Base log entry - always include command name
   const logEntry = {
-    id: generateUUID(),
     timestamp: new Date().toISOString(),
     command: command,
-    args: args,
     user: context.user,
-    auth: auth,
-    jep: {
-      version: '1.0',
-      receiptHash: hash,
-      receipt: receipt,
-      verifyUrl: `https://jep-verify.vercel.app/verify/${hash}`
-    }
+    sessionId: auth?.id || crypto.randomUUID()
   };
   
+  // Add arguments based on log level
+  if (config.logLevel === 'verbose') {
+    // Verbose: log everything (high risk)
+    logEntry.args = args;
+    logEntry.warning = 'VERBOSE MODE: Arguments may contain sensitive data';
+  } else if (config.logLevel === 'normal') {
+    // Normal: log args but try to redact common sensitive patterns
+    const redactedArgs = args.map(arg => {
+      const sensitivePatterns = [
+        /token/i, /key/i, /secret/i, /pass/i, /auth/i,
+        /^-[Hh]$/, /authorization/i, /bearer/i
+      ];
+      if (sensitivePatterns.some(p => p.test(arg))) {
+        return '[REDACTED]';
+      }
+      return arg;
+    });
+    logEntry.args = redactedArgs;
+  } // minimal: no args at all
+  
+  // Add JEP receipt if available (and key exists)
+  if (config.jepPrivateKey) {
+    const jep = await generateJEPReceipt({ command, args }, context, config);
+    if (jep.hasReceipt) {
+      logEntry.jepReceiptHash = jep.receiptHash;
+    }
+  }
+  
+  // Write to log file
   const logLine = JSON.stringify(logEntry) + '\n';
+  const logPath = config.logPath || DEFAULT_LOG_PATH;
   
   try {
-    await fs.appendFile(LOG_PATH, logLine);
+    await fs.appendFile(logPath, logLine);
   } catch (e) {
+    // Fail silently - logging should not block execution
     console.error('Failed to write audit log:', e.message);
   }
   
@@ -131,155 +182,63 @@ async function logAction(command, args, auth, context) {
 }
 
 /**
- * Handle config command
- */
-async function handleConfigCommand(args, context) {
-  const config = await readConfig();
-  
-  if (args.length === 0) {
-    // Show current config
-    return {
-      output: JSON.stringify(config, null, 2),
-      mimeType: 'application/json'
-    };
-  }
-  
-  const subCommand = args[0];
-  
-  if (subCommand === 'toggle') {
-    config.enabled = !config.enabled;
-    await saveConfig(config);
-    await context.ui.notify(`JEP Guard ${config.enabled ? 'enabled' : 'disabled'}`);
-    return { allow: true };
-  }
-  
-  if (subCommand === 'set' && args[1] && args[2]) {
-    const key = args[1];
-    const value = args[2];
-    
-    if (key === 'logLevel') {
-      config.logLevel = value;
-    } else if (key === 'jepEnabled') {
-      config.jepEnabled = value === 'true';
-    }
-    
-    await saveConfig(config);
-    await context.ui.notify(`Config updated: ${key}=${value}`);
-    return { allow: true };
-  }
-  
-  return {
-    output: 'Usage: claw run jep-guard config [toggle|set <key> <value>]',
-    mimeType: 'text/plain'
-  };
-}
-
-/**
- * Main hook function - called before every command
+ * Main hook
  */
 module.exports = async function beforeCommand(command, args, context) {
-  // Handle jep-guard internal commands
-  if (command === 'jep-guard') {
-    if (args[0] === 'config') {
-      return await handleConfigCommand(args.slice(1), context);
-    }
-    if (args[0] === 'export') {
-      // This will be handled by export.js
-      return { allow: true };
-    }
-  }
-  
-  // 1. Read config
   const config = await readConfig();
-  context.config = config;
   
-  // 2. Check if it's a high-risk command
+  // Parse auth token safely (fixes issue #2)
+  const authToken = parseAuthToken(context.env.JEP_TEMP_AUTH);
+  
+  // Always log (with privacy controls)
+  await logAction(command, args, authToken, context, config);
+  
+  // Only intercept high-risk commands
   if (!HIGH_RISK_COMMANDS.includes(command)) {
-    // Still log low-risk commands if logLevel is verbose
-    if (config.logLevel === 'verbose') {
-      await logAction(command, args, { autoLogged: true }, context);
-    }
     return { allow: true };
   }
-
-  // 3. Check if JEP Guard is enabled
-  if (!config.enabled) {
+  
+  // Check for valid auth token
+  if (authToken && authToken.expires > Math.floor(Date.now() / 1000)) {
     return { allow: true };
   }
-
-  // 4. Check for temporary auth token
-  const tempAuth = context.env.JEP_TEMP_AUTH;
-  if (tempAuth) {
-    const now = Math.floor(Date.now() / 1000);
-    if (tempAuth.expires > now) {
-      await logAction(command, args, tempAuth, context);
-      return { allow: true };
-    }
-  }
-
-  // 5. Check auto-approve list
-  const commandLine = command + ' ' + args.join(' ');
-  if (config.autoApprove.includes(commandLine)) {
-    await logAction(command, args, { autoApproved: true }, context);
-    return { allow: true };
-  }
-
-  // 6. No valid auth - ask user
-  const userChoice = await context.ui.confirm({
+  
+  // Ask for confirmation
+  const displayCmd = config.logLevel === 'minimal' 
+    ? command 
+    : `${command} ${args.join(' ')}`;
+  
+  const choice = await context.ui.confirm({
     title: '⚠️ High-Risk Operation',
-    message: `Clawbot wants to execute:\n\n${commandLine}\n\nAllow this one time?`,
-    buttons: ['✅ Allow Once', '🚫 Deny', '⚙️ Settings', '🔓 Always Allow'],
-    timeout: 30000
+    message: `Execute: ${displayCmd}`,
+    buttons: ['✅ Allow Once', '🚫 Deny', '⚙️ Settings']
   });
-
-  // 7. Handle user choice
-  if (userChoice === '✅ Allow Once') {
-    const tempAuth = {
-      id: generateUUID(),
+  
+  if (choice === '✅ Allow Once') {
+    // Create new auth token (always store as JSON string - fixes issue #2)
+    const newToken = {
+      id: crypto.randomUUID(),
       expires: Math.floor(Date.now() / 1000) + 300, // 5 minutes
-      command: commandLine,
-      approvedAt: new Date().toISOString()
+      command: command,
+      createdAt: new Date().toISOString()
     };
-    
-    await logAction(command, args, tempAuth, context);
     
     return {
       allow: true,
-      env: { JEP_TEMP_AUTH: tempAuth }
+      env: { 
+        JEP_TEMP_AUTH: JSON.stringify(newToken) // Always string
+      }
     };
-  } 
-  else if (userChoice === '🔓 Always Allow') {
-    // Add to auto-approve list
-    config.autoApprove.push(commandLine);
+  }
+  
+  if (choice === '⚙️ Settings') {
+    // Quick settings menu
+    const newLevel = config.logLevel === 'minimal' ? 'normal' : 
+                     config.logLevel === 'normal' ? 'verbose' : 'minimal';
+    config.logLevel = newLevel;
     await saveConfig(config);
-    
-    await logAction(command, args, { autoApproved: true }, context);
-    await context.ui.notify(`✅ Added to auto-approve list`);
-    
-    return { allow: true };
+    await context.ui.notify(`Log level set to ${newLevel}`);
   }
-  else if (userChoice === '⚙️ Settings') {
-    // Show settings menu
-    const settingChoice = await context.ui.confirm({
-      title: 'JEP Guard Settings',
-      message: `Current: ${config.enabled ? 'Enabled' : 'Disabled'}\nLog level: ${config.logLevel}`,
-      buttons: ['Toggle On/Off', 'Change Log Level', 'Back']
-    });
-    
-    if (settingChoice === 'Toggle On/Off') {
-      config.enabled = !config.enabled;
-      await saveConfig(config);
-      await context.ui.notify(`JEP Guard ${config.enabled ? 'enabled' : 'disabled'}`);
-    } else if (settingChoice === 'Change Log Level') {
-      config.logLevel = config.logLevel === 'verbose' ? 'minimal' : 'verbose';
-      await saveConfig(config);
-    }
-    
-    return { allow: false };
-  }
-  else {
-    // User denied
-    await logAction(command, args, { denied: true }, context);
-    return { allow: false, reason: 'User denied' };
-  }
+  
+  return { allow: false, reason: 'User denied' };
 };
