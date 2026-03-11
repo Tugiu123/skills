@@ -1,0 +1,11 @@
+{
+  "owner": "socketnet",
+  "slug": "voiceclone",
+  "displayName": "Mimimax Voice Clone +TTS",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773052222077,
+    "commit": null
+  },
+  "history": []
+}
