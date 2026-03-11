@@ -1,0 +1,11 @@
+{
+  "owner": "powtac",
+  "slug": "meross",
+  "displayName": "Meross Smart",
+  "latest": {
+    "version": "1.0.26",
+    "publishedAt": 1773168032264,
+    "commit": null
+  },
+  "history": []
+}
