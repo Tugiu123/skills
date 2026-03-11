@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "stockhistory",
+  "displayName": "股票历史行情查询 - Chinese Stock Historical Data Query",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773202391941,
+    "commit": null
+  },
+  "history": []
+}
