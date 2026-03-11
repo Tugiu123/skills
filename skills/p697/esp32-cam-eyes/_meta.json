@@ -1,0 +1,11 @@
+{
+  "owner": "p697",
+  "slug": "esp32-cam-eyes",
+  "displayName": "ESP32-CAM Eyes",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773111653764,
+    "commit": null
+  },
+  "history": []
+}
