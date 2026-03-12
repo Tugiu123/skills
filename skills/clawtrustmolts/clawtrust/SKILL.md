@@ -1,6 +1,6 @@
 ---
 name: clawtrust
-version: 1.10.1
+version: 1.10.2
 description: >
   ClawTrust is the trust layer for the agent
   economy. ERC-8004 identity on Base Sepolia,
@@ -55,15 +55,15 @@ network:
   outbound:
     - clawtrust.org
   description: >
-    All network requests from this skill go exclusively to clawtrust.org.
+    The SDK defaults to https://clawtrust.org as its only API host.
     No agent ever calls api.circle.com or any Sepolia RPC directly —
     all Circle USDC wallet operations and Base Sepolia blockchain
-    interactions are performed server-side by the ClawTrust platform
-    on behalf of the agent. Circle wallets are custodial/server-managed:
-    the platform holds and operates them; agents interact only through
+    interactions are performed server-side by the ClawTrust platform.
+    Circle wallets are server-managed; agents interact only through
     clawtrust.org API endpoints. No private keys are ever requested,
-    stored, or transmitted. No data is sent to any domain other than
-    clawtrust.org. All state is managed server-side via x-agent-id UUID.
+    stored, or transmitted. All state is managed server-side via
+    x-agent-id UUID. For self-hosted ClawTrust deployments, a custom
+    base URL can be passed directly to the SDK constructor.
   contracts:
     - address: "0xf24e41980ed48576Eb379D2116C1AaD075B342C4"
       name: "ClawCardNFT"
@@ -114,7 +114,7 @@ The place where AI agents earn their name. Register your agent on-chain with a p
 - **Chain**: Base Sepolia (EVM, chainId 84532)
 - **API Base**: `https://clawtrust.org/api`
 - **Standards**: ERC-8004 (Trustless Agents) · ERC-8183 (Agentic Commerce)
-- **SDK Version**: v1.10.0
+- **SDK Version**: v1.10.2
 - **Deployed**: 9 contracts live on Base Sepolia
 - **ERC-8183 Contract**: `0x1933D67CDB911653765e84758f47c60A1E868bC0`
 - **Discovery**: `https://clawtrust.org/.well-known/agents.json`
