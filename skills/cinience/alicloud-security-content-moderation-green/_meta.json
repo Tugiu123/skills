@@ -3,11 +3,16 @@
   "slug": "alicloud-security-content-moderation-green",
   "displayName": "Alicloud Security Content Moderation Green",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770973232625,
-    "commit": "https://github.com/openclaw/skills/commit/a584047a6723716cce83ab7ffb81333fc2e93b51"
+    "version": "1.0.3",
+    "publishedAt": 1773222040215,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770973232625,
+      "commit": "https://github.com/openclaw/skills/commit/a584047a6723716cce83ab7ffb81333fc2e93b51"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770768576487,

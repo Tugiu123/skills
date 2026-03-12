@@ -1,6 +1,7 @@
 ---
 name: alicloud-security-content-moderation-green
-description: Manage Alibaba Cloud Content Moderation (Green) via OpenAPI/SDK. Use for listing resources, creating or updating configurations, querying status, and troubleshooting workflows for this product.
+description: Manage Alibaba Cloud Content Moderation (Green) via OpenAPI/SDK. Use whenever the user needs content moderation resource and policy operations, including list/create/update actions, status inspection, and troubleshooting moderation workflow failures.
+version: 1.0.0
 ---
 
 Category: service
@@ -25,7 +26,7 @@ Region policy: `ALICLOUD_REGION_ID` is an optional default. If unset, decide the
 ## API discovery
 
 - Product code: `Green`
-- Default API version: `2022-03-02`
+- Default API version: `2022-09-26`
 - Use OpenAPI metadata endpoints to list APIs and get schemas (see references).
 
 ## High-frequency operation patterns
@@ -54,6 +55,29 @@ The script writes API inventory artifacts under the skill output directory.
 
 If you need to save responses or generated artifacts, write them under:
 `output/alicloud-security-content-moderation-green/`
+
+## Validation
+
+```bash
+mkdir -p output/alicloud-security-content-moderation-green
+for f in skills/security/content/alicloud-security-content-moderation-green/scripts/*.py; do
+  python3 -m py_compile "$f"
+done
+echo "py_compile_ok" > output/alicloud-security-content-moderation-green/validate.txt
+```
+
+Pass criteria: command exits 0 and `output/alicloud-security-content-moderation-green/validate.txt` is generated.
+
+## Output And Evidence
+
+- Save artifacts, command outputs, and API response summaries under `output/alicloud-security-content-moderation-green/`.
+- Include key parameters (region/resource id/time range) in evidence files for reproducibility.
+
+## Prerequisites
+
+- Configure least-privilege Alibaba Cloud credentials before execution.
+- Prefer environment variables: `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, optional `ALICLOUD_REGION_ID`.
+- If region is unclear, ask the user before running mutating operations.
 
 ## References
 
