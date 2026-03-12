@@ -1,196 +1,150 @@
 # Pattern Miner
 
-🔍 **自动识别代码和工作流中的重复模式，生成可复用的模板和自动化脚本**
+🔍 Intelligent pattern recognition and actionable insights from multi-source data.
 
-Pattern Miner 是一个智能代码分析工具，帮助你发现重复的代码模式和工作流，自动生成模板和脚本，提高开发效率。
-
-## 快速开始
-
-### 安装
+## Quick Start
 
 ```bash
-# 克隆或进入 skill 目录
-cd ~/.openclaw/skills/pattern-miner
+# Install dependencies
+cd ~/.openclaw/workspace/skills/pattern-miner
+npm install
+npm run build
 
-# 安装 Python 依赖
-pip install -r requirements.txt
+# Install Python dependencies
+pip install numpy scikit-learn pandas
 
-# 验证安装
-python -m pattern_miner.cli --help
+# Run your first mining session
+pattern-miner mine
+
+# View results
+pattern-miner list
+pattern-miner stats
 ```
 
-### 基本使用
+## What It Does
+
+Pattern Miner analyzes your workflow data to discover:
+
+- **Recurring patterns** in conversations and decisions
+- **Hidden associations** between tasks and topics
+- **Anomalies** that need attention
+- **Actionable insights** to improve productivity
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `mine` | Run pattern mining on collected data |
+| `list` | List discovered patterns |
+| `analyze` | Analyze specific patterns or insights |
+| `apply` | Apply insights to generate improvements |
+| `stats` | Show mining statistics |
+| `export` | Export patterns to file |
+| `config` | Show or edit configuration |
+
+## Example Output
+
+```
+🔍 Starting pattern mining...
+
+✓ Collected 156 items
+
+✓ Found 8 patterns
+✓ Generated 5 insights
+
+📊 Top Insights:
+
+1. Recurring Pattern: Code review feedback patterns...
+   Found 12 similar items forming a pattern
+   → Action: Review and standardize this pattern
+
+2. Association: testing → documentation
+   These items frequently occur together (confidence: 0.82)
+   → Action: Consider linking or automating these related items
+```
+
+## API Usage
+
+```typescript
+import { PatternMiner } from '@openclaw/skill-pattern-miner';
+
+const miner = new PatternMiner();
+await miner.initialize();
+
+const results = await miner.mine();
+console.log(`Found ${results.summary.totalPatterns} patterns`);
+
+const insights = await miner.listInsights(undefined, true);
+for (const insight of insights) {
+  console.log(`- ${insight.title}: ${insight.action}`);
+}
+```
+
+## Configuration
+
+Create `~/.pattern-miner/config.json`:
+
+```json
+{
+  "minConfidence": 0.6,
+  "minFrequency": 3,
+  "analysisTypes": ["cluster", "association", "anomaly"],
+  "maxPatterns": 1000,
+  "retentionDays": 30
+}
+```
+
+## Data Sources
+
+Configure sources in config.json:
+
+```json
+{
+  "sources": [
+    {
+      "type": "conversation",
+      "name": "sessions",
+      "path": "~/.openclaw/sessions",
+      "pattern": "**/*.json"
+    },
+    {
+      "type": "decision",
+      "name": "decisions",
+      "path": "~/.openclaw/decisions",
+      "pattern": "**/*.json"
+    },
+    {
+      "type": "task",
+      "name": "tasks",
+      "path": "~/.openclaw/workspace",
+      "pattern": "**/*.{json,md}"
+    }
+  ]
+}
+```
+
+## Development
 
 ```bash
-# 1. 分析代码库
-python -m pattern_miner.cli analyze ./your-project
+# Build
+npm run build
 
-# 2. 分析命令历史
-python -m pattern_miner.cli history
+# Development mode
+npm run dev -- mine
 
-# 3. 一键完成所有分析
-python -m pattern_miner.cli full ./your-project -o ./output
+# Run tests
+npm test
+
+# Lint
+npm run lint
 ```
 
-## 功能特性
+## Requirements
 
-### 🔎 代码模式检测
-- 支持 Python、Shell、Bash 等语言
-- 基于 AST 的语义分析
-- 检测重复函数、代码块
-- 识别可提取的变量
+- Node.js >= 18.0.0
+- Python >= 3.8
+- numpy, scikit-learn, pandas
 
-### 📜 命令历史分析
-- 分析 bash/zsh/fish 历史
-- 识别重复命令序列
-- 支持时间窗口过滤
-- 统计高频命令
+## License
 
-### 📝 模板生成
-- Jinja2 格式模板
-- 自动变量提取
-- 使用示例生成
-- 元数据保存
-
-### 🤖 脚本自动化
-- Shell 脚本生成
-- 错误处理内置
-- 可执行权限设置
-- 配置参数支持
-
-## 使用示例
-
-### 场景 1：发现重复代码
-
-```bash
-# 分析项目中的重复代码
-$ python -m pattern_miner.cli analyze ./src
-
-Found 3 duplicate pattern(s):
-
-Pattern 1:
-  Language: python
-  Occurrences: 5
-  Hash: a1b2c3d4
-  Locations:
-    - src/utils.py:23
-    - src/helpers.py:45
-    ...
-  Code preview:
-    def process_data(data):
-        result = []
-        for item in data:
-            if item.get('valid'):
-                result.append(transform(item))
-```
-
-### 场景 2：优化工作流
-
-```bash
-# 分析最近 30 天的命令历史
-$ python -m pattern_miner.cli history --days 30
-
-Found 2 repeated command sequence(s):
-
-Pattern 1:
-  Occurrences: 15
-  Commands:
-    - cd /project && git pull
-    - pip install -r requirements.txt
-    - python manage.py migrate
-```
-
-### 场景 3：生成自动化脚本
-
-```bash
-# 生成模板和脚本
-$ python -m pattern_miner.cli full ./project -o ./generated
-
-[1/4] Analyzing code files...
-  Found 5 code pattern(s)
-[2/4] Analyzing command history...
-  Found 3 history pattern(s)
-[3/4] Generating templates...
-  Saved 8 template(s)
-[4/4] Generating scripts...
-  Generated 3 script(s)
-```
-
-## 输出结构
-
-```
-output/
-├── summary.json           # 分析摘要
-├── pattern_a1b2c3d4.jinja2    # Jinja2 模板
-├── pattern_a1b2c3d4.jinja2.meta  # 模板元数据
-├── automation_x7y8z9.sh   # 自动化脚本
-└── ...
-```
-
-## 配置选项
-
-| 选项 | 说明 | 默认值 |
-|------|------|--------|
-| `-m, --min-lines` | 最小行数 | 3 |
-| `-e, --extensions` | 文件扩展名 | .py,.sh,.bash |
-| `--days` | 历史分析天数 | 全部 |
-| `--min-count` | 最小出现次数 | 2 |
-| `-o, --output-dir` | 输出目录 | ./pattern-miner-output |
-
-## 开发
-
-### 运行测试
-
-```bash
-pytest tests/ -v
-```
-
-### 代码结构
-
-```
-pattern_miner/
-├── analyzer.py    # 代码分析器
-├── history.py     # 历史分析器
-├── template.py    # 模板生成器
-└── cli.py         # 命令行接口
-```
-
-### 添加新语言支持
-
-在 `analyzer.py` 中添加新的分析方法：
-
-```python
-def _analyze_javascript(self, lines, file_path):
-    # 实现 JavaScript 分析逻辑
-    pass
-```
-
-## 最佳实践
-
-1. **定期分析** - 每周运行一次，发现新出现的模式
-2. **代码审查** - 将结果用于代码审查和重构
-3. **团队共享** - 建立团队模板库
-4. **CI/CD 集成** - 在 CI 中运行分析，监控技术债务
-
-## 常见问题
-
-**Q: 分析速度很慢？**
-A: 排除大型目录（node_modules, venv 等），或增加最小行数阈值。
-
-**Q: 找不到历史文件？**
-A: 使用 `-f` 参数手动指定历史文件路径。
-
-**Q: 生成的模板如何使用？**
-A: 使用 Jinja2 渲染，或手动替换变量后使用。
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 许可证
-
-MIT License
-
----
-
-**让 Pattern Miner 帮你发现并消除重复工作！🚀**
+MIT

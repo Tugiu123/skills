@@ -1,51 +1,61 @@
 {
-  "name": "pattern-miner",
-  "version": "0.1.0",
-  "description": "Automatic pattern detection and template generation for code and workflows",
-  "main": "pattern_miner/cli.py",
+  "name": "@openclaw/skill-pattern-miner",
+  "version": "1.0.0",
+  "description": "Pattern Miner - Intelligent pattern recognition and actionable insights from multi-source data",
+  "main": "dist/index.js",
+  "bin": {
+    "pattern-miner": "dist/cli.js"
+  },
   "scripts": {
-    "install": "pip install -r requirements.txt",
-    "test": "python -m pytest tests/",
-    "analyze": "python -m pattern_miner.cli analyze",
-    "history": "python -m pattern_miner.cli history",
-    "template": "python -m pattern_miner.cli template",
-    "script": "python -m pattern_miner.cli script",
-    "full": "python -m pattern_miner.cli full",
-    "dev": "python -m pattern_miner.cli --help"
+    "build": "tsc",
+    "dev": "ts-node src/cli.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "prepare": "npm run build"
   },
   "keywords": [
-    "pattern",
-    "code-analysis",
-    "automation",
-    "template",
-    "productivity",
-    "refactoring"
+    "openclaw",
+    "skill",
+    "pattern-mining",
+    "machine-learning",
+    "clustering",
+    "association-rules",
+    "insights"
   ],
-  "author": "Pearl Workspace",
+  "author": "OpenClaw",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pearl-workspace/pattern-miner"
-  },
   "dependencies": {
-    "jinja2": "^3.1.0"
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "lodash": "^4.17.21",
+    "date-fns": "^3.0.6"
   },
   "devDependencies": {
-    "pytest": "^7.0.0"
+    "@types/node": "^20.10.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/lodash": "^4.14.202",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0"
   },
   "engines": {
-    "python": ">=3.8",
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
-  "bin": {
-    "pattern-miner": "./bin/pattern-miner"
-  },
-  "files": [
-    "pattern_miner/",
-    "templates/",
-    "bin/",
-    "requirements.txt",
-    "SKILL.md",
-    "README.md"
-  ]
+  "skill": {
+    "name": "pattern-miner",
+    "category": "analysis",
+    "entry": "dist/cli.js",
+    "pythonDependencies": [
+      "tree-sitter",
+      "numpy",
+      "scikit-learn",
+      "pandas"
+    ]
+  }
 }

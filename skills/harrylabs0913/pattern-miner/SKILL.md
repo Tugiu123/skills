@@ -1,248 +1,304 @@
-# Pattern Miner Skill
+# pattern-miner Skill
 
-自动识别用户代码/工作流中的重复模式，提取可复用的模板和自动化脚本，帮助用户减少重复工作。
+Intelligent pattern recognition and actionable insights from multi-source data.
 
-## 功能特性
+## Description
 
-### 核心功能
-1. **静态代码分析** - 检测 Python/Shell 代码中的重复代码块
-2. **命令历史分析** - 识别重复的命令序列
-3. **模板生成** - 生成 Jinja2 格式的 reusable templates
-4. **脚本生成** - 自动生成 Shell 自动化脚本
-5. **CLI 接口** - 简单易用的命令行工具
+The `pattern-miner` skill discovers hidden patterns in your workflow data (conversations, decisions, tasks) using machine learning techniques. It identifies recurring themes, associations, and anomalies, then generates actionable insights to improve productivity and decision-making.
 
-### 技术栈
-- Python 3.8+
-- tree-sitter（代码解析）
-- Jinja2（模板引擎）
-- SQLite（数据存储）
-
-## 安装
+## Installation
 
 ```bash
-# 进入 skill 目录
-cd ~/.openclaw/skills/pattern-miner
-
-# 安装依赖
-pip install jinja2
-
-# 或者使用 package.json (如果有 npm 脚本)
+cd ~/.openclaw/workspace/skills/pattern-miner
 npm install
+npm run build
 ```
 
-## 使用方法
-
-### 1. 代码分析
-
-分析目录中的重复代码模式：
+### Python Dependencies
 
 ```bash
-# 分析 Python 和 Shell 文件
-pattern-miner analyze ./my-project
-
-# 指定文件扩展名
-pattern-miner analyze ./src -e .py,.js,.sh
-
-# 输出结果到 JSON 文件
-pattern-miner analyze ./my-project -o patterns.json
+pip install numpy scikit-learn pandas tree-sitter
 ```
 
-### 2. 命令历史分析
+## Usage
 
-分析 shell 历史中的重复命令序列：
+### CLI Commands
 
 ```bash
-# 分析默认历史文件
-pattern-miner history
+# Run pattern mining
+pattern-miner mine
 
-# 指定历史文件
-pattern-miner history -f ~/.zsh_history
+# Incremental mining (only new data)
+pattern-miner mine --incremental
 
-# 分析最近 30 天
-pattern-miner history --days 30
+# List discovered patterns
+pattern-miner list
+pattern-miner list --type cluster
+pattern-miner list --verbose
 
-# 从 SQLite 数据库加载
-pattern-miner history -d ~/.openclaw/data/commands.db
+# Analyze specific patterns/insights
+pattern-miner analyze
+pattern-miner analyze --pattern <id>
+pattern-miner analyze --insight <id>
+pattern-miner analyze --category optimization
+
+# Apply insights
+pattern-miner apply --confirm
+pattern-miner apply --insight <id> --confirm
+pattern-miner apply --category automation --dry-run
+
+# Show statistics
+pattern-miner stats
+
+# Export patterns
+pattern-miner export --format json --output patterns.json
+pattern-miner export --format csv --output patterns.csv
+
+# Configuration
+pattern-miner config --show
+pattern-miner config --init
 ```
 
-### 3. 生成模板
+### Node.js API
 
-从分析结果生成 Jinja2 模板：
+```typescript
+import { PatternMiner } from '@openclaw/skill-pattern-miner';
 
-```bash
-# 从分析结果生成模板
-pattern-miner template -i patterns.json -o ./templates
+const miner = new PatternMiner({
+  minConfidence: 0.7,
+  minFrequency: 5,
+  analysisTypes: ['cluster', 'association', 'anomaly']
+});
 
-# 生成的模板文件
-# templates/pattern_abc123.jinja2
-# templates/pattern_abc123.jinja2.meta
+await miner.initialize();
+
+// Run mining
+const results = await miner.mine();
+console.log(`Found ${results.summary.totalPatterns} patterns`);
+console.log(`Generated ${results.summary.totalInsights} insights`);
+
+// List patterns
+const patterns = await miner.listPatterns();
+const clusterPatterns = await miner.listPatterns('cluster', 10);
+
+// List insights
+const insights = await miner.listInsights(undefined, true); // pending only
+
+// Get stats
+const stats = await miner.getStats();
+
+// Apply insight
+await miner.applyInsight('insight_123');
+
+// Export
+const json = await miner.exportPatterns('json');
+const csv = await miner.exportPatterns('csv');
 ```
 
-### 4. 生成脚本
+## Core Features
 
-从 Shell 模式生成自动化脚本：
+### Multi-Source Data Collection
 
-```bash
-# 生成可执行脚本
-pattern-miner script -i patterns.json -o ./scripts
+Automatically collects data from:
+- **Conversations**: Session logs from `context-preserver`
+- **Decisions**: Decision records from `decision-recorder`
+- **Tasks**: Task files in workspace (JSON, Markdown)
+- **Files**: Any file patterns you configure
 
-# 生成的脚本可直接运行
-./scripts/automation_abc123.sh
-```
+### Intelligent Pattern Recognition
 
-### 5. 完整流程
+Three analysis types:
 
-一键完成分析、模板生成和脚本生成：
+1. **Clustering** (`cluster`)
+   - Groups similar items using KMeans
+   - Identifies recurring themes and topics
+   - TF-IDF vectorization for text similarity
 
-```bash
-# 完整分析并生成所有输出
-pattern-miner full ./my-project -o ./pattern-miner-output
+2. **Association Rules** (`association`)
+   - Finds items that frequently occur together
+   - Calculates confidence and support metrics
+   - Discovers hidden relationships
 
-# 包含历史分析
-pattern-miner full ./my-project -f ~/.bash_history -o ./output
-```
+3. **Anomaly Detection** (`anomaly`)
+   - Identifies outliers using Local Outlier Factor
+   - Flags unusual patterns for review
+   - Helps catch edge cases and issues
 
-## 输出示例
+### Pattern Scoring System
 
-### 代码模式检测
+Each pattern is scored on:
+- **Confidence**: How reliable the pattern is (0-1)
+- **Frequency**: How often the pattern appears
+- **Importance**: Composite score based on:
+  - Pattern confidence
+  - Frequency normalized to max
+  - Item priority metadata
 
-```
-Pattern 1:
-  Language: python
-  Occurrences: 5
-  Hash: a1b2c3d4
-  Locations:
-    - /project/utils.py:23
-    - /project/helpers.py:45
-    - /project/lib/common.py:12
-  Variables: data, result, config
-  Code preview:
-    def process_data(data):
-        result = []
-        for item in data:
-            if item.get('valid'):
-                result.append(transform(item))
-```
+### Actionable Insights
 
-### 命令序列检测
+Generated insights include:
+- **Title**: Clear description of the finding
+- **Description**: Context and metrics
+- **Action**: Specific recommendation
+- **Priority**: high/medium/low
+- **Expected Impact**: Estimated value (0-1)
+- **Category**: optimization/automation/risk
 
-```
-Pattern 1:
-  Occurrences: 12
-  Commands:
-    - cd /project && git pull
-    - pip install -r requirements.txt
-    - python setup.py develop
-  Example usage:
-    cd /project && git pull && pip install -r requirements.txt
-```
+## Configuration
 
-## 配置选项
+Default config is stored at `~/.pattern-miner/config.json`:
 
-### 分析选项
-- `--min-lines` / `-m`: 最小行数（默认：3）
-- `--extensions` / `-e`: 文件扩展名（默认：.py,.sh,.bash）
-- `--days`: 历史分析天数
-- `--min-count`: 最小出现次数（默认：2）
-
-### 输出选项
-- `--output` / `-o`: 输出目录或文件
-- `--verbose` / `-v`: 详细输出
-
-## 目录结构
-
-```
-pattern-miner/
-├── SKILL.md              # 技能文档
-├── package.json          # NPM 配置
-├── pattern_miner/
-│   ├── __init__.py       # 包初始化
-│   ├── analyzer.py       # 代码分析器
-│   ├── history.py        # 历史分析器
-│   ├── template.py       # 模板生成器
-│   └── cli.py            # CLI 入口
-├── templates/            # 内置模板
-├── tests/                # 测试用例
-└── README.md             # 使用说明
-```
-
-## 集成示例
-
-### 在开发工作流中使用
-
-```bash
-# 1. 定期分析项目代码
-pattern-miner analyze ./src -o .patterns/code.json
-
-# 2. 分析常用命令
-pattern-miner history --days 7 -o .patterns/history.json
-
-# 3. 生成模板
-pattern-miner template -i .patterns/code.json -o templates/
-
-# 4. 在 CI/CD 中使用生成的脚本
-./scripts/automation_deploy.sh
-```
-
-### 与编辑器集成
-
-```python
-# 在 VSCode settings.json 中添加
+```json
 {
-  "tasks": {
-    "pattern-miner": {
-      "label": "Run Pattern Miner",
-      "type": "shell",
-      "command": "pattern-miner full ${workspaceFolder} -o .patterns"
+  "dataDir": "~/.openclaw/workspace",
+  "patternDir": "~/.pattern-miner",
+  "minConfidence": 0.6,
+  "minFrequency": 3,
+  "analysisTypes": ["cluster", "association", "anomaly"],
+  "sources": [
+    {
+      "type": "conversation",
+      "name": "conversations",
+      "path": "~/.openclaw/sessions",
+      "pattern": "**/*.json"
     }
-  }
+  ],
+  "autoScan": false,
+  "scanInterval": 60,
+  "maxPatterns": 1000,
+  "retentionDays": 30
 }
 ```
 
-## 最佳实践
+## Data Storage
 
-1. **定期运行** - 每周运行一次完整分析，发现新的重复模式
-2. **代码审查** - 将检测结果用于代码审查，识别可重构的代码
-3. **模板库** - 建立团队模板库，共享最佳实践
-4. **自动化** - 将常用命令序列固化为脚本
+Patterns and insights are stored in `~/.pattern-miner/`:
+- `patterns.json` - Discovered patterns
+- `insights.json` - Generated insights
+- `config.json` - Configuration
 
-## 注意事项
+## Integration
 
-- 首次分析可能需要较长时间，取决于代码库大小
-- 建议排除 `node_modules`, `venv`, `.git` 等目录
-- 生成的模板需要人工审查后再使用
-- 历史分析依赖 shell 历史记录，确保已启用
+### With context-preserver
 
-## 故障排除
+The skill automatically reads conversation logs if `context-preserver` is installed:
 
-### 问题：找不到历史文件
-```bash
-# 手动指定历史文件
-pattern-miner history -f ~/.zsh_history
+```json
+{
+  "sources": [
+    {
+      "type": "conversation",
+      "name": "sessions",
+      "path": "~/.openclaw/sessions",
+      "pattern": "**/*.json"
+    }
+  ]
+}
 ```
 
-### 问题：模板生成失败
-```bash
-# 检查 Jinja2 是否安装
-pip install jinja2
+### With decision-recorder
 
-# 检查输入文件格式
-cat patterns.json | python -m json.tool
+Integrates with decision logs:
+
+```json
+{
+  "sources": [
+    {
+      "type": "decision",
+      "name": "decisions",
+      "path": "~/.openclaw/decisions",
+      "pattern": "**/*.json"
+    }
+  ]
+}
 ```
 
-### 问题：分析速度慢
-```bash
-# 排除大目录
-pattern-miner analyze ./src --exclude node_modules,venv,.git
+## Scheduled Mining
 
-# 减少最小行数
-pattern-miner analyze ./src -m 5
+For automatic periodic scanning, add to your crontab:
+
+```bash
+# Run pattern mining every hour
+0 * * * * cd ~/.openclaw/workspace/skills/pattern-miner && pattern-miner mine --incremental
 ```
 
-## 贡献
+Or enable auto-scan in config:
 
-欢迎提交 Issue 和 Pull Request！
+```json
+{
+  "autoScan": true,
+  "scanInterval": 60
+}
+```
 
-## 许可证
+## Output Examples
 
-MIT License
+### Pattern Output
+
+```json
+{
+  "id": "cluster_0_1710234567",
+  "type": "cluster",
+  "items": ["...", "..."],
+  "confidence": 0.85,
+  "frequency": 12,
+  "importance": 0.78,
+  "metadata": { "centroid": [...] },
+  "createdAt": "2024-03-12T09:00:00Z",
+  "source": "clustering"
+}
+```
+
+### Insight Output
+
+```json
+{
+  "id": "insight_cluster_0_1710234567",
+  "patternId": "cluster_0_1710234567",
+  "title": "Recurring Pattern: Code review feedback...",
+  "description": "Found 12 similar items forming a pattern",
+  "action": "Review and standardize this pattern",
+  "priority": "high",
+  "expectedImpact": 0.7,
+  "category": "optimization"
+}
+```
+
+## Troubleshooting
+
+### Python not found
+
+Ensure Python 3.8+ is installed and in PATH:
+```bash
+python3 --version
+```
+
+### No patterns found
+
+- Check that data sources are configured correctly
+- Ensure there's enough data (minFrequency defaults to 3)
+- Try running with `--verbose` to see collection details
+
+### Low confidence scores
+
+- Increase data volume
+- Adjust `minConfidence` in config
+- Check data quality and consistency
+
+## Technical Details
+
+### Algorithms
+
+- **Clustering**: KMeans with TF-IDF features
+- **Association**: Apriori-style rule mining
+- **Anomaly**: Local Outlier Factor (LOF)
+
+### Performance
+
+- Incremental scanning for large datasets
+- Configurable pattern retention (default 30 days)
+- Max pattern limit (default 1000)
+
+## License
+
+MIT
