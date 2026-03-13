@@ -1,5 +1,6 @@
 ---
 name: truth-tutor
+version: 0.4.0
 description: Diagnose why a learner does not understand a topic, paper, concept, or explanation, then deliver blunt feedback plus an actionable improvement plan. Includes a dedicated paper-reading mode and an alphaXiv recovery mode for users who already asked for an explanation and still do not get it.
 ---
 
