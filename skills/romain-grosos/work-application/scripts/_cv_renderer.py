@@ -527,13 +527,16 @@ def _render_projects(projects: list, lang: str) -> str:
 
 
 def _skill_level_percent(skill: dict) -> int:
-    """Get a skill level as a percentage (0-100)."""
+    """Get a skill level as a percentage (0-100), clamped to valid CSS range."""
     level = skill.get("level", 0)
     if isinstance(level, (int, float)):
         if level <= 5:
-            return int(level * 20)
-        return min(int(level), 100)
-    return 60
+            pct = int(level * 20)
+        else:
+            pct = int(level)
+    else:
+        pct = 60
+    return max(0, min(pct, 100))
 
 
 def _render_skills_bars(skills: list) -> str:

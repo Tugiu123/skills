@@ -77,11 +77,15 @@ class StorageBackend:
     def append_text(self, name: str, content: str) -> None:
         raise NotImplementedError
 
-    def read_json(self, name: str) -> dict:
+    def read_json(self, name: str, required_keys: list = None) -> dict:
         raw = self.read_text(name)
         data = json.loads(raw)
         if not isinstance(data, (dict, list)):
             raise ValueError(f"Expected dict or list from {name}, got {type(data).__name__}")
+        if required_keys and isinstance(data, dict):
+            missing = [k for k in required_keys if k not in data]
+            if missing:
+                raise ValueError(f"Missing required keys in {name}: {', '.join(missing)}")
         return data
 
     def write_json(self, name: str, data, indent: int = 2) -> None:
@@ -104,8 +108,11 @@ class LocalStorage(StorageBackend):
     def _path(self, name: str) -> Path:
         safe_name = _validate_name(name)
         target = (self._base / safe_name).resolve()
-        # Final guard: resolved path must be inside base dir
-        if not str(target).startswith(str(self._base)):
+        base_str = str(self._base)
+        target_str = str(target)
+        sep = __import__("os").sep
+        # Final guard: resolved path must be inside base dir (with separator to prevent prefix tricks)
+        if target_str != base_str and not target_str.startswith(base_str + sep):
             raise ValueError(f"Path escapes storage directory: {name!r}")
         return target
 

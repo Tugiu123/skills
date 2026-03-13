@@ -1,11 +1,17 @@
 {
   "owner": "romain-grosos",
   "slug": "work-application",
-  "displayName": "Openclaw Skill Work Application",
+  "displayName": "Work Application",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1772174705088,
-    "commit": "https://github.com/openclaw/skills/commit/866676d75aa27ecac843325e9ab38bb85ba1de50"
+    "version": "1.0.10",
+    "publishedAt": 1773351166722,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1772174705088,
+      "commit": "https://github.com/openclaw/skills/commit/866676d75aa27ecac843325e9ab38bb85ba1de50"
+    }
+  ]
 }

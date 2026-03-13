@@ -147,11 +147,12 @@ def _save_profile(profile: dict) -> None:
 
 # ── LinkedIn ZIP import ──────────────────────────────────────────────────────
 
-def _read_linkedin_csv(zf: zipfile.ZipFile, filename: str) -> list[dict]:
+def _read_linkedin_csv(zf: zipfile.ZipFile, filename: str, required_headers: list = None) -> list[dict]:
     """Read a CSV from the LinkedIn ZIP, handling BOM and skipping the note row.
 
     LinkedIn RGPD exports have a note line before the actual CSV header.
     Returns a list of dicts (one per data row), or [] if the file is absent.
+    If required_headers is provided, warns if any are missing from the CSV.
     """
     # Find the file inside the ZIP (may be in a subdirectory)
     matching = [n for n in zf.namelist() if n.endswith(filename)]
@@ -164,8 +165,19 @@ def _read_linkedin_csv(zf: zipfile.ZipFile, filename: str) -> list[dict]:
         return []
     # Skip the first line (LinkedIn note) - the real header is on line index 1
     csv_text = "\n".join(lines[1:])
-    reader = csv.DictReader(io.StringIO(csv_text))
-    return list(reader)
+    try:
+        reader = csv.DictReader(io.StringIO(csv_text))
+        rows = list(reader)
+    except csv.Error as e:
+        print(f"  [WARN] CSV parse error in {filename}: {e}", file=sys.stderr)
+        return []
+    # Validate expected headers are present
+    if required_headers and rows:
+        actual = set(rows[0].keys())
+        missing = [h for h in required_headers if h not in actual]
+        if missing:
+            print(f"  [WARN] {filename}: missing expected columns: {', '.join(missing)}", file=sys.stderr)
+    return rows
 
 
 def _import_linkedin(zip_path: Path) -> dict:
@@ -174,7 +186,7 @@ def _import_linkedin(zip_path: Path) -> dict:
 
     with zipfile.ZipFile(str(zip_path), "r") as zf:
         # ── Profile.csv ──────────────────────────────────────────────
-        for row in _read_linkedin_csv(zf, "Profile.csv"):
+        for row in _read_linkedin_csv(zf, "Profile.csv", required_headers=["First Name", "Last Name"]):
             profile["identity"]["firstName"] = row.get("First Name", "")
             profile["identity"]["lastName"] = row.get("Last Name", "")
             profile["identity"]["title"] = row.get("Headline", "")
@@ -190,7 +202,7 @@ def _import_linkedin(zip_path: Path) -> dict:
                         profile["identity"]["github"] = url
 
         # ── Positions.csv ────────────────────────────────────────────
-        for row in _read_linkedin_csv(zf, "Positions.csv"):
+        for row in _read_linkedin_csv(zf, "Positions.csv", required_headers=["Title", "Company Name"]):
             end_raw = row.get("Finished On", "").strip()
             profile["experiences"].append({
                 "title": row.get("Title", ""),
@@ -203,7 +215,7 @@ def _import_linkedin(zip_path: Path) -> dict:
             })
 
         # ── Skills.csv ───────────────────────────────────────────────
-        for row in _read_linkedin_csv(zf, "Skills.csv"):
+        for row in _read_linkedin_csv(zf, "Skills.csv", required_headers=["Name"]):
             name = row.get("Name", "").strip()
             if name:
                 profile["hard_skills"].append({

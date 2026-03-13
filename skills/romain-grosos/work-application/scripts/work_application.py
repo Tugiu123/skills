@@ -139,21 +139,21 @@ def cmd_render(args):
 
     # PDF export if requested
     if args.pdf:
-        # We need an HTML file on disk for Playwright to render
-        if args.output:
-            html_file = Path(args.output)
-        else:
-            # Write to a temp file if no --output was given
-            import tempfile
-            tmp = tempfile.NamedTemporaryFile(
-                suffix=".html", delete=False, mode="w", encoding="utf-8"
-            )
-            tmp.write(html_output)
-            tmp.close()
-            html_file = Path(tmp.name)
-
-        pdf_path = Path(args.pdf)
+        import tempfile
+        tmp_path = None
         try:
+            # We need an HTML file on disk for Playwright to render
+            if args.output:
+                html_file = Path(args.output)
+            else:
+                # Write to a temp file if no --output was given
+                fd, tmp_path = tempfile.mkstemp(suffix=".html")
+                import os
+                with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+                    tmp.write(html_output)
+                html_file = Path(tmp_path)
+
+            pdf_path = Path(args.pdf)
             result = asyncio.run(
                 _pdf_exporter.export_pdf(str(html_file), str(pdf_path))
             )
@@ -163,8 +163,11 @@ def cmd_render(args):
             sys.exit(1)
         finally:
             # Clean up temp file if we created one
-            if not args.output:
-                html_file.unlink(missing_ok=True)
+            if tmp_path:
+                try:
+                    Path(tmp_path).unlink(missing_ok=True)
+                except OSError:
+                    pass
 
 
 def cmd_scrape(args):

@@ -10,6 +10,7 @@ Usage:
 """
 
 import json
+import sys
 from pathlib import Path
 
 # ── Paths (config is always local) ───────────────────────────────────────────
@@ -55,6 +56,10 @@ _DEFAULT_CONFIG = {
 
 class ProfileError(Exception):
     """Raised when a profile operation fails."""
+
+
+# Required top-level keys for a valid profile
+_PROFILE_REQUIRED_KEYS = ["identity", "hard_skills", "experiences"]
 
 
 # ── Storage helper ───────────────────────────────────────────────────────────
@@ -107,6 +112,16 @@ def _check_permission(cfg: dict, action: str) -> None:
 
 # ── Profile operations ───────────────────────────────────────────────────────
 
+def _validate_profile_structure(data: dict, name: str) -> None:
+    """Warn if required top-level keys are missing from a profile."""
+    if not isinstance(data, dict):
+        raise ProfileError(f"{name} is not a dict (got {type(data).__name__})")
+    missing = [k for k in _PROFILE_REQUIRED_KEYS if k not in data]
+    if missing:
+        print(f"[WARN] {name}: missing keys: {', '.join(missing)} "
+              f"- some features may not work correctly", file=sys.stderr)
+
+
 def load_master_profile() -> dict:
     """Load the master profile from storage."""
     store = _store()
@@ -116,9 +131,11 @@ def load_master_profile() -> dict:
             "  Run setup.py first: python3 scripts/setup.py"
         )
     try:
-        return store.read_json(_MASTER_NAME)
+        data = store.read_json(_MASTER_NAME)
     except Exception as e:
         raise ProfileError(f"Failed to load master profile: {e}")
+    _validate_profile_structure(data, _MASTER_NAME)
+    return data
 
 
 def load_adapted_profile() -> dict:
@@ -130,9 +147,11 @@ def load_adapted_profile() -> dict:
             "  Generate one by adapting the master profile for a job offer."
         )
     try:
-        return store.read_json(_ADAPTED_NAME)
+        data = store.read_json(_ADAPTED_NAME)
     except Exception as e:
         raise ProfileError(f"Failed to load adapted profile: {e}")
+    _validate_profile_structure(data, _ADAPTED_NAME)
+    return data
 
 
 def save_adapted_profile(profile: dict, cfg: dict = None) -> None:
