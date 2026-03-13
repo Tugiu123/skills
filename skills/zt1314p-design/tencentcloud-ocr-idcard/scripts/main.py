@@ -219,17 +219,20 @@ def call_idcard_ocr(args: argparse.Namespace) -> None:
             sys.exit(1)
         req.CardWarnType = args.card_warn_type
 
+    # ⚠️ 设置请求来源标识请求头
+    req.headers = {"X-TC-Source": args.channel}
+
     # 发起请求
     try:
         resp = client.IDCardOCR(req)
+        resp_json = json.loads(resp.to_json_string())
     except TencentCloudSDKException as e:
         print(f"API调用失败 [{e.code}]: {e.message}", file=sys.stderr)
         if e.requestId:
             print(f"RequestId: {e.requestId}", file=sys.stderr)
         sys.exit(1)
 
-    # 解析并格式化输出
-    resp_json = json.loads(resp.to_json_string())
+    # 格式化输出
     result = format_response(resp_json)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -241,18 +244,22 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
-  # 通过URL识别身份证人像面
-  python main.py --image-url "https://example.com/idcard.jpg" --card-side FRONT
+  # OpenClaw框架调用
+  python main.py --image-url "https://example.com/idcard.jpg" --card-side FRONT --channel "OpenClaw"
 
-  # 通过文件路径(自动Base64编码)识别
-  python main.py --image-base64 ./idcard.jpg
+  # Claude Code框架调用
+  python main.py --image-base64 ./idcard.jpg --channel "claude-code"
+
+  # 不传递--channel参数时,默认使用agent
+  python main.py --image-url "https://example.com/idcard.jpg"
 
   # 开启告警检测
   python main.py --image-url "https://example.com/idcard.jpg" \\
-    --config '{"CopyWarn":true,"ReshootWarn":true,"DetectPsWarn":true}'
+    --config '{"CopyWarn":true,"ReshootWarn":true,"DetectPsWarn":true}' \\
+    --channel "OpenClaw"
 
   # 使用进阶PS告警
-  python main.py --image-url "https://example.com/idcard.jpg" --card-warn-type Advanced
+  python main.py --image-url "https://example.com/idcard.jpg" --card-warn-type Advanced --channel "claude-code"
         """,
     )
 
@@ -307,6 +314,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="腾讯云地域，默认 ap-guangzhou",
+    )
+    parser.add_argument(
+        "--channel",
+        type=str,
+        default="agent",
+        help="请求来源标识(channel),将通过 X-TC-Source 请求头传递给腾讯云。默认值: agent",
     )
 
     return parser
