@@ -1,9 +1,6 @@
 ---
 name: buffy-agent
-description: Multi-channel personal behavior agent for habits, tasks, and routines; tracks activities, schedules reminders, and sends daily briefings.
-homepage: https://buffyai.org
-user-invocable: true
-metadata: {"openclaw":{"emoji":"🧠","primaryEnv":"BUFFY_API_KEY","requires":{"env":["BUFFY_API_KEY"]}}}
+description: Multi-channel personal behavior agent for habits, tasks, and routines that tracks activities, schedules reminders, and sends daily briefings across ChatGPT, Telegram, Slack, and internal tools, all powered by a single unified behavior engine. Use when the user wants to create or adjust habits/routines, get progress summaries or daily briefings, or personalize reminder timing and channels based on their preferences and history.
 ---
 
 ## Overview
@@ -12,12 +9,17 @@ Buffy is a multi-channel personal behavior agent for habits, tasks, and routines
 It tracks activities, schedules reminders, and sends daily briefings across multiple channels,
 all powered by a single unified behavior engine.
 
-Use this skill when you want to help the user:
+Buffy also exposes a hook-based observability system:
 
-- Set up or manage habits, tasks, and routines.
-- Schedule or adjust reminders.
-- Get summaries of their day (daily briefings).
-- Personalize behavior with their preferences and long-term memory.
+- Backend hooks in the Go service emit events like `message:received`, `message:replied`, and
+  `reminder:sent` so logs, metrics, and long-term memory can be updated without changing core
+  behavior logic. See `backend/internal/hooks/` for details.
+- OpenClaw hooks can be installed alongside this skill (see the `hooks/` docs in this repo) to
+  log Buffy conversations to markdown logs, record Buffy-related errors for observability, and
+  track Buffy behavior over time.
+
+For low-level HTTP details and the full API surface, treat the repository `README.md` and `openapi-buffy.yaml`
+as canonical. This `SKILL.md` file is the canonical guide for how agents and tools should invoke Buffy.
 
 Buffy runs as an external HTTP API. This skill is a thin wrapper; all behavior logic
 lives in the Buffy backend.
@@ -32,6 +34,11 @@ lives in the Buffy backend.
 
 `BUFFY_API_KEY` is injected from the environment for the agent run. Do **not** include the key
 in prompts, logs, or user-visible text.
+
+For registries and gateways:
+
+- Treat `BUFFY_API_KEY` as the **primary credential** for this skill.
+- Do not enable the skill unless `BUFFY_API_KEY` has been configured (for example, via `requires.env` metadata).
 
 ## Core endpoint: POST /v1/message
 
@@ -154,6 +161,13 @@ Avoid:
     and daily schedule.
   - Treat all such data as private; only surface to the user who owns it and avoid sharing across users.
 
+- **Conversation logs and hooks**:
+  - This skill **does not itself** write any logs to disk.
+  - Optional OpenClaw hooks (for example, `buffy-error-tracker`) may append Buffy-related events to
+    repo-local markdown logs under a path you control (such as `logs/`).
+  - Decide explicitly whether you want such logs, where they live, and how they are rotated or pruned.
+  - Avoid storing highly sensitive user content in long-lived logs unless your compliance model allows it.
+
 - **Sandboxing and network access**:
   - Buffy is an **external HTTPS API**. The agent (or sandbox, if used) must have outbound HTTPS
     access to the configured Buffy endpoint (default `https://api.buffyai.org`).
@@ -161,6 +175,14 @@ Avoid:
   - If the gateway uses sandboxed runs for untrusted tools, ensure that the sandbox image allows
     HTTPS egress to the Buffy endpoint while still respecting whatever network and filesystem
     restrictions are configured.
+
+- **Reminder dispatch and channel credentials**:
+  - Reminder delivery to channels like Telegram or Clawbot is implemented via **separate hooks/tools**
+    (for example, the `buffy-reminder-dispatch` hook), not by this core Buffy skill.
+  - Those hooks will typically require their own channel credentials (Telegram bot tokens, Clawbot
+    API keys, etc.); they should be configured **only** for the dispatch implementation you control.
+  - Do not reuse `BUFFY_API_KEY` as a channel credential, and do not expose channel tokens to the
+    Buffy HTTP client unless absolutely necessary.
 
 ## Configuration via openclaw.json
 
