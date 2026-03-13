@@ -3,9 +3,15 @@
   "slug": "raccoon-dataanalysis-skill",
   "displayName": "raccoon-dataanalysis-skill",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773225036739,
-    "commit": "https://github.com/openclaw/skills/commit/5008d9dd1eba8102231ca52904ae78ce8d064dc0"
+    "version": "1.0.3",
+    "publishedAt": 1773231043523,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773225036739,
+      "commit": "https://github.com/openclaw/skills/commit/5008d9dd1eba8102231ca52904ae78ce8d064dc0"
+    }
+  ]
 }

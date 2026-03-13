@@ -2,12 +2,13 @@
 """
 小浣熊数据分析 - 统一命令行工具
 
+统一使用数据分析 API 进行数据分析和计算处理
+
 用法:
     python3 main.py analyze --file data.xlsx --prompt "分析数据"
     python3 main.py analyze --prompt "计算斐波那契数列"
     python3 main.py auth-check
-    python3 main.py example [1|2|3]
-    python3 main.py sessions --list
+    python3 main.py example [1|2]
 """
 
 import argparse
@@ -77,17 +78,8 @@ class RaccoonClient:
     def create_session(self, name="数据分析会话"):
         return self._request("POST", "/api/open/office/v2/sessions", {"name": name})
 
-    def get_session(self, session_id):
-        return self._request("GET", f"/api/open/office/v2/sessions/{session_id}")
 
-    def list_sessions(self, sort="-updated_at", omit_empty=True):
-        data = self._request("GET", "/api/open/office/v2/sessions", params={
-            "sort": sort, "omit_empty_title": omit_empty,
-        })
-        return data.get("sessions", [])
 
-    def delete_session(self, session_id):
-        return self._request("DELETE", f"/api/open/office/v2/sessions/{session_id}")
 
     def upload_temp_file(self, file_path):
         """上传临时文件，返回 file_id (int)"""
@@ -114,8 +106,6 @@ class RaccoonClient:
         return self._request("GET", f"/api/open/office/v2/sessions/{session_id}/file_info",
                              params={"file_path": file_path})
 
-    def delete_file(self, file_id):
-        return self._request("DELETE", f"/api/open/office/v2/sessions/default_session/{file_id}")
 
     def chat(self, session_id, content, upload_file_ids=None, files=None,
              verbose=True, deep_think=False, temperature=1, retries=None):
@@ -228,113 +218,6 @@ class RaccoonClient:
 
         return result
 
-    def data_analysis(self, content, model="SenseChat-Code-DataAnalysis-Excel",
-                      temperature=0.5, retries=None, output_dir="./raccoon/dataanalysis"):
-        """无状态数据分析，返回 ChatResult，生成的文件统一保存到 raccoon/dataanalysis 目录"""
-        retries = retries if retries is not None else self.MAX_RETRIES
-        data = {
-            "model": model,
-            "stream": True,
-            "temperature": temperature,
-            "top_p": 0.9,
-            "repetition_penalty": 1.02,
-            "stop": ["<|endofblock|>", "<|endofmessage|>"],
-            "messages": [{"role": "user", "type": "text", "content": content}],
-        }
-
-        # 确保输出目录存在
-        os.makedirs(output_dir, exist_ok=True)
-
-        last_error = None
-        for attempt in range(retries + 1):
-            try:
-                result = self._stream_data_analysis(data)
-                # 对于数据分析接口，将生成的代码保存到统一目录
-                if result.code:
-                    self._save_data_analysis_files(result, output_dir)
-                return result
-            except (RetryableError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                last_error = e
-                if attempt < retries:
-                    delay = self.RETRY_DELAYS[min(attempt, len(self.RETRY_DELAYS) - 1)]
-                    print(f"[重试 {attempt+1}/{retries}] {e} - 等待 {delay}s...", file=sys.stderr)
-                    time.sleep(delay)
-        raise last_error
-
-    def _save_data_analysis_files(self, result, output_dir):
-        """保存数据分析生成的代码文件到指定目录"""
-        if not result.code:
-            return
-
-        timestamp = int(time.time())
-        for i, code in enumerate(result.code, 1):
-            filename = f"analysis_{timestamp}_{i}.py"
-            filepath = os.path.join(output_dir, filename)
-            try:
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(code)
-                print(f"  已保存代码: {filepath}")
-            except Exception as e:
-                print(f"  保存代码失败: {filename} - {e}", file=sys.stderr)
-
-    def _stream_data_analysis(self, data):
-        url = f"{self.host}/api/open/llm/v1/data-analysis/chat-completions"
-        resp = requests.post(
-            url, headers=self._headers, json=data,
-            stream=True, timeout=self.STREAM_TIMEOUT,
-        )
-        if resp.status_code == 429:
-            raise RetryableError(f"HTTP 429: 请求速率超限")
-        if resp.status_code == 504:
-            raise RetryableError(f"HTTP 504: 推理代理超时")
-        if resp.status_code != 200:
-            raise APIError(resp.status_code, resp.text[:300])
-
-        result = ChatResult()
-
-        for line in resp.iter_lines():
-            if not line:
-                continue
-            line_str = line.decode("utf-8") if isinstance(line, bytes) else line
-            if not line_str.startswith("data:"):
-                continue
-            json_str = line_str[5:].strip()
-            if json_str == "[DONE]":
-                result.done = True
-                break
-            try:
-                obj = json.loads(json_str)
-            except json.JSONDecodeError:
-                continue
-
-            choices = obj.get("data", {}).get("choices", [])
-            for choice in choices:
-                delta = choice.get("delta", "")
-                finish_reason = choice.get("finish_reason", "")
-                msg_type = choice.get("type", "")
-
-                if finish_reason:
-                    result.finish_reason = finish_reason
-                if delta:
-                    if msg_type == "code":
-                        result.code_buffer += delta
-                    else:
-                        result.text += delta
-                        print(delta, end="", flush=True)
-
-            usage = obj.get("data", {}).get("usage", {})
-            if usage.get("total_tokens"):
-                result.usage = usage
-
-        result.flush_buffer("code")
-        if result.text:
-            print()
-
-        if not result.done:
-            raise RetryableError("SSE 流中途断开（未收到 [DONE]）")
-
-        return result
-
     def get_artifacts(self, session_id):
         data = self._request("GET", f"/api/open/office/v2/sessions/{session_id}/artifacts")
         return data.get("artifacts", [])
@@ -366,21 +249,6 @@ class RaccoonClient:
             except Exception as e:
                 print(f"  下载异常: {filename} - {e}", file=sys.stderr)
         return downloaded
-
-    def get_suggestions(self, session_id):
-        try:
-            data = self._request("GET", f"/api/open/office/v2/sessions/{session_id}/chat/suggestions")
-            return data.get("suggestions", [])
-        except APIError as e:
-            print(f"  获取建议失败 [{e.code}]: {e.message}", file=sys.stderr)
-            return []
-
-    def get_messages(self, session_id, limit=20, offset=0):
-        data = self._request(
-            "GET", f"/api/open/office/v2/sessions/{session_id}/messages",
-            params={"paging.limit": limit, "paging.offset": offset, "verbose": True},
-        )
-        return data.get("messages", [])
 
 
 class ChatResult:
@@ -496,40 +364,22 @@ def cmd_analyze(args):
     try:
         client = RaccoonClient()
 
-        # 如果没有文件，使用无状态数据分析接口，并将结果保存到raccoon/dataanalysis目录
-        if not args.file:
-            print(f"[1/2] 发起数据分析: {args.prompt}")
-            print("-" * 60)
-            # 使用数据分析接口，强制使用raccoon/dataanalysis目录
-            result = client.data_analysis(args.prompt, output_dir="./raccoon/dataanalysis")
-
-            print("-" * 60)
-            print(f"[分析完成] {result.summary()}")
-
-            if args.show_code and result.code:
-                print("\n--- 生成的代码 ---")
-                for i, code in enumerate(result.code, 1):
-                    print(f"\n# 代码段 {i}:")
-                    print(code)
-
-            print(f"\n[2/2] 代码已保存到: ./raccoon/dataanalysis/")
-            print("完成! 对话分析接口生成的文件已统一保存到raccoon/dataanalysis目录")
-            return
-
-        # 有文件的情况，使用原有的办公解释器流程
+        # 统一使用数据分析接口（无论是否有文件）
         session_name = args.session_name or f"分析: {os.path.basename(args.file) if args.file else args.prompt[:20]}"
-        print(f"[1/5] 创建会话: {session_name}")
+        print(f"[1/4] 创建会话: {session_name}")
         session = client.create_session(session_name)
         session_id = session["id"]
         print(f"      会话ID: {session_id}")
 
         upload_file_ids = []
-        print(f"[2/5] 上传文件: {args.file}")
-        file_id = client.upload_temp_file(args.file)
-        upload_file_ids = [file_id]
-        print(f"      文件ID: {file_id}")
+        # 如果有文件，先上传
+        if args.file:
+            print(f"[2/4] 上传文件: {args.file}")
+            file_id = client.upload_temp_file(args.file)
+            upload_file_ids = [file_id]
+            print(f"      文件ID: {file_id}")
 
-        print(f"[3/5] 发起对话: {args.prompt}")
+        print(f"[{3 if args.file else 2}/4] 发起对话: {args.prompt}")
         print("-" * 60)
         result = client.chat(
             session_id, args.prompt,
@@ -552,7 +402,7 @@ def cmd_analyze(args):
                 print(exe)
 
         if not args.no_download:
-            print(f"\n[4/5] 获取生成物...")
+            print(f"\n[{4 if args.file else 3}/4] 获取生成物...")
             # 统一使用 raccoon/dataanalysis 目录
             output_dir = "./raccoon/dataanalysis"
             downloaded = client.download_artifacts(session_id, output_dir=output_dir)
@@ -565,15 +415,7 @@ def cmd_analyze(args):
             else:
                 print("      无生成物")
         else:
-            print("\n[4/5] 跳过生成物下载")
-
-        print("\n[5/5] 获取追问建议...")
-        suggestions = client.get_suggestions(session_id)
-        if suggestions:
-            for i, s in enumerate(suggestions, 1):
-                print(f"      建议{i}: {s}")
-        else:
-            print("      无追问建议")
+            print(f"\n[{4 if args.file else 3}/4] 跳过生成物下载")
 
         print(f"\n完成! 会话ID: {session_id}")
 
@@ -639,34 +481,6 @@ def cmd_auth_check(args):
 
 
 # ================================================================
-# 子命令：会话管理
-# ================================================================
-
-def cmd_sessions(args):
-    """会话管理"""
-    if not check_environment():
-        sys.exit(1)
-
-    try:
-        client = RaccoonClient()
-
-        if args.list:
-            sessions = client.list_sessions()
-            print(f"会话总数: {len(sessions)}")
-            for s in sessions[:10]:
-                print(f"  ID: {s['id']}, 标题: {s.get('title', '无标题')}, 更新: {s.get('updated_at', '')}")
-
-        elif args.delete:
-            print(f"删除会话: {args.delete}")
-            client.delete_session(args.delete)
-            print("删除成功")
-
-    except APIError as e:
-        print(f"API 错误: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-# ================================================================
 # 子命令：使用示例
 # ================================================================
 
@@ -709,42 +523,10 @@ def stream_request_example(host, headers, method, path, data=None, files=None):
     return result_text
 
 
-def example_data_analysis():
-    """无状态数据分析示例"""
+def example_data_analysis_flow():
+    """数据分析完整流程示例"""
     print("=" * 60)
-    print("示例1: 无状态数据分析")
-    print("=" * 60)
-
-    host = os.environ.get("RACCOON_API_HOST", "")
-    token = os.environ.get("RACCOON_API_TOKEN", "")
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-
-    data = {
-        "model": "SenseChat-Code-DataAnalysis-Excel",
-        "stream": True,
-        "temperature": 0.5,
-        "top_p": 0.9,
-        "repetition_penalty": 1.02,
-        "stop": ["<|endofblock|>", "<|endofmessage|>"],
-        "messages": [
-            {
-                "role": "user",
-                "type": "text",
-                "content": "用Python生成一个包含10个随机数的列表，计算均值和标准差",
-            }
-        ],
-    }
-
-    stream_request_example(host, headers, "POST", "/api/open/llm/v1/data-analysis/chat-completions", data)
-
-
-def example_office_interpreter():
-    """办公解释器完整流程示例"""
-    print("=" * 60)
-    print("示例2: 办公解释器完整流程")
+    print("示例2: 数据分析完整流程")
     print("=" * 60)
 
     host = os.environ.get("RACCOON_API_HOST", "")
@@ -804,33 +586,6 @@ def example_office_interpreter():
     print(f"\n会话ID: {session_id}")
 
 
-def example_session_management():
-    """会话管理示例"""
-    print("=" * 60)
-    print("示例3: 会话管理")
-    print("=" * 60)
-
-    host = os.environ.get("RACCOON_API_HOST", "")
-    token = os.environ.get("RACCOON_API_TOKEN", "")
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-
-    print("\n[列出会话]")
-    resp = requests.get(
-        f"{host}/api/open/office/v2/sessions",
-        headers=headers,
-        params={"sort": "-updated_at", "omit_empty_title": True},
-        timeout=10,
-    )
-    data = resp.json().get("data", {})
-    sessions = data.get("sessions", [])
-    total = data.get("paging", {}).get("total", len(sessions))
-    print(f"  会话总数: {total}")
-    for s in sessions[:5]:
-        print(f"  ID: {s['id']}, 标题: {s.get('title', '无标题')}, 更新: {s.get('updated_at', '')}")
-
 
 def cmd_example(args):
     """运行使用示例"""
@@ -838,9 +593,7 @@ def cmd_example(args):
         sys.exit(1)
 
     examples = {
-        "1": ("无状态数据分析", example_data_analysis),
-        "2": ("办公解释器完整流程", example_office_interpreter),
-        "3": ("会话管理", example_session_management),
+        "1": ("数据分析完整流程", example_data_analysis_flow),
     }
 
     if args.example_id and args.example_id in examples:
@@ -875,12 +628,8 @@ def main():
 
     subparsers.add_parser("auth-check", help="检查认证配置")
 
-    sessions_parser = subparsers.add_parser("sessions", help="会话管理")
-    sessions_parser.add_argument("--list", action="store_true", help="列出会话")
-    sessions_parser.add_argument("--delete", help="删除指定会话ID")
-
     example_parser = subparsers.add_parser("example", help="运行使用示例")
-    example_parser.add_argument("example_id", nargs="?", choices=["1", "2", "3"], help="示例编号")
+    example_parser.add_argument("example_id", nargs="?", choices=["1"], help="示例编号")
 
     args = parser.parse_args()
 
@@ -892,8 +641,6 @@ def main():
         cmd_analyze(args)
     elif args.command == "auth-check":
         cmd_auth_check(args)
-    elif args.command == "sessions":
-        cmd_sessions(args)
     elif args.command == "example":
         cmd_example(args)
 
