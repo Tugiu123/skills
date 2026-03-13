@@ -1,11 +1,17 @@
 {
   "owner": "ckchzh",
   "slug": "docker-helper",
-  "displayName": "docker-helper",
+  "displayName": "Docker Helper",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773206241728,
-    "commit": "https://github.com/openclaw/skills/commit/ad62351313e2b1faae967e8b165f57f7162d6612"
+    "version": "2.2.0",
+    "publishedAt": 1773421214866,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773206241728,
+      "commit": "https://github.com/openclaw/skills/commit/ad62351313e2b1faae967e8b165f57f7162d6612"
+    }
+  ]
 }

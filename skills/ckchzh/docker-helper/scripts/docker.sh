@@ -39,7 +39,7 @@ cmd_dockerfile() {
         echo "支持: node, python, java, go, nginx, php"
         exit 1
     fi
-    python3 << 'PYEOF' "$lang"
+    python3 - "$lang" << 'PYEOF'
 import sys
 
 lang = sys.argv[1].lower()
@@ -205,7 +205,7 @@ cmd_compose() {
         echo "支持: node, python, java, go, nginx, redis, mysql, postgres, mongo, rabbitmq, elasticsearch"
         exit 1
     fi
-    python3 << 'PYEOF' "$services"
+    python3 - "$services" << 'PYEOF'
 import sys
 
 services = [s.strip().lower() for s in sys.argv[1].split(',')]
@@ -526,7 +526,7 @@ cmd_registry() {
         echo "支持: dockerhub, aliyun, harbor, ghcr"
         exit 1
     fi
-    python3 << 'PYEOF' "$reg_type"
+    python3 - "$reg_type" << 'PYEOF'
 import sys
 
 reg = sys.argv[1].lower()
