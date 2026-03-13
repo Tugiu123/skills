@@ -7,22 +7,23 @@ description: >-
 
 BMI计算器。BMI计算、理想体重、健康计划、体重追踪、儿童BMI、结果解读。BMI calculator with ideal weight, health plan. BMI、体重、健康。
 
-## Commands
+## 核心特点
 
-- `calculate` — calculate
-- `ideal` — ideal
-- `plan` — plan
-- `track` — track
-- `child` — child
-- `interpret` — interpret
+🎯 **精准** — 针对具体场景定制化输出
+📋 **全面** — 多个命令覆盖完整工作流
+🇨🇳 **本土化** — 完全适配中文用户习惯
 
-## Usage
+## 命令列表
 
-Run any command with your input to get started. Use `help` to see all available commands.
+| 命令 | 功能 |
+|------|------|
+| `calculate` | calculate |
+| `ideal` | ideal |
+| `plan` | plan |
+| `track` | track |
+| `child` | child |
+| `interpret` | interpret |
 
-## About
-
-Part of the BytesAgain productivity toolkit. Visit [bytesagain.com](https://bytesagain.com) for more tools.
 
 ---
-Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
+*BMI Calculator by BytesAgain*

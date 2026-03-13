@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain",
   "slug": "bmi-calculator",
-  "displayName": "BMI Calculator",
+  "displayName": "Bmi Calculator",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773159437111,
-    "commit": "https://github.com/openclaw/skills/commit/21e027ed63fa8613961b2de6d0385036767bd9f1"
+    "version": "2.2.0",
+    "publishedAt": 1773420954420,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773159437111,
+      "commit": "https://github.com/openclaw/skills/commit/21e027ed63fa8613961b2de6d0385036767bd9f1"
+    }
+  ]
 }
