@@ -3,9 +3,15 @@
   "slug": "todolist",
   "displayName": "Todo List for MacOS",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773118116416,
-    "commit": "https://github.com/openclaw/skills/commit/36061967601d62f9439c299d3e17890927dad446"
+    "version": "1.0.6",
+    "publishedAt": 1773322907382,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773118116416,
+      "commit": "https://github.com/openclaw/skills/commit/36061967601d62f9439c299d3e17890927dad446"
+    }
+  ]
 }
