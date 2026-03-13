@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Fetch raw metadata from a social media URL (Instagram or TikTok).
  * Returns structured data for the agent to reason about — no LLM calls, no place verification.
@@ -23,6 +23,8 @@ if (!url) {
 	console.error(JSON.stringify({ error: "Usage: tsx scripts/fetch-post.ts <url> [--download-images <dir>] [--extract-frames <dir>]" }));
 	process.exit(1);
 }
+// url is guaranteed defined after the exit guard above
+const validUrl: string = url;
 
 // Parse options
 const downloadImagesIdx = args.indexOf("--download-images");
@@ -50,13 +52,27 @@ async function downloadImage(imageUrl: string, outPath: string): Promise<boolean
 	}
 }
 
+function isSafeMediaUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		if (parsed.protocol !== "https:") return false;
+		const allowed = /\.(cdninstagram\.com|tiktokcdn\.com|tiktokcdn-us\.com|fbcdn\.net|akamaized\.net)$/;
+		return allowed.test(parsed.hostname);
+	} catch {
+		return false;
+	}
+}
+
 async function extractVideoFrames(videoUrl: string, outDir: string, count = 5): Promise<string[]> {
-	const { execSync } = await import("node:child_process");
+	const { execFileSync } = await import("node:child_process");
 	const frames: string[] = [];
+	// Validate URL before passing to ffmpeg — only allow known CDN hosts
+	if (!isSafeMediaUrl(videoUrl)) return frames;
 	try {
 		// Get video duration
-		const durationStr = execSync(
-			`ffprobe -v error -show_entries format=duration -of csv=p=0 "${videoUrl}"`,
+		const durationStr = execFileSync(
+			"ffprobe",
+			["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", videoUrl],
 			{ timeout: 15000 }
 		).toString().trim();
 		const duration = parseFloat(durationStr);
@@ -68,9 +84,10 @@ async function extractVideoFrames(videoUrl: string, outDir: string, count = 5): 
 			const timestamp = (interval * i).toFixed(2);
 			const outPath = join(outDir, `frame_${i}.jpg`);
 			try {
-				execSync(
-					`ffmpeg -ss ${timestamp} -i "${videoUrl}" -frames:v 1 -q:v 2 "${outPath}" -y 2>/dev/null`,
-					{ timeout: 20000 }
+				execFileSync(
+					"ffmpeg",
+					["-ss", timestamp, "-i", videoUrl, "-frames:v", "1", "-q:v", "2", outPath, "-y"],
+					{ timeout: 20000, stdio: ["pipe", "pipe", "ignore"] }
 				);
 				frames.push(outPath);
 			} catch {
@@ -87,8 +104,8 @@ async function main() {
 	const fetcher = new SocialMetadataFetcher(apifyApiKey);
 
 	// Detect platform
-	const isInstagram = url.includes("instagram.com");
-	const isTikTok = url.includes("tiktok.com") || url.includes("vm.tiktok.com");
+	const isInstagram = validUrl.includes("instagram.com");
+	const isTikTok = validUrl.includes("tiktok.com") || validUrl.includes("vm.tiktok.com");
 
 	if (!isInstagram && !isTikTok) {
 		console.error(JSON.stringify({ error: "Unsupported platform. Supports Instagram and TikTok." }));
@@ -97,8 +114,8 @@ async function main() {
 
 	const startTime = Date.now();
 	const metadata = isInstagram
-		? await fetcher.getInstagramPost(url)
-		: await fetcher.getTiktokVideo(url);
+		? await fetcher.getInstagramPost(validUrl)
+		: await fetcher.getTiktokVideo(validUrl);
 
 	if (!metadata) {
 		console.error(JSON.stringify({ error: "Failed to fetch post metadata" }));
@@ -107,7 +124,7 @@ async function main() {
 
 	const result: Record<string, unknown> = {
 		platform: isInstagram ? "instagram" : "tiktok",
-		url,
+		url: validUrl,
 		caption: metadata.caption,
 		ownerUsername: metadata.ownerUsername,
 		postType: metadata.postType,
@@ -126,6 +143,11 @@ async function main() {
 	// Download images if requested
 	if (downloadImagesDir && metadata.imageUrls && metadata.imageUrls.length > 0) {
 		const absDir = resolve(downloadImagesDir);
+		const cwd = process.cwd();
+		if (!absDir.startsWith(cwd)) {
+			console.error(JSON.stringify({ error: "Download directory must be under the current working directory" }));
+			process.exit(1);
+		}
 		await mkdir(absDir, { recursive: true });
 
 		const downloadedPaths: string[] = [];
@@ -141,6 +163,11 @@ async function main() {
 	// Extract video frames if requested
 	if (extractFramesDir && metadata.videoUrl) {
 		const absDir = resolve(extractFramesDir);
+		const cwd = process.cwd();
+		if (!absDir.startsWith(cwd)) {
+			console.error(JSON.stringify({ error: "Frames directory must be under the current working directory" }));
+			process.exit(1);
+		}
 		await mkdir(absDir, { recursive: true });
 
 		const frames = await extractVideoFrames(metadata.videoUrl, absDir);

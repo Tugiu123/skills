@@ -1,13 +1,12 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
 /**
  * Search saved places using hybrid FTS + vector search.
  *
- * Usage: bun scripts/search-places.ts --query "coffee" [--type cafe] [--limit 5] [--list]
+ * Usage: tsx scripts/search-places.ts --query "coffee" [--type cafe] [--limit 5] [--list]
  * Output: JSON array of matching places
  */
 
 import { getAllPlaces, getDb, searchPlaces } from "./lib/db";
-import { generateEmbedding } from "./lib/embedding";
 
 const args = process.argv.slice(2);
 let query = "";
@@ -64,18 +63,9 @@ try {
 			),
 		);
 	} else {
-		// Hybrid search
-		let queryEmbedding: number[] | undefined;
-		try {
-			queryEmbedding = await generateEmbedding(query);
-		} catch {
-			// Continue without vector search if embedding fails
-		}
-
 		const results = searchPlaces(query, {
 			contentType: contentType || undefined,
 			limit,
-			queryEmbedding,
 		});
 
 		console.log(

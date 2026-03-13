@@ -1,8 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
 /**
  * Look up a place by name using Google Places API.
  *
- * Usage: bun scripts/lookup-place.ts --name "Place Name" [--city "City"]
+ * Usage: tsx scripts/lookup-place.ts --name "Place Name" [--city "City"]
  * Output: JSON with verified place data
  */
 
@@ -27,7 +27,7 @@ for (let i = 0; i < args.length; i++) {
 if (!name) {
 	console.error(
 		JSON.stringify({
-			error: 'Usage: bun scripts/lookup-place.ts --name "Place Name" [--city "City"]',
+			error: 'Usage: tsx scripts/lookup-place.ts --name "Place Name" [--city "City"]',
 		}),
 	);
 	process.exit(1);

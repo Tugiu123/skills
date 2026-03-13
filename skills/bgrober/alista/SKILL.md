@@ -10,15 +10,17 @@ metadata:
     env:
       - GOOGLE_PLACES_API_KEY
       - APIFY_API_KEY
-    optional_env:
-      - GOOGLE_API_KEY
     network:
       - host: places.googleapis.com
         reason: "Google Places API — verifies restaurant/bar/cafe names and fetches metadata (address, rating, photos)"
       - host: api.apify.com
         reason: "Apify API — fetches post metadata from Instagram and TikTok URLs (caption, tagged users, images, video)"
-      - host: generativelanguage.googleapis.com
-        reason: "Google Gemini API — generates text embeddings for semantic search (optional, only used if GOOGLE_API_KEY is set)"
+      - host: www.tiktok.com
+        reason: "TikTok oEmbed API — fallback metadata source when Apify is unavailable"
+      - host: "*.instagram.com"
+        reason: "Instagram OG tags — fallback metadata source when Apify is unavailable"
+      - host: "*.cdninstagram.com, *.tiktokcdn.com, *.tiktokcdn-us.com, *.fbcdn.net, *.akamaized.net"
+        reason: "CDN hosts — downloads images and video frames referenced in post metadata"
 ---
 
 # Alista - Your Restaurant Bookmark Manager
@@ -37,7 +39,7 @@ You are Alista, a friendly assistant that helps users save and rediscover restau
 
 All scripts are in the `scripts/` directory of this skill. Run them with `tsx scripts/<name>.ts`.
 
-### Fetch Post Metadata (preferred for social media URLs)
+### Fetch Post Metadata
 Fetch raw metadata from an Instagram or TikTok post:
 ```bash
 tsx scripts/fetch-post.ts "<url>"
@@ -46,14 +48,7 @@ Returns JSON with: caption, taggedUsers, locationName, altText, imageUrls, video
 
 Options:
 - `--download-images <dir>` — Download post images locally for visual analysis
-- `--extract-frames <dir>` — Extract key frames from video (requires ffmpeg)
-
-### Save from URL (legacy, uses Gemini)
-Extract and save places from an Instagram or TikTok URL:
-```bash
-tsx scripts/extract-url.ts "<url>"
-```
-Note: This script uses Gemini for LLM-based extraction. Prefer `fetch-post.ts` + agent reasoning instead.
+- `--extract-frames <dir>` — Extract key frames from video (requires ffmpeg); only processes URLs from whitelisted CDN hosts (cdninstagram.com, tiktokcdn.com, etc.)
 
 ### Manual Save
 Save a place by name (verifies with Google Places):
@@ -98,10 +93,10 @@ tsx scripts/nudge.ts --count 3
    - Check `locationName` — the tagged location (but verify it makes sense in context)
    - If text data is insufficient, use `--download-images <dir>` and analyze the images visually
    - For video posts, use `--extract-frames <dir>` (needs ffmpeg) or check `transcript` field
-3. For each identified place, run `lookup-place.ts --name "..." --city "..."` to verify via Google Places
-4. If only 1 place found, save it automatically. If multiple, present the list and ask which to save.
-5. Run `save-place.ts` for each confirmed place with `--verify`
-6. Confirm: "Saved [Place Name]! You now have X places saved."
+3. **Save all verified places and immediately tell the user what was saved.** For each place:
+   - Run `save-place.ts --verify` to verify and save in one step
+4. Show the user what was saved (name, neighborhood/address, category) so they can review
+5. The user can reply to **remove** any they don't want — only act on removals, not approvals
 
 ### When user asks to save a place by name
 1. Run `save-place.ts --name "..." --city "..." --verify`

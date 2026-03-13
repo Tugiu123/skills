@@ -1,13 +1,12 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
 /**
  * Save a place to the local database.
  *
- * Usage: bun scripts/save-place.ts --name "Place Name" [--city "City"] [--category restaurant|bar|cafe|event] [--notes "Notes"] [--verify]
+ * Usage: tsx scripts/save-place.ts --name "Place Name" [--city "City"] [--category restaurant|bar|cafe|event] [--notes "Notes"] [--verify]
  * Output: JSON confirmation of saved place
  */
 
 import { savePlace, getDb, type SavePlaceParams } from "./lib/db";
-import { generateEmbedding } from "./lib/embedding";
 import { PlaceVerifier } from "./lib/place-verifier";
 
 // Parse args
@@ -47,7 +46,7 @@ for (let i = 0; i < args.length; i++) {
 if (!name) {
 	console.error(
 		JSON.stringify({
-			error: 'Usage: bun scripts/save-place.ts --name "Place Name" [--city "City"] [--category restaurant] [--notes "Notes"] [--verify]',
+			error: 'Usage: tsx scripts/save-place.ts --name "Place Name" [--city "City"] [--category restaurant] [--notes "Notes"] [--verify]',
 		}),
 	);
 	process.exit(1);
@@ -86,18 +85,6 @@ try {
 				extractionSource: "google_places",
 			};
 		}
-	}
-
-	// Generate embedding for search
-	const embeddingText = [placeData.name, placeData.city, placeData.address, placeData.contentType]
-		.filter(Boolean)
-		.join(" ");
-
-	try {
-		const embedding = await generateEmbedding(embeddingText);
-		placeData.embedding = embedding;
-	} catch {
-		console.error("[save-place] Embedding generation failed, saving without embedding");
 	}
 
 	// Save to database

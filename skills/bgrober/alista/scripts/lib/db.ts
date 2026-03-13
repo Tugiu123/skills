@@ -286,10 +286,17 @@ export function getAllPlaces(options?: {
 	}
 
 	const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-	const limit = options?.limit ? `LIMIT ${options.limit}` : "";
+	if (options?.limit) {
+		const limitNum = Number(options.limit);
+		if (!Number.isInteger(limitNum) || limitNum <= 0) {
+			throw new Error("limit must be a positive integer");
+		}
+		params.limit = limitNum;
+	}
+	const limitClause = options?.limit ? "LIMIT @limit" : "";
 
 	return db
-		.prepare(`SELECT * FROM places ${where} ORDER BY updated_at DESC ${limit}`)
+		.prepare(`SELECT * FROM places ${where} ORDER BY updated_at DESC ${limitClause}`)
 		.all(params) as PlaceRow[];
 }
 

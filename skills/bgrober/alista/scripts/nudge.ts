@@ -1,8 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
 /**
  * Generate nudge suggestions from saved places.
  *
- * Usage: bun scripts/nudge.ts [--count 3]
+ * Usage: tsx scripts/nudge.ts [--count 3]
  * Output: JSON with suggested places for the weekend
  */
 

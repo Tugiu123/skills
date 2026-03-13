@@ -220,28 +220,6 @@ export interface PlaceVerifierInterface {
 	getState(): "closed" | "open" | "half-open";
 }
 
-/**
- * Interface for analyzing media content
- */
-export interface MediaAnalyzerInterface {
-	extractFromImages(
-		imageUrls: string[],
-		context?: { caption?: string; location?: string },
-	): Promise<Place[]>;
-
-	extractFromVideo(
-		videoUrl: string,
-		context?: { caption?: string; location?: string },
-	): Promise<Place[]>;
-}
-
-/**
- * Interface for classifying content source (BY_PLACE vs ABOUT_PLACE)
- */
-export interface ContentSourceClassifierInterface {
-	classify(metadata: PostMetadata, urlType: UrlType): Promise<ContentSource>;
-}
-
 // ============================================================================
 // User Input Types
 // ============================================================================
@@ -305,24 +283,8 @@ export const TIMEOUTS = {
 		tiktok: 120_000, // 120s - TikTok video download takes longer
 	},
 	googlePlaces: 10_000, // 10s
-	gemini: {
-		image: 30_000, // 30s per image
-		video: 60_000, // 60s for video analysis
-	},
 	ogTags: 15_000, // 15s for direct page fetch
 	oembed: 10_000, // 10s for oEmbed
-} as const;
-
-/**
- * Size limits for media processing
- */
-export const SIZE_LIMITS = {
-	video: {
-		maxMB: 18, // Gemini inline limit is ~20MB, use 18 for safety
-	},
-	image: {
-		maxMB: 10, // Images are smaller but still have limits
-	},
 } as const;
 
 /**

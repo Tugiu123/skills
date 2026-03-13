@@ -8,7 +8,7 @@ An OpenClaw skill that saves restaurants, bars, and cafes from TikTok and Instag
 - **Video frame analysis**: Extracts key frames from reels for visual identification when text data is insufficient
 - **Google Places verification**: Automatically verifies places with addresses and coordinates
 - **Local SQLite storage**: All data stays on your machine
-- **Hybrid search**: Full-text + vector search across your saved places
+- **Full-text search**: FTS5-powered search across your saved places
 - **Smart suggestions**: Nudge algorithm considers freshness, urgency, and variety
 
 ## Setup
@@ -42,15 +42,11 @@ export GOOGLE_PLACES_API_KEY="your-google-places-key"
 
 # Required: Apify (Instagram/TikTok metadata fetching)
 export APIFY_API_KEY="your-apify-key"
-
-# Optional: Google AI (Gemini embeddings for semantic search)
-export GOOGLE_API_KEY="your-google-ai-key"
 ```
 
 **Getting API keys:**
 - **Google Places**: [Google Cloud Console](https://console.cloud.google.com/apis/library/places-backend.googleapis.com) — requires billing, but generous free tier
 - **Apify**: [Apify Console](https://console.apify.com/) — free tier available, used to fetch post metadata from Instagram and TikTok
-- **Google AI** (optional): [Google AI Studio](https://aistudio.google.com/apikey) — free tier available. Enables semantic search via `gemini-embedding-001` embeddings. Without this, search uses full-text matching only.
 
 ### 3. Verify setup
 ```bash
@@ -90,33 +86,20 @@ tsx scripts/search-places.ts --list
 tsx scripts/nudge.ts --count 5
 ```
 
-### Legacy extraction (uses Gemini)
-```bash
-tsx scripts/extract-url.ts "https://www.instagram.com/reel/ABC123/"
-```
-
-Note: `extract-url.ts` uses Gemini for LLM-based extraction. Prefer `fetch-post.ts` + agent reasoning for better results.
-
 ## Architecture
 
 ```
 scripts/
-├── fetch-post.ts           # Fetch raw post metadata from social media URLs (preferred)
-├── extract-url.ts          # Legacy: extract places with Gemini heuristics
+├── fetch-post.ts           # Fetch raw post metadata from social media URLs
 ├── lookup-place.ts         # Verify a place via Google Places
 ├── save-place.ts           # Save a place to local database
-├── search-places.ts        # Search saved places
+├── search-places.ts        # Search saved places (FTS5)
 ├── nudge.ts                # Get weekend suggestions
 └── lib/
     ├── types.ts            # Shared TypeScript interfaces
     ├── db.ts               # SQLite database layer
-    ├── embedding.ts        # Gemini text embeddings (optional)
     ├── place-verifier.ts   # Google Places verification + fuzzy matching
     ├── metadata-fetcher.ts # Apify + OG tag fetching
-    ├── content-source-classifier.ts  # Content type classification
-    ├── instagram.ts        # Legacy Instagram extraction handler
-    ├── tiktok.ts           # Legacy TikTok extraction handler
-    ├── media-analyzer.ts   # Legacy Gemini media analysis
     ├── nudge-scorer.ts     # Suggestion scoring algorithm
     └── utils/
         ├── index.ts
@@ -145,5 +128,4 @@ scripts/
 - **Database**: SQLite (via better-sqlite3) with FTS5
 - **Places API**: Google Places (New) Text Search
 - **Scraping**: Apify (Instagram/TikTok metadata)
-- **AI** (optional): Google Gemini (`gemini-embedding-001` for embeddings)
 - **Video**: ffmpeg (optional, for frame extraction)
