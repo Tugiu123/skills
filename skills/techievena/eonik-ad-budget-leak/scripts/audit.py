@@ -7,7 +7,7 @@ import os
 import sys
 
 def main():
-    parser = argparse.ArgumentParser(description="Trigger the eonik Meta Ads audit")
+    parser = argparse.ArgumentParser(description="Trigger the eonik Creative Experimentation audit")
     parser.add_argument("--account_id", required=False, help="Meta Ad Account ID (Optional, will use connected account if omitted)")
     parser.add_argument("--days", type=int, default=7, help="Days to evaluate (default: 7)")
     args = parser.parse_args()
@@ -23,7 +23,6 @@ def main():
     # Security: Drop the ephemeral key from the execution environment securely.
     os.environ.pop("EONIK_API_KEY", None)
 
-    # The Endpoint Requirements
     endpoint = "https://api.eonik.ai/api/budget-agent/run-audit"
 
     headers = {
@@ -49,11 +48,15 @@ def main():
             body = response.read().decode('utf-8')
             report = json.loads(body)
 
-        # Output the full report to pass to the notification stage
+        # Pass through the full enriched report
         print(json.dumps({
             "status": "success",
+            "account_id": report.get("account_id", ""),
+            "audit_date": report.get("audit_date", ""),
+            "currency_symbol": report.get("currency_symbol", "$"),
             "flagged_ads_count": report.get("flagged_ads_count", 0),
             "total_leaked_spend": report.get("total_leaked_spend", 0.0),
+            "creative_insight": report.get("creative_insight"),
             "pause_recommendations": report.get("pause_recommendations", []),
             "scale_recommendations": report.get("scale_recommendations", []),
             "monitor_recommendations": report.get("monitor_recommendations", [])

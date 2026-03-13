@@ -1,7 +1,7 @@
 ---
 name: "eonik creative audit"
 slug: "eonik-ad-budget-leak"
-version: "1.0.6"
+version: "1.0.7"
 description: "Identifies burning and decaying Meta Ads by running the eonik Budget heuristics engine."
 tags: ["ads", "marketing", "meta", "budgeting", "eonik"]
 author: "eonik"
@@ -98,21 +98,29 @@ This skill is designed specifically to comply with enterprise Data Loss Preventi
 1. **Secure API Key Handling**
    The skill requires `EONIK_API_KEY` (via the standard `x-api-key` header). The execution script securely drops the ephemeral token from the environment immediately after binding. No keys are logged or written to disk.
 
-2. **Native OpenCLAW Routing**
-   Unlike legacy versions, this architecture does NOT rely on webhooks. Standard Output is passed directly to the local OpenCLAW node which natively routes the message to your active chat surface (WhatsApp, Slack, Discord, or the local TUI). No configurations needed!
+2. **Native OpenCLAW Routing (WhatsApp/Slack/Telegram)**
+   Unlike legacy versions, this architecture does NOT rely on webhooks, custom notification dispatcher scripts, or storing tokens in your `config.json`. 
+   
+   Standard Output from the pipeline is passed directly to the local OpenCLAW node, which effortlessly **routes the message to whatever chat surface triggered it or is configured natively** (WhatsApp, Slack, Telegram, Discord, or the local TUI). Zero manual API configurations are needed to get multi-channel alerts!
 
 3. **Data Scope**
    Execution logs and generated `report.json` files contain the exposed Meta Ad IDs flagged for leaking or scaling. Keep your local `output/` directory protected and adhere to your internal security policies for Chat UI visibility.
 
-## Cron Integration
+## Continuous Scanning & Notifications
 
-Run daily audits every morning at 8 AM to catch budget leaks before they waste spend:
+The original objective of this skill is to completely automate budget optimization by continuously scanning your ad accounts and notifying your team on external channels (WhatsApp, Slack, Telegram) when leaks are detected.
+
+You do NOT need to over-engineer a loop or write your own dispatcher. OpenCLAW has a built-in, native cron scheduler that will automatically run the skill and route the output to your linked channels.
+
+**Schedule Daily Audits (e.g., Every morning at 8 AM):**
+To set up continuous automated scanning, use OpenCLAW's native scheduler:
 
 ```bash
-# Example cron payload
-cd ~/.openclaw/skills/eonik-ad-budget-leak
-python3 scripts/pipeline.py --config config.json
+# Add a recurring cron job natively via OpenCLAW
+openclaw cron add --skill eonik-ad-budget-leak --schedule "0 8 * * *" --isolated
 ```
+
+*OpenCLAW will execute the pipeline daily in an isolated context and dispatch any detected warnings directly to your configured messaging platforms.*
 
 ## Troubleshooting
 

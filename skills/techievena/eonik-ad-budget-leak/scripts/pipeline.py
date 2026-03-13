@@ -14,7 +14,7 @@ def run_command(cmd, env=None):
     return result.stdout
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Meta Ads Audit Pipeline")
+    parser = argparse.ArgumentParser(description="Run eonik Creative Experimentation Audit Pipeline")
     parser.add_argument("--config", required=True, help="Path to config.json")
     args = parser.parse_args()
 
@@ -38,7 +38,7 @@ def main():
     report_path = os.path.join(output_dir, f"audit-{run_date}.json")
 
     # Step 1: Run Audit
-    print("=== Stage 1: Running Audit ===")
+    print("=== Stage 1: Running Creative Experimentation Audit ===")
     audit_cmd = [
         sys.executable, "scripts/audit.py",
         "--days", str(days)
@@ -50,33 +50,104 @@ def main():
         "PATH": os.environ.get("PATH", ""),
         "EONIK_API_KEY": os.environ.get("EONIK_API_KEY", "")
     }
-    # Keep current environment minimal so only EONIK_API_KEY passes through
     audit_out = run_command(audit_cmd, env=safe_env)    
     with open(report_path, "w") as f:
         f.write(audit_out)
     
     print(f"Audit complete. Report saved to {report_path}")
 
-    print("\n\n=== Eonik AI Audit Report ===")
+    # Step 2: Format and Display Report
+    print("\n\n=== eonik Creative Experimentation Report ===")
     try:
         data = json.loads(audit_out)
         if data.get("status") != "success":
             print(f"Audit Status: {data.get('status', 'failed')}")
-        print("\n💰 Overall Impact 💰")
-        print(f"Flags Found: {data.get('flagged_ads_count', 0)}")
+            sys.exit(1)
+
+        cs = data.get('currency_symbol', '$')
         spent = data.get('total_leaked_spend', 0.0)
-        print(f"Wasted Spend Detected: ${spent:.2f}")
-        
+        flagged = data.get('flagged_ads_count', 0)
+
+        # --- Impact Summary ---
+        print(f"\n💰 Impact Summary")
+        print(f"   Flags Found: {flagged}")
+        print(f"   Wasted Spend Detected: {cs}{spent:,.2f}")
+
+        # --- Creative Intelligence ---
+        insight = data.get("creative_insight")
+        if insight:
+            print(f"\n🧬 Creative Intelligence")
+            print(f"   {insight}")
+
+        # --- Pause / Refresh Recommendations ---
         pauses = data.get("pause_recommendations", [])
         if pauses:
-            print("\n🚨 Urgent Leaks 🚨")
-            for ad in pauses:
-                reason = ad.get("recommendation", {}).get("reason", ad.get("category", "Burn"))
-                print(f"• Ad [{ad.get('ad_id')} - {ad.get('ad_name', 'Unknown')}]: {reason}")
-                signals = ad.get("signals", [])
-                for sig in signals:
-                    print(f"  └ {sig.get('detail')}")
-        
+            print(f"\n🚨 Urgent Actions ({len(pauses)} ads)")
+            for i, ad in enumerate(pauses, 1):
+                rec = ad.get("recommendation", {})
+                category = ad.get("category", "Flagged")
+                action = rec.get("action", "PAUSE")
+                reason = rec.get("reason", "")
+                ad_name = ad.get("ad_name", "Unknown")
+                ad_id = ad.get("ad_id", "")
+                
+                action_emoji = "⏸️" if action == "PAUSE" else "🔄"
+                print(f"\n   {action_emoji} [{action}] {ad_name}")
+                print(f"     Category: {category}")
+                print(f"     Reason: {reason}")
+                
+                # Metrics
+                spend = ad.get("spend", 0)
+                cpa = ad.get("cpa", 0)
+                ctr = ad.get("ctr", 0)
+                hook = ad.get("hook_rate", 0)
+                print(f"     Spend: {cs}{spend:,.2f} | CPA: {cs}{cpa:,.2f} | CTR: {ctr:.2f}%", end="")
+                if hook > 0:
+                    print(f" | Hook Rate: {hook:.1f}%")
+                else:
+                    print()
+
+                # Signals
+                for sig in ad.get("signals", []):
+                    print(f"     └ {sig.get('label')}: {sig.get('detail')}")
+
+                # Genome Tags
+                genome = ad.get("genome_tags")
+                if genome:
+                    tags = [f"{k}: {v}" for k, v in genome.items() if v and v != "unknown"]
+                    if tags:
+                        print(f"     🧬 Creative DNA: {' | '.join(tags)}")
+
+        # --- Scale Recommendations ---
+        scales = data.get("scale_recommendations", [])
+        if scales:
+            print(f"\n🚀 Scale Opportunities ({len(scales)} ads)")
+            for i, ad in enumerate(scales, 1):
+                rec = ad.get("recommendation", {})
+                reason = rec.get("reason", "")
+                ad_name = ad.get("ad_name", "Unknown")
+                
+                print(f"\n   📈 [SCALE] {ad_name}")
+                print(f"     Reason: {reason}")
+                
+                spend = ad.get("spend", 0)
+                cpa = ad.get("cpa", 0)
+                ctr = ad.get("ctr", 0)
+                roas = ad.get("roas", 0)
+                print(f"     Spend: {cs}{spend:,.2f} | CPA: {cs}{cpa:,.2f} | CTR: {ctr:.2f}% | ROAS: {roas:.2f}")
+
+                for sig in ad.get("signals", []):
+                    print(f"     └ {sig.get('label')}: {sig.get('detail')}")
+
+                genome = ad.get("genome_tags")
+                if genome:
+                    tags = [f"{k}: {v}" for k, v in genome.items() if v and v != "unknown"]
+                    if tags:
+                        print(f"     🧬 Winning DNA: {' | '.join(tags)}")
+
+        if not pauses and not scales:
+            print("\n✅ No critical issues found. All ads are within healthy baselines.")
+
         print("\n\n✅ Report dispatched to active OpenCLAW channel.")
     except Exception as e:
         print(f"Failed to parse or format the audit report: {e}")
