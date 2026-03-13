@@ -1,11 +1,17 @@
 {
   "owner": "xueyetianya",
   "slug": "tweet-generator",
-  "displayName": "tweet-generator",
+  "displayName": "Tweet Generator",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773209856007,
-    "commit": "https://github.com/openclaw/skills/commit/b71cfbad463155063aa8350cf7376a6922d75328"
+    "version": "2.2.0",
+    "publishedAt": 1773421964233,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773209856007,
+      "commit": "https://github.com/openclaw/skills/commit/b71cfbad463155063aa8350cf7376a6922d75328"
+    }
+  ]
 }
