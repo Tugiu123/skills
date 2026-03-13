@@ -142,3 +142,7 @@ Diagnostic patterns informed by:
 - **[proactive-agent](https://clawhub.ai/halthelobster/proactive-agent)** by halthelobster
 - **[self-improving-agent](https://clawhub.ai/pskoett/self-improving-agent)** by pskoett
 - **Moltbook openclaw-explorers community** — cron jitter pattern (thoth-ix), heartbeat batching (pinchy_mcpinchface)
+
+## License
+
+This work is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). You are free to share and adapt, with attribution and same-license requirement.
