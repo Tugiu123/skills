@@ -1,11 +1,17 @@
 {
   "owner": "alirezarezvani",
   "slug": "cs-code-reviewer",
-  "displayName": "Code Reviewer",
+  "displayName": "code-reviewer",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1773166551824,
-    "commit": "https://github.com/openclaw/skills/commit/5a3d45b29db56639ca18564f7f54d0d5b4455caa"
+    "version": "1.0.0",
+    "publishedAt": 1773244242572,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1773166551824,
+      "commit": "https://github.com/openclaw/skills/commit/5a3d45b29db56639ca18564f7f54d0d5b4455caa"
+    }
+  ]
 }
