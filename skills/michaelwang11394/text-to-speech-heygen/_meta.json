@@ -3,11 +3,16 @@
   "slug": "text-to-speech-heygen",
   "displayName": "Text to Speech",
   "latest": {
-    "version": "2.13.0",
-    "publishedAt": 1772835200132,
-    "commit": "https://github.com/openclaw/skills/commit/3cac3f4ab5b2fc0797c6ff7f9f1b9a43d28bb371"
+    "version": "2.16.0",
+    "publishedAt": 1773444381908,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.13.0",
+      "publishedAt": 1772835200132,
+      "commit": "https://github.com/openclaw/skills/commit/3cac3f4ab5b2fc0797c6ff7f9f1b9a43d28bb371"
+    },
     {
       "version": "2.1.0",
       "publishedAt": 1772575216689,
