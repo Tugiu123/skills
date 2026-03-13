@@ -1,13 +1,18 @@
 {
   "owner": "logictortoise",
   "slug": "anygen-data-analysis",
-  "displayName": "AnyGen Data Analysis (CSV)",
+  "displayName": "Data Analysis",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1772793166513,
-    "commit": "https://github.com/openclaw/skills/commit/5d40233bcaef550846cf67eb22fee3bf0462beb4"
+    "version": "1.3.5",
+    "publishedAt": 1773249931512,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1772793166513,
+      "commit": "https://github.com/openclaw/skills/commit/5d40233bcaef550846cf67eb22fee3bf0462beb4"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1772771156717,
