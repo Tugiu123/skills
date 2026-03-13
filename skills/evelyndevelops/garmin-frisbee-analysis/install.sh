@@ -31,23 +31,15 @@ else
     exit 1
 fi
 
-# Create config from example if it doesn't exist
-if [ ! -f "config.json" ] && [ -f "config.example.json" ]; then
-    echo
-    echo "📝 Creating config.json from example..."
-    cp config.example.json config.json
-    echo "✓ config.json created (edit with your credentials)"
-fi
-
 # Success
 echo
 echo "✅ Installation complete!"
 echo
 echo "Next steps:"
-echo "  1. Add your Garmin credentials:"
-echo "     - Edit config.json, or"
-echo "     - Set GARMIN_EMAIL and GARMIN_PASSWORD env vars, or"
-echo "     - Add to ~/.clawdbot/clawdbot.json skills config"
+echo "  1. Set your Garmin credentials as environment variables:"
+echo "     export GARMIN_EMAIL=\"your-email@example.com\""
+echo "     export GARMIN_PASSWORD=\"your-password\""
+echo "     (Add these to ~/.zshrc or ~/.bashrc to persist them)"
 echo
 echo "  2. Authenticate:"
 echo "     python3 scripts/garmin_auth.py login"

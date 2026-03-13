@@ -1,10 +1,10 @@
 ---
 name: garmin-frisbee-analysis
 description: Ultimate Frisbee performance analytics powered by Garmin data. Ask "how many sprints did I hit in yesterday's game?", "was my recovery fast enough between points?", "am I more fatigued than last tournament?". Analyze sprint count & fatigue, top speed, heart rate zones, Body Battery, HRV trends, sleep quality, and generate interactive dashboards. Compare tournaments vs tournaments, training vs games, and track season-long fitness trends. Built for competitive Ultimate Frisbee players.
-version: 1.0.0
+version: 1.1.1
 author: Evelyn & Claude
 homepage: https://github.com/EvelynDevelops/garmin-frisbee-analysis
-metadata: {"clawdbot":{"emoji":"🥏","requires":{"env":["GARMIN_EMAIL","GARMIN_PASSWORD"]},"install":[{"id":"garminconnect","kind":"python","package":"garminconnect","label":"Install garminconnect (pip)"},{"id":"fitparse","kind":"python","package":"fitparse","label":"Install fitparse (pip)"},{"id":"gpxpy","kind":"python","package":"gpxpy","label":"Install gpxpy (pip)"}]}}
+metadata: {"clawdbot":{"emoji":"🥏","requires":{"env":["GARMIN_EMAIL","GARMIN_PASSWORD"]},"install":[{"id":"garminconnect","kind":"python","package":"garminconnect","label":"Install garminconnect (pip)"},{"id":"fitparse","kind":"python","package":"fitparse","label":"Install fitparse (pip)"},{"id":"gpxpy","kind":"python","package":"gpxpy","label":"Install gpxpy (pip)"},{"id":"garmin-auth","kind":"shell","command":"python3 scripts/garmin_auth.py login","label":"Authenticate with Garmin Connect"}]}}
 ---
 
 # Garmin Frisbee Analysis
@@ -28,7 +28,18 @@ pip3 install garminconnect fitparse gpxpy
 
 ### 2. Configure Credentials
 
-#### Option A: Clawdbot Config (Recommended)
+> **Security note**: Never put your password in `config.json` and commit it. Use environment variables instead.
+
+#### Recommended: Environment Variables
+
+Set these in your shell profile (`~/.zshrc` or `~/.bashrc`):
+
+```bash
+export GARMIN_EMAIL="your-email@example.com"
+export GARMIN_PASSWORD="your-password"
+```
+
+Or configure via Clawdbot's skill settings:
 
 ```json
 {
@@ -44,19 +55,6 @@ pip3 install garminconnect fitparse gpxpy
     }
   }
 }
-```
-
-#### Option B: Local Config File
-
-```bash
-cp config.example.json config.json
-# Edit config.json with your email and password
-```
-
-#### Option C: Command Line
-
-```bash
-python3 scripts/garmin_auth.py login --email YOUR_EMAIL --password YOUR_PASSWORD
 ```
 
 ### 3. Authenticate

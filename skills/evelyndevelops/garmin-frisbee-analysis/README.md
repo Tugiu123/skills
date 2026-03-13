@@ -68,12 +68,11 @@ garmin-frisbee-analysis/
 │   ├── frisbee_activity.py          # Post-game analysis dashboard
 │   ├── frisbee_tournament.py        # Tournament review dashboard
 │   └── frisbee_compare.py           # Comparison & season analysis
-├── references/
-│   ├── health_analysis.md           # Metric interpretation guide
-│   ├── api.md                       # Garmin Connect API docs
-│   ├── mcp_setup.md                 # Claude Desktop MCP setup
-│   └── extended_capabilities.md     # Advanced features
-└── config.example.json              # Credentials template
+└── references/
+    ├── health_analysis.md           # Metric interpretation guide
+    ├── api.md                       # Garmin Connect API docs
+    ├── mcp_setup.md                 # Claude Desktop MCP setup
+    └── extended_capabilities.md     # Advanced features
 ```
 
 ## 🔒 Privacy & Security
@@ -95,7 +94,7 @@ garmin-frisbee-analysis/
 
 **Authentication issues?**
 - Run `python3 scripts/garmin_auth.py login` to refresh tokens
-- Check credentials in config.json or environment variables
+- Check that `GARMIN_EMAIL` and `GARMIN_PASSWORD` environment variables are set correctly
 
 **No sprints detected?**
 - Activity may not include speed data, or you used a non-GPS mode
@@ -106,7 +105,7 @@ garmin-frisbee-analysis/
 ## 🙏 Credits
 
 - **Author**: Evelyn & Claude
-- **Version**: 2.0.0
+- **Version**: 1.1.1
 - **License**: MIT
 - **Dependencies**: [python-garminconnect](https://github.com/cyberjunky/python-garminconnect), fitparse, gpxpy
 
