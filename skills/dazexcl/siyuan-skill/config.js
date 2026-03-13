@@ -80,6 +80,18 @@ class ConfigManager {
         language: 'zh',
         extractEntities: true,
         extractKeywords: true
+      },
+      
+      // 删除保护配置
+      deleteProtection: {
+        safeMode: true,
+        requireConfirmation: false
+      },
+      
+      // TLS 安全配置
+      tls: {
+        allowSelfSignedCerts: false,
+        allowedHosts: ['localhost', '127.0.0.1', '::1']
       }
     };
   }
@@ -124,6 +136,18 @@ class ConfigManager {
         ...fileConfig.nlp,
         ...envConfig.nlp,
         ...(this.overrideConfig.nlp || {})
+      },
+      deleteProtection: {
+        ...this.defaultConfig.deleteProtection,
+        ...fileConfig.deleteProtection,
+        ...envConfig.deleteProtection,
+        ...(this.overrideConfig.deleteProtection || {})
+      },
+      tls: {
+        ...this.defaultConfig.tls,
+        ...fileConfig.tls,
+        ...envConfig.tls,
+        ...(this.overrideConfig.tls || {})
       }
     };
     
@@ -272,6 +296,25 @@ class ConfigManager {
       };
     }
     
+    // 删除保护配置
+    if (process.env.SIYUAN_DELETE_SAFE_MODE !== undefined || 
+        process.env.SIYUAN_DELETE_REQUIRE_CONFIRMATION !== undefined) {
+      envConfig.deleteProtection = {
+        safeMode: process.env.SIYUAN_DELETE_SAFE_MODE !== 'false',
+        requireConfirmation: process.env.SIYUAN_DELETE_REQUIRE_CONFIRMATION === 'true'
+      };
+    }
+    
+    // TLS 安全配置
+    if (process.env.SIYUAN_TLS_ALLOW_SELF_SIGNED !== undefined) {
+      envConfig.tls = {
+        allowSelfSignedCerts: process.env.SIYUAN_TLS_ALLOW_SELF_SIGNED === 'true',
+        allowedHosts: process.env.SIYUAN_TLS_ALLOWED_HOSTS 
+          ? process.env.SIYUAN_TLS_ALLOWED_HOSTS.split(',').map(h => h.trim())
+          : this.defaultConfig.tls.allowedHosts
+      };
+    }
+    
     return envConfig;
   }
   
@@ -408,6 +451,28 @@ class ConfigManager {
         language: validatedConfig.nlp.language || this.defaultConfig.nlp.language,
         extractEntities: validatedConfig.nlp.extractEntities ?? this.defaultConfig.nlp.extractEntities,
         extractKeywords: validatedConfig.nlp.extractKeywords ?? this.defaultConfig.nlp.extractKeywords
+      };
+    }
+    
+    // 验证删除保护配置
+    if (!validatedConfig.deleteProtection || typeof validatedConfig.deleteProtection !== 'object') {
+      validatedConfig.deleteProtection = { ...this.defaultConfig.deleteProtection };
+    } else {
+      validatedConfig.deleteProtection = {
+        safeMode: validatedConfig.deleteProtection.safeMode ?? this.defaultConfig.deleteProtection.safeMode,
+        requireConfirmation: validatedConfig.deleteProtection.requireConfirmation ?? this.defaultConfig.deleteProtection.requireConfirmation
+      };
+    }
+    
+    // 验证 TLS 配置
+    if (!validatedConfig.tls || typeof validatedConfig.tls !== 'object') {
+      validatedConfig.tls = { ...this.defaultConfig.tls };
+    } else {
+      validatedConfig.tls = {
+        allowSelfSignedCerts: validatedConfig.tls.allowSelfSignedCerts ?? this.defaultConfig.tls.allowSelfSignedCerts,
+        allowedHosts: Array.isArray(validatedConfig.tls.allowedHosts) 
+          ? validatedConfig.tls.allowedHosts 
+          : this.defaultConfig.tls.allowedHosts
       };
     }
     

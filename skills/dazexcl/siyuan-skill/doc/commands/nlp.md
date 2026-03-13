@@ -1,5 +1,9 @@
 # NLP 文本分析命令
 
+> ⚠️ **实验性功能**
+> 
+> 此功能目前处于实验阶段，API 接口和功能可能会在未来版本中发生变化。建议在非生产环境中测试使用。
+
 对文本进行自然语言处理分析，包括分词、实体识别、关键词提取等。
 
 ## 命令格式
@@ -29,7 +33,13 @@ siyuan nlp "这是一段需要分析的文本内容"
 siyuan nlp "文本内容" --tasks tokenize
 
 # 进行所有分析
+siyuan nlp "文本内容" --tasks all
+
+# 指定多个分析任务
 siyuan nlp "文本内容" --tasks tokenize,entities,keywords,summary
+
+# 限制关键词数量
+siyuan nlp "文本内容" --tasks keywords --top-n 5
 ```
 
 ## NLP 功能特点
