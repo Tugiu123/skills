@@ -2,7 +2,7 @@
   "name": "bot-voice-config",
   "displayName": "机器人音色配置",
   "description": "为机器人配置和绑定火山引擎 TTS 音色，支持音色查询、绑定、设置默认音色等全流程操作",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "沉寂 (chenji)",
   "license": "MIT",
   "keywords": [

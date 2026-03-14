@@ -242,7 +242,9 @@ export FEISHU_DEFAULT_USER_ID="你的飞书用户 ID"
 
 ### 完整列表
 
-参考火山引擎官方文档获取完整音色列表。
+技能内置了完整的音色列表文档：`docs/yinse-liebiao.md`
+
+包含火山引擎全部 **280+** 种音色及对应的 Voice Type，可直接复制使用。
 
 ## 错误处理
 

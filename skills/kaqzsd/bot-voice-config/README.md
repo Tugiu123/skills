@@ -154,7 +154,21 @@ source ~/.bashrc
 | 北京小爷 | `zh_male_beijingxiaoye_emo_v2_mars_bigtts` | emo 北京腔 | 男 |
 | 儒雅逸辰 | `zh_male_ruyayichen_uranus_bigtts` | 儒雅绅士 | 男 |
 
-完整音色列表参考火山引擎官方文档。
+### 完整音色列表
+
+技能内置了完整的音色列表文档：`docs/yinse-liebiao.md`
+
+包含火山引擎全部 **280+** 种音色，按系列分类：
+- Uranus BigTTS 2.0（28 种）
+- Saturn BigTTS（15 种）
+- Mars BigTTS 1.0（60+ 种）
+- ICL ToB 定制（80+ 种）
+- Moon BigTTS（20+ 种）
+- Jupiter O 版本（4 种）
+- 英文系列（30+ 种）
+- 多语种系列（10+ 种）
+- 客服场景（20+ 种）
+- 有声阅读（10+ 种）
 
 ## 🔧 配置说明
 

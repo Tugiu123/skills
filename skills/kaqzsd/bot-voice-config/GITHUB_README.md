@@ -164,6 +164,16 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - **沉寂 (chenji)**
 - GitHub: [@chenji](https://github.com/chenji)
 
+## 🔗 相关技能
+
+### 推荐搭配使用
+
+- **[feishu-voice-reply](https://github.com/chenji/feishu-voice-reply)** - 飞书语音回复技能
+  - 使用火山引擎 TTS 生成特色音色语音
+  - 通过飞书 API 发送语音消息
+  - 支持 MP3 转 Opus 格式、自动上传和发送
+  - **本技能与飞书语音回复技能配合使用效果更佳！**
+
 ## 🙏 致谢
 
 - [OpenClaw](https://openclaw.ai) - AI 助手框架
@@ -173,3 +183,5 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 **Made with ❤️ for OpenClaw Community**
+
+**💡 提示**: 本技能专为配合 [飞书语音回复技能](https://github.com/chenji/feishu-voice-reply) 使用而设计，推荐一起安装使用！
