@@ -11,6 +11,8 @@ metadata:
       env:
         - OPENROUTER_API_KEY
     primaryEnv: OPENROUTER_API_KEY
+    optionalEnv:
+      - KIE_API_KEY
 ---
 
 # Image Generation Skill
@@ -29,7 +31,7 @@ Activate when the user asks to:
 Run the generation script with an absolute path to avoid directory change prompts:
 
 ```bash
-python3 SKILL_DIR/scripts/generate.py --prompt "PROMPT" [OPTIONS]
+bash SKILL_DIR/scripts/run.sh --prompt "PROMPT" [OPTIONS]
 ```
 
 Replace `SKILL_DIR` with the absolute path to this skill's root directory.
@@ -51,36 +53,36 @@ Replace `SKILL_DIR` with the absolute path to this skill's root directory.
 The script outputs JSON to stdout:
 
 ```json
-{"status": "ok", "image_path": "/absolute/path/to/image.png", "model": "openai/gpt-image-1", "provider": "openrouter"}
+{"status": "ok", "image_path": "/absolute/path/to/image.png", "model": "google/gemini-3.1-flash-image-preview", "provider": "openrouter"}
 ```
 
 After successful generation, show the user the image path and confirm the image was created.
 
 ## Provider Selection
 
-- **OpenRouter** (default): Fast, synchronous. Models: `openai/gpt-image-1`, `google/imagen-4`, `stabilityai/stable-diffusion-3`. Requires `OPENROUTER_API_KEY`.
+- **OpenRouter** (default): Fast, synchronous. Models: `google/gemini-3.1-flash-image-preview`, `google/imagen-4`, `stabilityai/stable-diffusion-3`. Requires `OPENROUTER_API_KEY`.
 - **Kie.ai**: Async task-based. Models: `flux-ai`, `midjourney`, `google-4o-image`, `ghibli-ai`. Requires `KIE_API_KEY`. Use when the user explicitly requests Kie.ai or a Kie-specific model.
 
 ## Examples
 
 Basic generation:
 ```bash
-python3 SKILL_DIR/scripts/generate.py -p "A serene mountain lake at sunset"
+bash SKILL_DIR/scripts/run.sh -p "A serene mountain lake at sunset"
 ```
 
 Specific model:
 ```bash
-python3 SKILL_DIR/scripts/generate.py -p "Cyberpunk cityscape" -m "google/imagen-4"
+bash SKILL_DIR/scripts/run.sh -p "Cyberpunk cityscape" -m "google/imagen-4"
 ```
 
 Kie.ai provider:
 ```bash
-python3 SKILL_DIR/scripts/generate.py -p "Studio Ghibli forest" --provider kie -m ghibli-ai
+bash SKILL_DIR/scripts/run.sh -p "Studio Ghibli forest" --provider kie -m ghibli-ai
 ```
 
 Custom output path:
 ```bash
-python3 SKILL_DIR/scripts/generate.py -p "A red fox" -o /tmp/fox.png
+bash SKILL_DIR/scripts/run.sh -p "A red fox" -o /tmp/fox.png
 ```
 
 ## Error Handling
