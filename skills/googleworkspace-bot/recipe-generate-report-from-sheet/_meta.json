@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "recipe-generate-report-from-sheet",
+  "displayName": "Recipe Generate Report From Sheet",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773432606256,
+    "commit": null
+  },
+  "history": []
+}
