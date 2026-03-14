@@ -1,0 +1,11 @@
+{
+  "owner": "oshin123456",
+  "slug": "news-crawler",
+  "displayName": "News Crawler",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773407304052,
+    "commit": null
+  },
+  "history": []
+}
