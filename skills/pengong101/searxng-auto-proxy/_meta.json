@@ -1,0 +1,11 @@
+{
+  "owner": "pengong101",
+  "slug": "searxng-auto-proxy",
+  "displayName": "searxng-auto-proxy searxng自适应代理检测",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773275919324,
+    "commit": null
+  },
+  "history": []
+}
