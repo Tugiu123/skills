@@ -88,41 +88,39 @@ i-am/
 **用户回复 "2" 或 "手动"**：
 1. AI 回复：`✅ 手动模式已配置，需要时告诉我"运行 i-am 分析"`
 
-#### AI 创建必要文件夹并备份初始 USER.md
+#### AI 创建必要文件夹和 ChangeLog.md
 
 **执行代码**：
 
 ```python
 from pathlib import Path
 from datetime import datetime
-import shutil
 
 skill_root = Path.home() / ".openclaw" / "workspace" / "skills" / "i-am"
 user_md_path = Path.home() / ".openclaw" / "workspace" / "USER.md"
 
-# 步骤 1: 创建 CHANGELOG 文件夹（用于备份 USER.md 历史版本）
-changelog_dir = skill_root / "CHANGELOG"
-changelog_dir.mkdir(parents=True, exist_ok=True)
-print(f"✅ 已创建文件夹：{changelog_dir}")
-
-# 步骤 2: 创建 temp 文件夹（用于存储临时文件）
+# 步骤 1: 创建 temp 文件夹（用于存储临时文件）
 temp_dir = skill_root / "temp"
 temp_dir.mkdir(parents=True, exist_ok=True)
 print(f"✅ 已创建文件夹：{temp_dir}")
 
-# 步骤 3: 备份当前 USER.md（初始版本）
-if user_md_path.exists():
-    timestamp = datetime.now().strftime('%Y%m%d-%H%M')
-    backup_file = changelog_dir / f"USER-{timestamp}-initial.md"
-    shutil.copy2(user_md_path, backup_file)
-    print(f"📁 已备份初始 USER.md: {backup_file.name}")
+# 步骤 2: 创建 ChangeLog.md（人格特质更新日志）
+changelog_file = skill_root / "ChangeLog.md"
+if not changelog_file.exists():
+    header = """# i-am Skill ChangeLog
+
+> 人格特质更新日志 | 自动生成
+
+---
+
+## 更新记录
+
+"""
+    with open(changelog_file, 'w', encoding='utf-8') as f:
+        f.write(header)
+    print(f"✅ 已创建 ChangeLog.md: {changelog_file}")
 else:
-    # 创建空的初始文件
-    timestamp = datetime.now().strftime('%Y%m%d-%H%M')
-    backup_file = changelog_dir / f"USER-{timestamp}-initial.md"
-    with open(backup_file, 'w', encoding='utf-8') as f:
-        f.write("# USER.md - Initial Backup\n\n(首次安装时的空备份)\n")
-    print(f"📁 已创建初始 USER.md 备份：{backup_file.name}")
+    print(f"ℹ️  ChangeLog.md 已存在")
 ```
 
 **文件夹说明**：
@@ -482,9 +480,9 @@ AI 应按以下格式向用户汇报执行进展：
 [✅/⏳] 技能运行情况｜共涌现 xx 个标签，聚类为 xx 个类别，识别出 xx 个特质（新增 x 个特质）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📄 更新后 USER.md 完整内容如下（待审阅）：
+📄 更新后的人格特质章节如下（待审阅）：
 
-*temp/USER.md 完整内容*
+*人格特质章节内容*
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 请审核预览内容，确认是否更新 USER.md？
@@ -507,7 +505,7 @@ report = f"""
 [✅] 技能运行情况｜共涌现 {len(open_codes)} 个标签，聚类为 {len(axial_clusters)} 个类别，识别出 {len(core_traits)} 个特质
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📄 更新后 USER.md 完整内容如下（待审阅）：
+📄 更新后的人格特质章节如下（待审阅）：
 
 ```markdown
 {open(preview_file, 'r', encoding='utf-8').read()}
@@ -532,56 +530,7 @@ print(report)
 
 ---
 
-#### 步骤 5: AI 根据 IM 渠道发送预览文件
-
-**AI 自主决策流程**：
-
-1. **检测当前 IM 渠道**
-   - 读取 inbound context 的 `channel` 字段
-   - 可用值：`feishu`、`telegram`、`discord`、`whatsapp`、`signal` 等
-
-2. **评估文件发送能力**
-   - 检查该 IM 是否支持文件发送
-   - 检查是否有已安装的 file-sender skill
-   - 检查 IM 原生 API 是否支持
-
-3. **选择最佳发送方式**（优先级从高到低）：
-   - 优先：使用已安装的 file-sender skill（如 feishu-send-file）
-   - 次优：使用 IM 原生文件发送功能
-   - 降级：发送文字预览（前 1000 字）
-
-4. **发送文件并请求确认**
-
-**AI 回复模板**：
-
-```
-📋 USER.md 更新预览
-
-检测到以下人格特质：
-
-🔴 **沟通风格**: 直接高效
-   饱和度：75% (+5%)  ← 显示变化
-   置信度：80%
-
-🔴 **决策风格**: 行动导向
-   饱和度：68% (不变)
-   置信度：73%
-
-🟡 **技术取向**: 实用主义
-   饱和度：52% (-10%)  ← 与历史冲突
-   置信度：60%
-
-📄 预览文件已发送（temp/USER.md）
-📁 当前 USER.md 已备份到：ChangeLog.mdUSER-20260313-1730.md
-
-🤖 请审核预览内容，确认是否更新 USER.md？
-回复"确认"、"推送"、"是"或"ok"确认更新
-回复"取消"、"否"或"不更新"取消
-```
-
----
-
-#### 步骤 6: AI 根据用户确认执行
+#### 步骤 5: AI 根据用户确认执行
 
 **用户回复包含"确认"、"推送"、"是"、"ok"**：
 
@@ -667,7 +616,7 @@ print("✅ USER.md 已更新（仅人格特质章节）")
 **AI 回复**（响应规范）：
 
 ```
-[✅] ChangeLog 日志已更新，更新时间 2026-03-14-1057
+[✅] ChangeLog 日志已更新，更新时间 YYYY-MM-DD-HHMM
 [✅] USER.md 已更新，当前版本（v1）
 ```
 
@@ -681,7 +630,7 @@ print("✅ USER.md 已更新（仅人格特质章节）")
 ```
 
 **说明**：
-- `YYYY-MM-DD-HHMM`: 更新时间戳（如：2026-03-14-1057）
+- `YYYY-MM-DD-HHMM`: 更新时间戳（如：YYYY-MM-DD-HHMM）
 - `vX`: USER.md 版本号（首次为 v1，后续每次更新 +1）
 
 **用户回复包含"取消"、"否"、"不更新"**：
