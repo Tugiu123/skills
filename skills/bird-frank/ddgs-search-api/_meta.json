@@ -1,0 +1,11 @@
+{
+  "owner": "bird-frank",
+  "slug": "ddgs-search-api",
+  "displayName": "DuckDuckGo(API)",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773454383364,
+    "commit": null
+  },
+  "history": []
+}
