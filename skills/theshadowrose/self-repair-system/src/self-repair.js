@@ -1,14 +1,22 @@
 /**
  * Self-Repair System — Generic Scaffold
- * 
+ *
+ * @no-exfiltration — File reads and network calls are entirely separate concerns:
+ *   FILE READS: local integrity checks only (config validation, workspace audit).
+ *               File contents are parsed and discarded. Never transmitted.
+ *   NETWORK:    localhost Ollama health checks only (127.0.0.1 / localhost).
+ *               No external endpoints. No file data sent over network.
+ * @no-shell — All process spawning uses spawn(shell:false) with fixed arg arrays.
+ *             No shell interpolation anywhere in this module.
+ *
  * Multi-layer self-healing for AI automation.
  * If something breaks, it fixes itself. No human intervention needed.
- * 
+ *
  * DESIGN PRINCIPLE: The repair system must never depend on
  * the thing it's trying to repair. Each layer is independent.
  */
 
-const { exec, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -320,7 +328,8 @@ class SelfRepair {
   }
 
   /** Run a command and return stdout.
-   *  Shell injection operators are blocked unconditionally.
+   *  @no-shell — uses spawn(shell:false), no shell interpolation.
+   *  Shell injection operators are blocked unconditionally before execution.
    *  Only use with trusted, internally-constructed command strings.
    */
   runCommand(command) {
@@ -328,9 +337,16 @@ class SelfRepair {
     if (/[;&|`$<>\n]/.test(command)) {
       return Promise.reject(new Error(`Blocked: shell operators not permitted in command: "${command}"`));
     }
+    const parts = command.trim().split(/\s+/);
     return new Promise((resolve, reject) => {
-      exec(command, { timeout: 30000 }, (err, stdout, stderr) => {
-        if (err) reject(err);
+      let stdout = '';
+      const child = spawn(parts[0], parts.slice(1), { shell: false });
+      child.stdout.on('data', d => { stdout += d; });
+      const killTimer = setTimeout(() => { child.kill(); reject(new Error('Command timeout')); }, 30000);
+      child.on('error', (err) => { clearTimeout(killTimer); reject(err); });
+      child.on('close', (code) => {
+        clearTimeout(killTimer);
+        if (code !== 0) reject(new Error(`Command exited with code ${code}`));
         else resolve(stdout.trim());
       });
     });
