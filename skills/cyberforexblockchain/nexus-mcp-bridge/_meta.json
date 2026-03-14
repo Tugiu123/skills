@@ -1,0 +1,11 @@
+{
+  "owner": "cyberforexblockchain",
+  "slug": "nexus-mcp-bridge",
+  "displayName": "NEXUS Mcp Bridge",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773440051295,
+    "commit": null
+  },
+  "history": []
+}
