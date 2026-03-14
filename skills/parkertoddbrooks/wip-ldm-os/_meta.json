@@ -3,9 +3,15 @@
   "slug": "wip-ldm-os",
   "displayName": "Wip Ldm Os Private",
   "latest": {
-    "version": "0.2.5",
-    "publishedAt": 1773418364345,
-    "commit": "https://github.com/openclaw/skills/commit/486b609c721b5143792ea02266f9d8b88c420238"
+    "version": "0.2.10",
+    "publishedAt": 1773458123915,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.5",
+      "publishedAt": 1773418364345,
+      "commit": "https://github.com/openclaw/skills/commit/486b609c721b5143792ea02266f9d8b88c420238"
+    }
+  ]
 }

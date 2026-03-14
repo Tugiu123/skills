@@ -28,7 +28,7 @@ But the users are changing. AI agents are the new users. They don't click. They 
 
 Software built for humans doesn't work for agents. And software built only for agents doesn't work for humans. You need both.
 
-`wip-universal-installer` gives all your repos the Universal Interface, and teaches your AI how to do it too.
+`ldm install` gives all your repos the Universal Interface, and teaches your AI how to do it too.
 
 ## The Karpathy Argument
 
@@ -61,9 +61,9 @@ Then ask me:
 
 Your agent will read the repo, explain the tool, and walk you through integration interactively.
 
-Also see **[wip-release](https://github.com/wipcomputer/wip-release)** ... one-command release pipeline for agent-native software.
+Also see **[wip-release](https://github.com/wipcomputer/wip-ai-devops-toolbox)** ... one-command release pipeline for agent-native software.
 
-Also see **[wip-file-guard](https://github.com/wipcomputer/wip-file-guard)** ... the lock for the repo. Blocks AI agents from overwriting your critical files.
+Also see **[wip-file-guard](https://github.com/wipcomputer/wip-ai-devops-toolbox)** ... the lock for the repo. Blocks AI agents from overwriting your critical files.
 
 See [REFERENCE.md](REFERENCE.md) for sensors/actuators, the interface table, how to build it, the installer, and real examples.
 

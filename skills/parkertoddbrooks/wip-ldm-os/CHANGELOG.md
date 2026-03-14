@@ -5,6 +5,31 @@
 
 
 
+
+
+
+
+
+## 0.2.10 (2026-03-14)
+
+Installer improvements: semver comparison, config preservation, npm package support, remove secrets from scaffold
+
+## 0.2.9 (2026-03-14)
+
+Fix npm bin entries: rename .mjs to .js so npm publish keeps bin entries
+
+## 0.2.8 (2026-03-14)
+
+Fix doc links: wip-release and wip-file-guard now point to DevOps Toolbox
+
+## 0.2.7 (2026-03-14)
+
+Add REFERENCE.md and SPEC.md to docs, fix installer references
+
+## 0.2.6 (2026-03-13)
+
+Catalog scoping update, OpenClaw detection, system state awareness, prompt improvements
+
 ## 0.2.5 (2026-03-13)
 
 Fix catalog matching, simplify dry-run output, update skill descriptions
