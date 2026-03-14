@@ -3,11 +3,16 @@
   "slug": "license-picker",
   "displayName": "License Picker",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1773421471536,
-    "commit": "https://github.com/openclaw/skills/commit/00d6030f721b2c336a5bba9e52f6a66b0b534a36"
+    "version": "2.3.0",
+    "publishedAt": 1773447600182,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1773421471536,
+      "commit": "https://github.com/openclaw/skills/commit/00d6030f721b2c336a5bba9e52f6a66b0b534a36"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773360653312,

@@ -1,6 +1,6 @@
 ---
 name: License Picker
-description: >-
+description: "Open Source License Picker. Use when you need license picker capabilities. Triggers on: license picker."
   开源协议选择器。协议对比、生成LICENSE文件、解释条款、商用指南、FAQ。License picker with comparison, generation, explanation, commercial guide. 开源、协议。
 ---
 # License Picker
@@ -26,3 +26,6 @@ description: >-
 
 ---
 *License Picker by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
