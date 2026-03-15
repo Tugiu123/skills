@@ -22,3 +22,15 @@ Run any command: `adversarial-robustness-toolbox <command> [args]`
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+adversarial-robustness-toolbox help
+
+# Run
+adversarial-robustness-toolbox run
+```
+
+- Run `adversarial-robustness-toolbox help` for all commands
