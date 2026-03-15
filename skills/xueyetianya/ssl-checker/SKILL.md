@@ -7,12 +7,10 @@ description: "Error: --domain required. Use when you need ssl checker capabiliti
 
 SSL/TLS certificate inspection tool that checks certificate expiry dates, issuer details, subject information, certificate chain validation, protocol support, and cipher suites. Provides days-until-expiry alerts with configurable thresholds for proactive certificate management. Uses openssl s_client and Python3 — no external dependencies. Perfect for DevOps monitoring, security audits, and certificate lifecycle management.
 
-
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-
 
 ## Options
 
