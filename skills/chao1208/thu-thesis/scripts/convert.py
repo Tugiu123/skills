@@ -291,6 +291,18 @@ def main():
         print(f'   → 已复制到: {word_pdf}')
         print(f'{"="*60}\n')
 
+        # ── Step 4: 评测 ──────────────────────────────────────────
+        print('\n【Step 4/4】运行 Rubric 评测...')
+        evaluate_script = Path(__file__).parent / 'evaluate.py'
+        if evaluate_script.exists():
+            # 直接传入本次转换生成的 json_path（避免并行时用错文件）
+            subprocess.run(
+                [sys.executable, str(evaluate_script), str(json_path), str(latex_dir)],
+                capture_output=False, text=True
+            )
+        else:
+            print('   ⚠️  evaluate.py 不存在，跳过评测')
+
         # 打开 PDF（macOS open；Linux/Windows 跳过）
         import platform
         if platform.system() == 'Darwin':

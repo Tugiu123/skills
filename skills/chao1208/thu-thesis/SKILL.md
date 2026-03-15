@@ -61,16 +61,101 @@ python3 "$SKILL_DIR/scripts/convert.py" "论文.docx" /tmp/my-thesis
 
 完成后自动打开 PDF。
 
-## 三步流程
+## 四步流程（含评测与自动修复）
 
 ```
 input.docx
-  ↓ parse_docx.py   → output/parsed_*.json + output/figures/（图片）
-  ↓ render.py       → <output_dir>/thesis.tex + data/*.tex + ref/refs.bib + figures/
-  ↓ xelatex → bibtex → xelatex × 2~3  → <output_dir>/thesis.pdf ✅
+  ↓ Step1  parse_docx.py    → output/parsed_*.json + output/figures/（图片）
+  ↓ Step2  render.py        → <output_dir>/thesis.tex + data/*.tex + ref/refs.bib + figures/
+  ↓ Step2.5 _auto_cite_missing()  → 关键词匹配补 \cite；无匹配用 \nocite 兜底（100%覆盖）
+  ↓ Step3  xelatex→bibtex→xelatex×2~3  → <output_dir>/thesis.pdf ✅
+  ↓ Step4  evaluate.py      → evaluation_report.md（33项 Rubric 评测）
+  ↓ Step5  自动修复          → 发现可修复问题，立即重新执行受影响步骤，不询问用户
 ```
 
-### Step 1: parse_docx.py — 仅提取，不转换格式
+转换完成后 PDF 自动复制到 Word 原文件同目录（同名 .pdf）。
+
+## Step 5：评测后自动修复（不询问用户）
+
+**评测结果出来后，立即判断哪些问题可以工具修复，直接修复，无需等待确认。**
+
+### 可自动修复的问题（立即修复）
+
+| 问题 | 修复方式 |
+|------|---------|
+| 封面 title 被误识别（如答辩委员会名单被当成标题） | 修 parse_docx.py → 重跑 convert |
+| BibTeX author/title 字段为空 | 修 render.py 解析逻辑 → 重跑 render + compile |
+| B4 节级标题检测失败（数据结构问题） | 修 evaluate.py 检测逻辑 |
+| C4 BibTeX 条目数不匹配（解析漏条目） | 检查 refs.bib，修 render.py → 重跑 |
+| C7 author-year 引用未转 \cite（有 bib key 可匹配） | 修正则 → 重跑 render + compile |
+| LaTeX 编译报错（\& 转义、特殊字符等） | 修 render.py 转义逻辑 → 重跑 compile |
+
+### 不可自动修复的问题（保留 WARN，报告说明）
+
+| 问题 | 原因 |
+|------|------|
+| 表格/图片无 caption | Word 原文本来就没有，工具无中生有 |
+| 孤儿缩略语无解释 | Word 原文未定义，只能标注待补充 |
+| C5 文献未被正文引用 | Word 正文本来就没引用，已用 \nocite 兜底 |
+| C7 author-year 匹配失败（无 bib key） | 姓名简称/别名无法映射，原文限制 |
+| committee/comments/resolution 占位 | 答辩后才有内容，无法提前填写 |
+
+### 修复循环规则
+
+1. 发现**可修复问题** → 修复脚本 → 重跑受影响步骤 → 重新评测
+2. 循环最多 **3 次**，防止无限循环
+3. 每次修复后报告「修复了什么」和「新评分」
+4. 最终仍有 WARN 的不可修复项，报告中注明「原始 Word 内容限制，无法自动修复」
+
+## Rubric 评测（evaluate.py）
+
+每次 convert 完成后自动运行，也可单独调用：
+
+```bash
+SKILL_DIR="${WORKSPACE}/skills/thu-thesis"
+python3 "$SKILL_DIR/scripts/evaluate.py" <parsed.json> <latex_dir>
+```
+
+评测报告保存到 `<latex_dir>/evaluation_report.md`。
+
+### 评分制度
+
+- **必要项（满分3分）**：PASS=3分，WARN=1.5分，FAIL=0分；有必要项FAIL时整体不通过
+- **重要项（满分2分）**：PASS=2分，WARN=1分，FAIL=0分
+- **亮点项（满分1分）**：PASS=1分，WARN=0.5分，FAIL=0分
+- **失误扣分项（满分0）**：错误1处扣1分，最多扣10分（如C6 cite内容关联性）
+- **NA项**：无图/无表等不适用场景，跳过不计入分母
+- 最终给出：总分 / 满分（百分比）+ 优秀≥90% / 良好≥75% / 合格≥60% / 不合格
+
+### 报告要求（重要！）
+
+**所有扣分项必须在报告中写明扣分原因备注**，包括：
+- ❌ FAIL项：说明具体缺失或错误内容（不能只写"缺失"）
+- ⚠️ WARN项：说明半分原因和建议修复方法
+- ➖ DEDUCT项：说明每处扣分的具体位置和内容
+- 明细表说明列**不截断**，完整输出原因
+
+### 评测维度（33项）
+
+| 维度 | 项数 | 检查内容 |
+|------|------|----------|
+| A. 内容-元信息 | 7项 | 中英文标题、作者、导师、培养单位、日期 |
+| A. 内容-摘要 | 4项 | 中英文摘要内容量、关键词数量 |
+| B. 内容-正文 | 4项 | 章节结构、.tex文件、文字总量、节级标题 |
+| C. 参考文献 | 6项 | 列表完整、BibTeX生成、author/title字段、PDF条目数、引用覆盖率、**C6 cite内容关联性抽检（失误扣分）**、**C7 author-year行文引用规范（关键失误）** |
+| D. 图片 | 3项 | 提取数量、caption、LaTeX渲染 |
+| E. 表格 | 3项 | 提取数量、三线表格式、caption |
+| F. 缩略语 | 2项 | 缩略语表生成、孤儿缩略语标注 |
+| G. 附件 | 2项 | 致谢、个人简历 |
+| H. 编译 | 3项 | PDF已生成、无LaTeX Error、thusetup格式 |
+
+### C6 cite内容关联性抽检说明
+
+- 机器代理：bib字段（author+title均为空）→ 不可追溯，扣1分/处，最多扣10分
+- 抽检报告：每次评测随机抽10个cite，输出「上下文 + 文献信息 + 人工核查勾选框」
+- 人工核查后如发现错误关联，额外在备注中记录并手动扣分
+
+
 
 ```bash
 SKILL_DIR="${WORKSPACE}/skills/thu-thesis"
@@ -149,6 +234,12 @@ convert.py 自动运行完整 BibTeX 编译流程：
 - `render.py` 内置规则 based 解析器，自动识别 `@article` / `@book` / `@misc`
 - BibTeX key 格式：`作者姓拼音 + 年份 + 关键词`（全 ASCII，无中文）
 - 正文中 `[10]` → `\cite{venkatraman1994venkatraman}`，支持 `[1,2,3]` 和 `[1-3]` 范围
+- 文献综述等章节的 **author-year 行文引用**自动识别并补 `\cite`：
+  - `曹玉（2025）分析了...` → `曹玉（2025）\cite{cao2025aigc}分析了...`
+  - `BiyuTang（2023）指出...` → `BiyuTang（2023）\cite{tang2023aigcfilm}指出...`
+  - `葛文婕和任海全（2025）` → 多作者取第一作者姓匹配
+  - 支持：中文全角括号 `（年）`、英文半角括号 `(年)`、CamelCase 拼音名
+  - 匹配失败（文献库无对应条目）时保留原文，rubric C6 会警告
 - 输出文件：`<output_dir>/ref/refs.bib`，包含编号→key 映射注释表
 
 **已知限制：**

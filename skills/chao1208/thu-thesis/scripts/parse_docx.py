@@ -38,7 +38,7 @@ SPECIAL_HEADINGS = {
     "摘要", "摘 要",
     "abstract",
     "目录", "目 录",
-    "插图清单", "附表清单",
+    "插图清单", "附表清单", "插图和附表清单", "插图目录", "附表目录", "图表目录",
     "参考文献",
     "致谢", "致 谢",
     "声明", "声 明",
@@ -298,10 +298,16 @@ def parse_cover(paragraphs: list, doc=None) -> dict:
         cover_paras.append(p)
 
     # ── 提取论文标题（Title 样式）──
+    # 过滤掉答辩/授权/声明等无关 Title 段落，只取真正的论文题目
+    _TITLE_BLACKLIST = re.compile(
+        r'评阅|答辩|委员会|授权|声明|使用授权|学位论文公开|保密|版权'
+    )
     for p in cover_paras:
         if p.style.name == "Title" and p.text.strip():
-            meta["title"] = clean_text(p.text)
-            break
+            txt = clean_text(p.text)
+            if not _TITLE_BLACKLIST.search(txt):
+                meta["title"] = txt
+                break
 
     # ── 逐段解析封面字段 ──
     # 用于记录英文封面状态机
@@ -508,7 +514,7 @@ def parse_abstracts(paragraphs: list) -> dict:
                 result["keywords_cn"] = [k.strip() for k in re.split(r'[;；、,，]', kw_str) if k.strip()]
                 state = None
                 continue
-            if style in ("Body Text", "Normal", "段落"):
+            if style in ("Body Text", "Normal", "段落", "zw", "样式5"):
                 cn_lines.append(cleaned)
 
         elif state == "en":
@@ -518,7 +524,7 @@ def parse_abstracts(paragraphs: list) -> dict:
                 result["keywords_en"] = [k.strip() for k in re.split(r'[;；,，]', kw_str) if k.strip()]
                 state = None
                 continue
-            if style in ("Body Text", "Normal", "段落"):
+            if style in ("Body Text", "Normal", "段落", "zw", "样式5"):
                 en_lines.append(cleaned)
 
     result["abstract_cn"] = " ".join(cn_lines)
@@ -664,12 +670,18 @@ def parse_body(doc) -> dict:
             if style == "Heading 1" and txt:
                 norm = normalize_special_heading(txt)
 
-                if norm == "插图清单":
+                if norm in {"插图清单", "插图目录"}:
                     result["figures_list"] = True
                     state = "skip"
                     continue
 
-                if norm == "附表清单":
+                if norm in {"附表清单", "附表目录"}:
+                    result["tables_list"] = True
+                    state = "skip"
+                    continue
+
+                if norm in {"插图和附表清单", "图表目录"}:
+                    result["figures_list"] = True
                     result["tables_list"] = True
                     state = "skip"
                     continue
@@ -735,20 +747,27 @@ def parse_body(doc) -> dict:
                 current_section_content = current_chapter["content"]
                 continue
 
+            # Heading 4：四级节（映射到 subsection，输出为 \subsubsection）
+            if style == "Heading 4" and txt and state == "chapter" and current_chapter is not None:
+                sec = new_section(4, txt)
+                current_chapter["content"].append(sec)
+                current_section_content = current_chapter["content"]
+                continue
+
             # 正文内容（Body Text / Normal 段落按状态归属）
             if not cleaned:
                 continue
 
             if state == "references":
-                if style in ("Normal", "Body Text", "段落"):
+                if style in ("Normal", "Body Text", "段落", "CKWX", "zw", "文献R"):
                     result["references"].append(cleaned)
 
             elif state in special_text_buffers:
-                if style in ("Body Text", "Normal", "List Paragraph", "段落"):
+                if style in ("Body Text", "Normal", "List Paragraph", "段落", "zw", "样式5"):
                     special_text_buffers[state].append(cleaned)
 
             elif state == "chapter" and current_section_content is not None:
-                if style in ("Body Text", "Normal", "List Paragraph", "段落"):
+                if style in ("Body Text", "Normal", "List Paragraph", "段落", "zw", "样式5"):
                     current_section_content.append({"type": "text", "content": cleaned})
 
         # ── 处理表格 ──
@@ -785,7 +804,8 @@ def parse_body(doc) -> dict:
                         bel = body_elements[bi]
                         if bel in para_map:
                             pt = para_map[bel].text.strip()
-                            if pt.startswith('表') or para_map[bel].style.name == 'Caption1':
+                            ps = para_map[bel].style.name
+                            if pt.startswith('表') or ps in ('Caption1', 'a表名'):
                                 tbl_caption = pt
                                 break
 
@@ -795,7 +815,8 @@ def parse_body(doc) -> dict:
                             bel = body_elements[bi]
                             if bel in para_map:
                                 pt = para_map[bel].text.strip()
-                                if pt.startswith('表') or para_map[bel].style.name == 'Caption1':
+                                ps = para_map[bel].style.name
+                                if pt.startswith('表') or ps in ('Caption1', 'a表名'):
                                     tbl_caption = pt
                                     break
 
@@ -933,26 +954,26 @@ def parse_docx(input_path: str, output_dir: str = "output") -> dict:
             if self_text.startswith('图'):
                 caption = self_text
 
-            # 规则1：图片段落之后紧跟 Caption1 样式的段落
+            # 规则1：图片段落之后紧跟 Caption1 / a图名 样式的段落
             if not caption and idx + 1 < para_count:
                 next_p = all_paras[idx + 1]
-                if next_p.style.name == 'Caption1':
+                if next_p.style.name in ('Caption1', 'a图名'):
                     caption = clean_text(next_p.text)
 
-            # 规则2：图片段落之后2段内有 Normal 样式且文本以"图"开头的段落
+            # 规则2：图片段落之后2段内有 Normal / Caption1 / a图名 样式且文本以"图"开头的段落
             if not caption:
                 for fwd in range(1, 3):
                     if idx + fwd < para_count:
                         next_p = all_paras[idx + fwd]
-                        if next_p.style.name in ('Normal', 'Caption1') and next_p.text.strip().startswith('图'):
+                        if next_p.style.name in ('Normal', 'Caption1', 'a图名') and next_p.text.strip().startswith('图'):
                             caption = clean_text(next_p.text)
                             break
 
-            # 规则3：图片段落之前4段内有 Caption1 或 Normal 样式且文本以"图"开头的段落
+            # 规则3：图片段落之前4段内有 Caption1 / a图名 / Normal 样式且文本以"图"开头的段落
             if not caption:
                 for back_idx in range(max(0, idx - 4), idx):
                     prev_p = all_paras[back_idx]
-                    if prev_p.style.name == 'Caption1':
+                    if prev_p.style.name in ('Caption1', 'a图名'):
                         caption = clean_text(prev_p.text)
                         break
                     if prev_p.style.name == 'Normal' and prev_p.text.strip().startswith('图'):
