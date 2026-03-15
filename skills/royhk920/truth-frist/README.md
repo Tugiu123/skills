@@ -14,17 +14,14 @@ Evidence-first verification for status, config, file contents, actions, connecti
 
 ## Installation
 
-### Manual Installation (Recommended)
-
-This skill is designed to be installed via **standard OpenClaw mechanisms only**.
-No one-line shell installers or remote execution is used.
+### Option 1: Manual Install
 
 ```bash
 cd ~/.openclaw/skills
 git clone <repo-url> truth-first
 ```
 
-Alternatively, use the official OpenClaw CLI:
+### Option 2: Via OpenClaw CLI
 
 ```bash
 openclaw skill install <repo-url>
@@ -63,9 +60,8 @@ When Truth-First is active, responses follow this structure:
 ## Files
 
 - `SKILL.md` - Core skill definition
-- `SECURITY.md` - Security and transparency declaration
 - `agents/openai.yaml` - Agent profile for OpenAI-compatible models
-- `references/patterns.md` - Reusable templates and **non-executing** evidence command templates
+- `references/patterns.md` - Reusable templates and evidence commands
 
 ## Requirements
 
