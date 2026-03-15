@@ -3,11 +3,16 @@
   "slug": "clawbrain",
   "displayName": "Claw Brain",
   "latest": {
-    "version": "0.1.14",
-    "publishedAt": 1770777796063,
-    "commit": "https://github.com/openclaw/skills/commit/03567459eba2dfc8520b51212bbd37bd799a1f0c"
+    "version": "0.1.15",
+    "publishedAt": 1773469846194,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.14",
+      "publishedAt": 1770777796063,
+      "commit": "https://github.com/openclaw/skills/commit/03567459eba2dfc8520b51212bbd37bd799a1f0c"
+    },
     {
       "version": "0.1.10",
       "publishedAt": 1770604428901,
