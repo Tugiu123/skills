@@ -1,10 +1,10 @@
 # AI Service Category Reference
 
-## Available Categories
+## Available categories
 
-### Banana2 — Gemini Image Generation (Default Recommended)
+### Banana2 — Gemini Image Generation (Default)
 
-**Text-to-Image (text_to_image)**
+**Text-to-image (text_to_image)**
 ```json
 {
   "processing_mode": "text_to_image",
@@ -19,7 +19,7 @@
 }
 ```
 
-**Image-to-Image (image_to_image)**
+**Image-to-image (image_to_image)**
 ```json
 {
   "processing_mode": "image_to_image",
@@ -34,7 +34,7 @@
 }
 ```
 
-**Multi-Image Blend (multi_image_blend)**
+**Multi-image blend (multi_image_blend)**
 ```json
 {
   "processing_mode": "multi_image_blend",
@@ -51,15 +51,15 @@
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| processing_mode | string | Yes | `text_to_image` / `image_to_image` / `multi_image_blend` |
-| prompt | string | Yes | English description prompt |
-| imageUrls | string[] | Required for image-to-image/multi-image blend | Reference image URLs (must be R2 addresses) |
-| generationConfig.responseModalities | string[] | Yes | Fixed `["IMAGE"]` |
-| generationConfig.imageConfig.image_size | string | No | `1K`(default) / `2K` / `4K`, affects credit multiplier |
-| generationConfig.imageConfig.aspectRatio | string | No | Ratio such as `1:1` / `16:9` / `9:16` / `4:3` / `3:4` |
+| processing_mode | string | yes | `text_to_image` / `image_to_image` / `multi_image_blend` |
+| prompt | string | yes | English description prompt |
+| imageUrls | string[] | required for image-to-image/multi-blend | Reference image URLs (must be R2 URLs) |
+| generationConfig.responseModalities | string[] | yes | Fixed `["IMAGE"]` |
+| generationConfig.imageConfig.image_size | string | no | `1K` (default) / `2K` / `4K`, affects credits multiplier |
+| generationConfig.imageConfig.aspectRatio | string | no | e.g. `1:1` / `16:9` / `9:16` / `4:3` / `3:4` |
 
-Credits: text_to_image=10, image_to_image=15, multi_image_blend=20 (1K base)
-Estimated time: 10-30 seconds
+Credits: text_to_image=10, image_to_image=15, multi_image_blend=20 (1K baseline)
+Estimated time: 10–30 seconds
 
 ---
 
@@ -73,10 +73,10 @@ Estimated time: 10-30 seconds
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| imageUrls | string[] | Yes | Image URLs for background removal |
+| imageUrls | string[] | yes | Image URL to remove background from |
 
 No processing_mode or prompt needed. Credits: 5
-Estimated time: 5-10 seconds
+Estimated time: 5–10 seconds
 
 ---
 
@@ -90,20 +90,20 @@ Estimated time: 5-10 seconds
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| imageUrls | string[] | Yes | Image URLs for watermark removal |
+| imageUrls | string[] | yes | Image URL to remove watermark from |
 
 No processing_mode or prompt needed. Credits: 5
-Estimated time: 5-10 seconds
+Estimated time: 5–10 seconds
 
 ---
 
 ### seedream — Doubao Seedream Image Generation
 
-**Text-to-Image**
+**Text-to-image**
 ```json
 {
   "processing_mode": "text_to_image",
-  "prompt": "a cute orange cat sitting on a windowsill",
+  "prompt": "一只可爱的橘猫坐在窗台上",
   "generationConfig": {
     "imageConfig": {
       "image_size": "2K"
@@ -112,11 +112,11 @@ Estimated time: 5-10 seconds
 }
 ```
 
-**Image-to-Image**
+**Image-to-image**
 ```json
 {
   "processing_mode": "image_to_image",
-  "prompt": "convert to watercolor painting style",
+  "prompt": "改成水彩画风格",
   "imageUrls": ["https://r2.example.com/photo.jpg"],
   "generationConfig": {
     "imageConfig": {
@@ -128,19 +128,19 @@ Estimated time: 5-10 seconds
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| processing_mode | string | Yes | `text_to_image` / `image_to_image` |
-| prompt | string | Yes | Description prompt (**supports Chinese**) |
-| imageUrls | string[] | Required for image-to-image | Reference image URLs |
-| generationConfig.imageConfig.image_size | string | No | Default `2K` |
+| processing_mode | string | yes | `text_to_image` / `image_to_image` |
+| prompt | string | yes | Description prompt (**supports Chinese**) |
+| imageUrls | string[] | required for image-to-image | Reference image URL |
+| generationConfig.imageConfig.image_size | string | no | Default `2K` |
 
 Credits: text_to_image=15, image_to_image=20
-Estimated time: 10-30 seconds
+Estimated time: 10–30 seconds
 
 ---
 
 ### veo — Veo Video Generation
 
-**Text-to-Video (text_to_video)**
+**Text-to-video (text_to_video)**
 ```json
 {
   "processing_mode": "text_to_video",
@@ -152,7 +152,7 @@ Estimated time: 10-30 seconds
 }
 ```
 
-**Image-to-Video (image_to_video)**
+**Image-to-video (image_to_video)**
 ```json
 {
   "processing_mode": "image_to_video",
@@ -167,20 +167,20 @@ Estimated time: 10-30 seconds
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| processing_mode | string | Yes | `text_to_video` / `image_to_video` (note: not text_to_image) |
-| prompt | string | Yes | English description prompt |
-| imageUrls | string[] | Required for image-to-video | Reference image URLs (must be R2 addresses) |
-| videoConfig.aspectRatio | string | No | `16:9`(default) / `9:16` |
-| videoConfig.durationSeconds | int | No | Video duration, default 6 seconds |
+| processing_mode | string | yes | `text_to_video` / `image_to_video` (note: not text_to_image) |
+| prompt | string | yes | English description prompt |
+| imageUrls | string[] | required for image-to-video | Reference image URL (must be R2 URL) |
+| videoConfig.aspectRatio | string | no | `16:9` (default) / `9:16` |
+| videoConfig.durationSeconds | int | no | Video duration, default 6 seconds |
 
 **Note**: veo does not use `generationConfig`, uses `videoConfig` instead
-Estimated time: 1-10 minutes (long task, recommend using cron async polling)
+Estimated time: 1–10 minutes (long task, async cron polling recommended)
 
 ---
 
 ### seedance2 — Seedance2 Video Generation
 
-**Text-to-Video (text_to_video)**
+**Text-to-video (text_to_video)**
 ```json
 {
   "processing_mode": "text_to_video",
@@ -192,7 +192,7 @@ Estimated time: 1-10 minutes (long task, recommend using cron async polling)
 }
 ```
 
-**Image-to-Video - First Frame Control (first_frame)**
+**Image-to-video - first frame control (first_frame)**
 ```json
 {
   "processing_mode": "first_frame",
@@ -205,7 +205,7 @@ Estimated time: 1-10 minutes (long task, recommend using cron async polling)
 }
 ```
 
-**Image-to-Video - First & Last Frame Control (first_last_frame)**
+**Image-to-video - first and last frame control (first_last_frame)**
 ```json
 {
   "processing_mode": "first_last_frame",
@@ -217,7 +217,7 @@ Estimated time: 1-10 minutes (long task, recommend using cron async polling)
 }
 ```
 
-**Universal Reference (universal_reference)**
+**Universal reference (universal_reference)**
 ```json
 {
   "processing_mode": "universal_reference",
@@ -232,26 +232,26 @@ Estimated time: 1-10 minutes (long task, recommend using cron async polling)
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| processing_mode | string | Yes | `text_to_video` / `first_frame` / `first_last_frame` / `universal_reference` |
-| prompt | string | Yes | English description prompt |
-| imageUrls | string[] | Required for image-to-video | Image URLs (must be R2 addresses), first frame/first-last frame/reference image |
-| videoConfig.model | string | No | `seedance2-5s`(default) / `seedance2-10s` / `seedance2-15s`, determines video duration |
-| videoConfig.aspectRatio | string | No | `16:9`(default) / `9:16` / `1:1` etc. |
+| processing_mode | string | yes | `text_to_video` / `first_frame` / `first_last_frame` / `universal_reference` |
+| prompt | string | yes | English description prompt |
+| imageUrls | string[] | required for image-to-video | Image URLs (must be R2 URLs), first frame/last frame/reference |
+| videoConfig.model | string | no | `seedance2-5s` (default) / `seedance2-10s` / `seedance2-15s`, determines video duration |
+| videoConfig.aspectRatio | string | no | `16:9` (default) / `9:16` / `1:1` etc. |
 
 **Notes**:
 - seedance2 does not use `generationConfig`, uses `videoConfig` instead
-- Images are passed via URL (not Base64), imageUrls only contains URLs with values (not fixed 3 slots)
-- Do not pass aspectRatio in first frame/first-last frame mode (API infers from image dimensions)
+- Images are passed via URL (not Base64), imageUrls contains only non-empty URLs (not fixed 3 slots)
+- Do not pass aspectRatio for first_frame/first_last_frame modes (API infers from image dimensions)
 - Model name determines video duration: seedance2-5s=5s, seedance2-10s=10s, seedance2-15s=15s
-- Due to Seedance2's high demand, generation may take minutes to hours
+- Due to high demand for Seedance2, generation may take minutes to hours
 - Credits: 5s=40, 10s=72(40×1.8), 15s=100(40×2.5)
-Estimated time: minutes to hours (very long task, cron interval recommended 30s, max-duration recommended 86400s)
+Estimated time: minutes to hours (very long task, cron interval 30s, max-duration 86400s recommended)
 
 ---
 
 ## Image Size Reference
 
-| image_size | Credit Multiplier | Description |
+| image_size | Credits multiplier | Description |
 |-----------|-------------------|-------------|
 | `1K` | x1.0 | Standard resolution (default) |
 | `2K` | x1.5 | High definition |
@@ -259,13 +259,13 @@ Estimated time: minutes to hours (very long task, cron interval recommended 30s,
 
 ## Category Selection Guide
 
-| User Need | Recommended Category | Reason |
-|-----------|---------------------|--------|
-| High-quality realistic photos | `Banana2` | Gemini excels at realistic style |
-| Chinese description direct output | `seedream` | Doubao natively supports Chinese |
-| Background removal / cutout | `remove-bg` | Dedicated model works best |
-| Watermark removal | `remove-watermark` | Dedicated watermark removal model |
-| Modify based on existing image | `Banana2` (image_to_image) | Stable image-to-image results |
-| Multi-image blend | `Banana2` (multi_image_blend) | Supports multi-image input |
-| Video generation | `veo` | Supports text-to-video and image-to-video |
-| Video generation (Seedance2) | `seedance2` | Supports first frame/first-last frame control, use when user explicitly requests |
+| User request | Recommended category | Reason |
+|-------------|---------------------|--------|
+| High-quality realistic photo | `Banana2` | Gemini excels at realism |
+| Chinese text prompt | `seedream` | Doubao natively supports Chinese |
+| Remove background / cutout | `remove-bg` | Dedicated model, best results |
+| Remove watermark | `remove-watermark` | Dedicated watermark removal model |
+| Modify an existing image | `Banana2` (image_to_image) | Stable image-to-image results |
+| Blend multiple images | `Banana2` (multi_image_blend) | Supports multiple image inputs |
+| Generate video | `veo` | Supports text-to-video and image-to-video |
+| Generate video (Seedance2) | `seedance2` | First/last frame control, use when user explicitly requests |

@@ -2,61 +2,61 @@
 
 ## API Response Codes
 
-| code | Type | Description | Suggested Action |
+| code | Type | Description | Suggested action |
 |------|------|-------------|-----------------|
-| `SUCCESS` | Success | Operation successful | - |
-| `CREATED` | Success | Resource created successfully | - |
-| `VALIDATION_ERROR` | Client Error | Parameter validation failed | Check required parameters |
-| `UNAUTHORIZED` | Auth Error | API Key invalid or missing | Check PLUME_API_KEY |
-| `FORBIDDEN` | Permission Error | API Key disabled | Contact admin to enable Key |
-| `NOT_FOUND` | Client Error | Resource not found | Check if task_id is correct |
-| `INSUFFICIENT_CREDITS` | Business Error | Insufficient credits | Prompt user to top up |
-| `CREDITS_ACCOUNT_NOT_FOUND` | Business Error | Credits account not found | Contact admin to create credits account |
-| `CONCURRENT_MODIFICATION` | Concurrency Conflict | Optimistic lock conflict | Auto retry |
-| `UPLOAD_FAILED` | Server Error | R2 upload failed | Retry |
-| `INTERNAL_ERROR` | Server Error | Internal error | Retry or contact admin |
+| `SUCCESS` | success | Operation succeeded | — |
+| `CREATED` | success | Resource created | — |
+| `VALIDATION_ERROR` | client error | Parameter validation failed | Check required parameters |
+| `UNAUTHORIZED` | auth error | API Key invalid or missing | Check PLUME_API_KEY |
+| `FORBIDDEN` | permission error | API Key disabled | Contact admin to enable Key |
+| `NOT_FOUND` | client error | Resource not found | Verify task_id is correct |
+| `INSUFFICIENT_CREDITS` | business error | Insufficient credits | Prompt user to top up |
+| `CREDITS_ACCOUNT_NOT_FOUND` | business error | Credits account does not exist | Contact admin to create account |
+| `CONCURRENT_MODIFICATION` | concurrency conflict | Optimistic lock conflict | Auto-retry |
+| `UPLOAD_FAILED` | server error | R2 upload failed | Retry |
+| `INTERNAL_ERROR` | server error | Internal error | Retry or contact admin |
 
 ## Task Status Codes
 
-| status | Name | Description | Is Final |
-|--------|------|-------------|----------|
-| 1 | Initialized | Task created, waiting to be processed | No |
-| 2 | Processing | Executor has picked up, processing | No |
-| 3 | Success | Task completed, result field contains the result | Yes |
-| 4 | Failed | Task execution failed | Yes |
-| 5 | Timeout | Task processing timed out (default 1 hour) | Yes |
-| 6 | Cancelled | Task was cancelled | Yes |
+| status | Name | Description | Terminal |
+|--------|------|-------------|---------|
+| 1 | initialized | Task created, waiting to be processed | no |
+| 2 | processing | Executor picked up, in progress | no |
+| 3 | success | Task completed, result in `result` field | yes |
+| 4 | failed | Task execution failed | yes |
+| 5 | timeout | Task processing timed out (default 1 hour) | yes |
+| 6 | cancelled | Task was cancelled | yes |
 
 ## Polling Recommendations
 
-- Polling interval: 3 seconds
-- Maximum poll attempts: 60 (total 3 minutes)
-- Final state check: `status >= 3` means task has ended
+- Poll interval: 3 seconds
+- Max poll attempts: 60 (3 minutes total)
+- Terminal check: `status >= 3` means task has ended
 - Success check: `status == 3`, result is in `data.result`
-- Failure check: `status >= 4`, inform user of the reason
+- Failure check: `status >= 4`, explain reason to user
 
 ## Common Error Scenarios
 
-### 1. API Key Not Configured
+### 1. API Key not configured
 ```
 Error: PLUME_API_KEY environment variable not set
 Action: Remind user to set PLUME_API_KEY in OpenClaw configuration
 ```
 
-### 2. Insufficient Credits
+### 2. Insufficient credits
 ```json
 { "success": false, "code": "INSUFFICIENT_CREDITS" }
-Action: Inform user of insufficient credits, suggest topping up in Portal
+Action: Inform user of insufficient credits, suggest topping up on the Portal
 ```
 
-### 3. Image Upload Failed
+### 3. Image upload failed
 ```json
 { "success": false, "code": "VALIDATION_ERROR", "error": { "details": { "file": "..." } } }
-Possible causes: File too large (>20MB), unsupported format, corrupted file
+Possible causes: file too large (>20MB), unsupported format, corrupted file
 ```
 
-### 4. Task Timeout
+### 4. Task timeout
 ```
-Polling for 3 minutes without completion
-Action: Inform user that task processing is taking longer, suggest checking again later
+Still not complete after polling for 3 minutes
+Action: Inform user that the task is taking longer than expected, suggest querying again later
 ```

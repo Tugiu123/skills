@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Video utility functions - pure Python implementation, no external dependencies
+Video utility functions - pure Python, no external dependencies
 Supports extracting video duration (milliseconds) from MP4 files
 """
 
@@ -11,10 +11,10 @@ from pathlib import Path
 
 def get_mp4_duration_ms(file_path: str) -> int | None:
     """
-    Extract video duration (milliseconds) from an MP4 file
-    Parses the moov/mvhd atom of the MP4 container to get duration and timescale
+    Extract video duration from MP4 file (milliseconds).
+    Parses duration and timescale from the MP4 container's moov/mvhd atom.
 
-    Returns: duration in milliseconds, None if parsing fails
+    Returns: duration in milliseconds, None on parse failure
     """
     try:
         with open(file_path, "rb") as f:
@@ -25,7 +25,7 @@ def get_mp4_duration_ms(file_path: str) -> int | None:
 
 
 def _find_mvhd_duration(f, start: int, end: int) -> int | None:
-    """Search for mvhd atom in [start, end) range"""
+    """Search for mvhd atom in range [start, end)"""
     pos = start
     while pos < end:
         f.seek(pos)
@@ -36,7 +36,7 @@ def _find_mvhd_duration(f, start: int, end: int) -> int | None:
         size, atom_type = struct.unpack(">I4s", header)
         atom_type = atom_type.decode("ascii", errors="ignore")
 
-        # Handle extended size
+        # handle extended size
         if size == 1:
             ext = f.read(8)
             if len(ext) < 8:
@@ -53,11 +53,11 @@ def _find_mvhd_duration(f, start: int, end: int) -> int | None:
         header_size = 8 if size != 1 else 16
 
         if atom_type == "moov":
-            # Enter moov container, search child atoms
+            # enter moov container, search child atoms
             return _find_mvhd_duration(f, pos + header_size, atom_end)
 
         if atom_type == "mvhd":
-            # Found mvhd, parse duration and timescale
+            # found mvhd, parse duration and timescale
             f.seek(pos + header_size)
             data = f.read(min(size - header_size, 120))
             if len(data) < 4:
@@ -90,13 +90,13 @@ def _find_mvhd_duration(f, start: int, end: int) -> int | None:
 
 
 def is_video_file(file_path: str) -> bool:
-    """Check if file is a video file (based on extension)"""
+    """Check if file is a video (by extension)"""
     ext = Path(file_path).suffix.lower()
     return ext in (".mp4", ".mov", ".avi", ".webm", ".mkv")
 
 
 def get_video_suffix(url: str) -> str | None:
-    """Extract video suffix from URL"""
+    """Extract video extension from URL"""
     url_lower = url.lower()
     for ext in (".mp4", ".mov", ".webm", ".avi"):
         if ext in url_lower:

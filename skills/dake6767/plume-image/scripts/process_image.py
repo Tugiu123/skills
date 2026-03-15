@@ -2,11 +2,11 @@
 """
 Image processing orchestration script
 Subcommands:
-  transfer  -- Transfer Feishu image to R2
-  create    -- Create AI task
-  poll      -- Poll task status, download result image on success
+  transfer  -- relay image to R2
+  create    -- create AI task
+  poll      -- poll task status, download result on success
 
-All commands output JSON format for Agent parsing.
+All commands output JSON for Agent parsing.
 """
 
 import argparse
@@ -19,28 +19,25 @@ import urllib.error
 import ssl
 from pathlib import Path
 
-# Import plume_api module (same directory)
+# import plume_api module (same directory)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import plume_api
 import video_utils
-import feishu_auth
 
-# Result image download directory (under OpenClaw allowed media directory)
+# result file download directory (under OpenClaw allowed media dir)
 MEDIA_DIR = Path.home() / ".openclaw" / "media" / "plume"
 
 # SSL context for downloading
 SSL_CONTEXT = ssl.create_default_context()
-SSL_CONTEXT.check_hostname = False
-SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 
 def log(msg: str):
-    """Output debug log to stderr (does not affect stdout JSON output)"""
+    """Write debug log to stderr (does not affect stdout JSON output)"""
     print(f"[plume-image] {msg}", file=sys.stderr, flush=True)
 
 
 def output(data: dict):
-    """Output JSON result to stdout"""
+    """Write JSON result to stdout"""
     print(json.dumps(data, ensure_ascii=False))
 
 
@@ -51,8 +48,8 @@ def ensure_media_dir() -> Path:
 
 
 def _download_feishu_image(image_key: str, token: str, output_path: str) -> bool:
-    """Download image from Feishu API to local"""
-    url = f"{feishu_auth.FEISHU_API_BASE}/im/v1/images/{image_key}"
+    """Download Feishu image to local via Feishu API (requires externally-provided token)"""
+    url = f"https://open.feishu.cn/open-apis/im/v1/images/{image_key}"
     req = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {token}",
     })
@@ -78,15 +75,15 @@ def download_file(url: str, output_path: str, timeout: int = 120) -> bool:
                     if not chunk:
                         break
                     f.write(chunk)
-        # Verify file is not empty
+        # verify file is non-empty
         if os.path.getsize(output_path) == 0:
-            log(f"Download error: file is empty {output_path}")
+            log(f"Download anomaly: empty file {output_path}")
             os.remove(output_path)
             return False
         return True
     except (urllib.error.URLError, IOError, TimeoutError) as e:
         log(f"Download failed: {e}")
-        # Clean up possible empty file
+        # clean up possible empty file
         try:
             if os.path.exists(output_path):
                 os.remove(output_path)
@@ -95,7 +92,7 @@ def download_file(url: str, output_path: str, timeout: int = 120) -> bool:
         return False
 
 
-# --- transfer subcommand ---
+# ─── transfer subcommand ───────────────────────────────────────
 
 def _upload_to_r2(file_path: str) -> dict:
     """Upload local file to R2, return unified output dict"""
@@ -118,9 +115,9 @@ def _upload_to_r2(file_path: str) -> dict:
 
 def cmd_transfer(args):
     """
-    Transfer image to R2, supports two sources:
+    Relay image to R2, supports two sources:
     1. --image-key: Feishu image_key, download via Feishu API then upload to R2
-    2. --file: Local file path (e.g. OpenClaw inbound image), upload directly to R2
+    2. --file: local file path (e.g. OpenClaw inbound image), upload directly to R2
     """
     local_file = args.file
     image_key = args.image_key
@@ -129,9 +126,9 @@ def cmd_transfer(args):
         output({"success": False, "error": "Must specify either --image-key or --file"})
         return
 
-    # Mode A: Upload local file directly
+    # mode A: upload local file directly
     if local_file:
-        # Strip possible file:// prefix
+        # strip file:// prefix if present
         if local_file.startswith("file://"):
             local_file = local_file[7:]
 
@@ -143,12 +140,10 @@ def cmd_transfer(args):
         output(_upload_to_r2(local_file))
         return
 
-    # Mode B: Download from Feishu image_key then upload
-    account = args.feishu_account or "main"
-
-    token = feishu_auth.get_token(account)
+    # mode B: download Feishu image_key then upload
+    token = os.environ.get("FEISHU_TENANT_TOKEN")
     if not token:
-        output({"success": False, "error": "Failed to get Feishu tenant_access_token"})
+        output({"success": False, "error": "FEISHU_TENANT_TOKEN env var not set, cannot download Feishu image. Use --file instead."})
         return
 
     media_dir = ensure_media_dir()
@@ -170,10 +165,10 @@ def cmd_transfer(args):
             pass
 
 
-# --- create subcommand ---
+# ─── create subcommand ──────────────────────────────────────────
 
 def _is_local_path(url: str) -> bool:
-    """Check if path is a local file path (not a remote URL)"""
+    """Check if this is a local file path (not a remote URL)"""
     if not url:
         return False
     return url.startswith("file://") or url.startswith("/")
@@ -181,14 +176,14 @@ def _is_local_path(url: str) -> bool:
 
 def _auto_transfer_local_file(file_path: str) -> str | None:
     """Auto-upload local file to R2, return remote URL. Returns None on failure."""
-    # Strip file:// prefix
+    # strip file:// prefix
     if file_path.startswith("file://"):
         file_path = file_path[7:]
 
     if not os.path.exists(file_path):
         return None
 
-    log(f"auto-transfer: detected local file, auto-uploading to R2: {file_path}")
+    log(f"auto-transfer: detected local file, uploading to R2: {file_path}")
     upload_result = plume_api.upload_image(file_path)
 
     if not upload_result.get("success"):
@@ -196,7 +191,7 @@ def _auto_transfer_local_file(file_path: str) -> str | None:
         return None
 
     r2_url = upload_result.get("data", {}).get("file_url")
-    log(f"auto-transfer: upload successful -> {r2_url}")
+    log(f"auto-transfer: upload success → {r2_url}")
     return r2_url
 
 
@@ -215,41 +210,41 @@ def cmd_create(args):
     """
     category = args.category
 
-    # Category whitelist validation
+    # category whitelist validation
     if category not in VALID_CATEGORIES:
         output({
             "success": False,
-            "error": f"Invalid category: '{category}'. "
-                     f"Only allowed: {', '.join(sorted(VALID_CATEGORIES))}. "
-                     f"For style transfer, use category='Banana2' and describe the target style in --prompt.",
+            "error": f"Invalid category: '{category}'."
+                     f" Allowed values: {', '.join(sorted(VALID_CATEGORIES))}."
+                     f" For style transfer use category='Banana2' with --prompt describing the target style.",
         })
         return
 
     content = {}
 
-    # Handle --image-urls (multi-image blend): comma-separated multiple URLs
+    # handle --image-urls (multi-image blend): comma-separated URLs
     multi_image_urls = None
     if args.image_urls:
         multi_image_urls = [u.strip() for u in args.image_urls.split(",") if u.strip()]
-        # Auto-upload local files to R2
+        # auto-upload local files to R2
         for i, url in enumerate(multi_image_urls):
             if _is_local_path(url):
                 r2_url = _auto_transfer_local_file(url)
                 if not r2_url:
                     output({
                         "success": False,
-                        "error": f"Failed to upload local file to R2: {url}. Please use transfer --file first.",
+                        "error": f"Local file upload to R2 failed: {url}. Use transfer --file first.",
                     })
                     return
                 multi_image_urls[i] = r2_url
 
-    # Intercept local file paths: auto-upload to R2
+    # intercept local file paths: auto-upload to R2
     if args.image_url and _is_local_path(args.image_url):
         r2_url = _auto_transfer_local_file(args.image_url)
         if not r2_url:
             output({
                 "success": False,
-                "error": f"Failed to upload local file to R2: {args.image_url}. Please use transfer --file first.",
+                "error": f"Local file upload to R2 failed: {args.image_url}. Use transfer --file first.",
             })
             return
         args.image_url = r2_url
@@ -258,7 +253,7 @@ def cmd_create(args):
 
     # processing_mode (required for non remove-bg/remove-watermark)
     if category in ("remove-bg", "remove-watermark"):
-        # Background/watermark removal doesn't need processing_mode and prompt
+        # background removal / watermark removal: no processing_mode or prompt needed
         if args.image_url:
             content["imageUrls"] = [args.image_url]
     elif category == "veo":
@@ -275,8 +270,8 @@ def cmd_create(args):
         if args.prompt:
             content["prompt"] = args.prompt
 
-        # Build imageUrls with fixed 3 slots: [0]=first frame, [1]=last frame, [2]=reference
-        # --image-url is equivalent to --first-frame-url (most common image-to-video scenario)
+        # imageUrls fixed 3 slots: [0]=first frame, [1]=last frame, [2]=reference
+        # --image-url is equivalent to --first-frame-url (most common image-to-video case)
         first_frame = args.first_frame_url or args.image_url or ""
         last_frame = args.last_frame_url or ""
         reference = args.reference_url or ""
@@ -327,8 +322,8 @@ def cmd_create(args):
             video_config["aspectRatio"] = "9:16"
         content["videoConfig"] = video_config
     else:
-        # Image categories (BananaPro/Banana2/seedream etc.)
-        # Determine processing_mode
+        # image categories (BananaPro/Banana2/seedream etc.)
+        # determine processing_mode
         if args.processing_mode:
             content["processing_mode"] = args.processing_mode
         elif multi_image_urls and len(multi_image_urls) > 1:
@@ -353,7 +348,7 @@ def cmd_create(args):
             image_config["aspectRatio"] = args.aspect_ratio
 
         if image_config or category in ("BananaPro", "Banana2"):
-            # Has specified params or BananaPro/Banana2 series default with generationConfig
+            # explicit params or BananaPro/Banana2 series always include generationConfig
             if not image_config.get("image_size"):
                 image_config["image_size"] = "2K"
             if not image_config.get("aspectRatio"):
@@ -362,7 +357,7 @@ def cmd_create(args):
                 "responseModalities": ["IMAGE"],
                 "imageConfig": image_config,
             }
-            # seedream doesn't need responseModalities
+            # seedream does not use responseModalities
             if category == "seedream":
                 del gen_config["responseModalities"]
                 if not image_config.get("image_size"):
@@ -395,22 +390,22 @@ def cmd_create(args):
         })
 
 
-# --- poll subcommand ---
+# ─── poll subcommand ─────────────────────────────────────────────
 
 def _extract_result_url(task_result: dict) -> tuple[str | None, str]:
-    """Extract result URL and media type from task result
+    """Extract result URL and media type from task result.
     Returns (url, media_type), media_type is 'image' or 'video'
     """
     if not isinstance(task_result, dict):
         return None, "image"
-    # Check video fields first (veo returns: {"parts": [{"videoUrl": "https://...", "duration": 6}]})
+    # check video field first (veo returns: {"parts": [{"videoUrl": "https://...", "duration": 6}]})
     if task_result.get("parts"):
         parts = task_result["parts"]
         if isinstance(parts, list) and len(parts) > 0:
             first_part = parts[0]
             if isinstance(first_part, dict) and first_part.get("videoUrl"):
                 return first_part["videoUrl"], "video"
-    # Then check image fields
+    # then check image field
     url = task_result.get("imageUrl") or task_result.get("url")
     if not url and task_result.get("imageUrls"):
         url = task_result["imageUrls"][0]
@@ -420,7 +415,7 @@ def _extract_result_url(task_result: dict) -> tuple[str | None, str]:
             first_part = parts[0]
             if isinstance(first_part, dict):
                 url = first_part.get("imageUrl") or first_part.get("url")
-    # Check nested data.file structure (e.g. remove-watermark returns: {"status": 200, "data": {"file": "https://..."}})
+    # check nested data.file structure (e.g. remove-watermark returns: {"status": 200, "data": {"file": "https://..."}})
     if not url:
         data = task_result.get("data")
         if isinstance(data, dict):
@@ -430,8 +425,8 @@ def _extract_result_url(task_result: dict) -> tuple[str | None, str]:
 
 def cmd_poll(args):
     """
-    Poll task status until completion, auto-download result image to ~/.openclaw/media/plume/ on success
-    Returns local file path for Agent to send directly to user.
+    Poll task status until completion, auto-download result to ~/.openclaw/media/plume/ on success.
+    Returns local file path for Agent to send to user.
     """
     task_id = args.task_id
     max_attempts = args.max_attempts or 60
@@ -452,10 +447,10 @@ def cmd_poll(args):
         task = result.get("data", {})
         status = task.get("status", 0)
 
-        # Final state check
+        # terminal state check
         if status >= 3:
             if status == 3:
-                # Parse result
+                # parse result
                 task_result = task.get("result")
                 if isinstance(task_result, str):
                     try:
@@ -466,7 +461,7 @@ def cmd_poll(args):
                 result_url, media_type = _extract_result_url(task_result)
 
                 if result_url:
-                    # Detect file suffix (check video suffix first, then image suffix)
+                    # detect file extension (check video first, then image)
                     video_suffix = video_utils.get_video_suffix(result_url)
                     if video_suffix:
                         suffix = video_suffix
@@ -481,12 +476,28 @@ def cmd_poll(args):
                     media_dir = ensure_media_dir()
                     local_file = str(media_dir / f"result_{task_id}{suffix}")
 
-                    # Use larger timeout for video files
+                    # use larger timeout for video files
                     dl_timeout = 300 if media_type == "video" else 120
                     if download_file(result_url, local_file, timeout=dl_timeout):
                         file_size = os.path.getsize(local_file)
                         label = "video" if media_type == "video" else "image"
                         log(f"OK: {label} downloaded to {local_file} ({file_size} bytes)")
+
+                        # save last_result for subsequent image-to-image use
+                        try:
+                            last_result = {
+                                "task_id": task_id,
+                                "result_url": result_url,
+                                "local_file": local_file,
+                                "media_type": media_type,
+                                "created_at": time.time(),
+                            }
+                            (MEDIA_DIR / "last_result.json").write_text(
+                                json.dumps(last_result, ensure_ascii=False), encoding="utf-8"
+                            )
+                        except Exception as e:
+                            log(f"Failed to write last_result: {e}")
+
                         output({
                             "success": True,
                             "status": status,
@@ -495,7 +506,7 @@ def cmd_poll(args):
                             "local_file": local_file,
                             "result_url": result_url,
                             "attempts": attempt,
-                            "IMPORTANT": f"When sending {label}, filePath must use this full absolute path: {local_file}",
+                            "IMPORTANT": f"Use this full absolute path as filePath when sending the {label}: {local_file}",
                         })
                     else:
                         log(f"WARN: download failed, returning URL")
@@ -528,44 +539,43 @@ def cmd_poll(args):
                 })
             return
 
-        # Not in final state, wait then continue polling
+        # not terminal, wait and continue polling
         if attempt < max_attempts:
             time.sleep(interval)
 
-    # Exceeded max poll attempts
+    # exceeded max poll attempts
     output({
         "success": False,
-        "error": f"Poll timeout: task not completed within {max_attempts * interval} seconds",
+        "error": f"Poll timeout: task not completed within {max_attempts * interval}s",
         "task_id": task_id,
         "attempts": max_attempts,
     })
 
 
-# --- CLI entry ---
+# ─── CLI entry point ────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(description="Plume image processing orchestration script")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # transfer
-    p_transfer = subparsers.add_parser("transfer", help="Transfer image to R2 (Feishu image_key or local file)")
-    p_transfer.add_argument("--image-key", help="Feishu image_key")
+    p_transfer = subparsers.add_parser("transfer", help="Relay image to R2 (Feishu image_key or local file)")
+    p_transfer.add_argument("--image-key", help="Feishu image_key (requires FEISHU_TENANT_TOKEN env var)")
     p_transfer.add_argument("--file", help="Local file path (e.g. OpenClaw inbound image)")
-    p_transfer.add_argument("--feishu-account", default="main", help="Feishu account name")
 
     # create
     p_create = subparsers.add_parser("create", help="Create AI task")
-    p_create.add_argument("--category", required=True, help="Task type (BananaPro/Banana2/remove-bg/remove-watermark/seedream/...)")
+    p_create.add_argument("--category", required=True, help="Task category (BananaPro/Banana2/remove-bg/remove-watermark/seedream/...)")
     p_create.add_argument("--prompt", help="Text description prompt")
     p_create.add_argument("--image-url", help="Reference image URL (image-to-image; equivalent to --first-frame-url for veo)")
-    p_create.add_argument("--image-urls", help="Multiple reference image URLs, comma-separated (for multi-image blend), overrides --image-url")
+    p_create.add_argument("--image-urls", help="Multiple reference image URLs, comma-separated (multi-image blend), overrides --image-url")
     p_create.add_argument("--first-frame-url", help="veo first frame URL (imageUrls[0])")
     p_create.add_argument("--last-frame-url", help="veo last frame URL (imageUrls[1])")
     p_create.add_argument("--reference-url", help="veo reference image URL (imageUrls[2], components mode)")
     p_create.add_argument("--processing-mode", help="text_to_image / image_to_image / multi_image_blend / text_to_video / image_to_video")
     p_create.add_argument("--image-size", default=None, help="Image resolution: 1K / 2K / 4K")
-    p_create.add_argument("--aspect-ratio", default=None, help="Image aspect ratio: 1:1 / 16:9 / 9:16 / 4:3 / 3:4")
-    p_create.add_argument("--duration", type=int, default=None, help="Video duration (seconds), only for veo/seedance2 category")
+    p_create.add_argument("--aspect-ratio", default=None, help="Aspect ratio: 1:1 / 16:9 / 9:16 / 4:3 / 3:4")
+    p_create.add_argument("--duration", type=int, default=None, help="Video duration in seconds, only for veo/seedance2 categories")
     p_create.add_argument("--model", default=None, help="Model name, e.g. seedance2-5s/seedance2-10s/seedance2-15s")
     p_create.add_argument("--title", help="Task title")
     p_create.add_argument("--project-id", help="Associated project ID")
@@ -574,8 +584,8 @@ def main():
     # poll
     p_poll = subparsers.add_parser("poll", help="Poll task status and download result")
     p_poll.add_argument("--task-id", required=True, help="Task ID")
-    p_poll.add_argument("--max-attempts", type=int, default=60, help="Maximum poll attempts")
-    p_poll.add_argument("--interval", type=int, default=3, help="Poll interval (seconds)")
+    p_poll.add_argument("--max-attempts", type=int, default=60, help="Max poll attempts")
+    p_poll.add_argument("--interval", type=int, default=3, help="Poll interval in seconds")
 
     args = parser.parse_args()
 

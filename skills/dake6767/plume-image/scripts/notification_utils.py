@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Site notification deduplication utility
-Uses local file notified.json to record notified notification id + timestamp,
-combined with notification.mute_duration for silent period deduplication.
+Notification deduplication utility
+Tracks notified notification IDs + timestamps in a local notified.json file,
+along with notification.mute_duration for silence-period deduplication.
 
-Shared by all three cron scripts.
+Shared by all cron scripts.
 """
 
 import json
@@ -31,7 +31,7 @@ def _save_notified(data: dict):
 
 
 def should_notify(notification: dict) -> bool:
-    """Determine if user should be notified (dedup based on id + mute_duration)"""
+    """Check if user should be notified (dedup by id + mute_duration)"""
     nid = notification.get("id")
     if not nid:
         return True
@@ -52,7 +52,7 @@ def mark_notified(notification: dict):
         return
     notified = _load_notified()
     notified[nid] = time.time()
-    # Clean up records older than 30 days
+    # purge records older than 30 days
     cutoff = time.time() - 30 * 86400
     notified = {k: v for k, v in notified.items() if v > cutoff}
     _save_notified(notified)

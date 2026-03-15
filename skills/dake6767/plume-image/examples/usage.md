@@ -1,9 +1,9 @@
 # Plume Image Skill Usage Examples
 
-## Text-to-Image (Most Common Scenario)
+## Text-to-image (most common)
 
 ```bash
-# 1. Create a text-to-image task
+# 1. Create text-to-image task
 python3 scripts/process_image.py create \
   --category "banana" \
   --prompt "a cute orange cat sitting on a windowsill, afternoon sunlight, photorealistic" \
@@ -13,22 +13,22 @@ python3 scripts/process_image.py create \
 
 # Output: {"success": true, "task_id": 123, "status": 1, "credits_cost": 10}
 
-# 2. Poll and wait for result
+# 2. Poll for result
 python3 scripts/process_image.py poll --task-id 123
 
 # Output: {"success": true, "status": 3, "result_url": "https://r2.../result.jpg", ...}
 
-# 3. Deliver to Feishu
+# 3. Deliver via Feishu
 python3 scripts/process_image.py deliver \
   --result-url "https://r2.../result.jpg" \
   --chat-id "oc_xxxxx" \
   --chat-type "group"
 ```
 
-## Image-to-Image (User Sent a Reference Image)
+## Image-to-image (user sent a reference image)
 
 ```bash
-# 1. Transfer Feishu image to R2
+# 1. Relay Feishu image to R2
 python3 scripts/process_image.py transfer \
   --image-key "img_v3_xxx"
 
@@ -44,10 +44,10 @@ python3 scripts/process_image.py create \
 # 3. Poll + deliver (same as text-to-image)
 ```
 
-## Background Removal
+## Background removal
 
 ```bash
-# 1. Transfer image (if from Feishu)
+# 1. Relay image (if from Feishu)
 python3 scripts/process_image.py transfer --image-key "img_v3_xxx"
 
 # 2. Create background removal task (no processing-mode or prompt needed)
@@ -58,17 +58,17 @@ python3 scripts/process_image.py create \
 # 3. Poll + deliver
 ```
 
-## Using Doubao Seedream (Supports Chinese Prompts)
+## Using Doubao Seedream (supports Chinese prompt)
 
 ```bash
 python3 scripts/process_image.py create \
   --category "seedream" \
-  --prompt "a cute Shiba Inu wearing a spacesuit walking on the moon" \
+  --prompt "一只可爱的柴犬穿着宇航服在月球上散步" \
   --processing-mode "text_to_image" \
   --image-size "2K"
 ```
 
-## HD 4K Image
+## High-definition 4K image
 
 ```bash
 python3 scripts/process_image.py create \
@@ -79,7 +79,7 @@ python3 scripts/process_image.py create \
   --aspect-ratio "16:9"
 ```
 
-## Associate with Project
+## Associate with project
 
 ```bash
 python3 scripts/manage_project.py create-with-project \
@@ -89,24 +89,24 @@ python3 scripts/manage_project.py create-with-project \
   --project-id "auto"
 ```
 
-## Agent Complete Workflow Example
+## Agent complete workflow examples
 
-Typical processing flow when the Agent receives a user message:
+Typical processing flow after agent receives a user message:
 
-### User says: "Generate a cat image for me"
+### User says: "Generate an image of a cat"
 ```
-1. Agent analyzes: text-to-image request, choose category=banana
+1. Agent analyzes: text-to-image request, select category=banana
 2. Translate prompt: "a cute cat, detailed fur, soft lighting"
 3. Execute create(processing-mode=text_to_image) → poll → deliver
 ```
 
-### User sent an image, then says: "Remove the background"
+### User sends an image, then says: "Remove the background"
 ```
 1. Agent finds image_key from context
 2. Execute transfer → create(category=remove-bg) → poll → deliver
 ```
 
-### User sent an image, then says: "Convert this to oil painting style"
+### User sends an image, then says: "Convert this to oil painting style"
 ```
 1. Agent finds image_key from context
 2. Execute transfer → create(category=banana, processing-mode=image_to_image) → poll → deliver

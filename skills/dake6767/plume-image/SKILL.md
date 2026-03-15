@@ -1,111 +1,145 @@
 ---
 name: plume-image
 description: |
-  Plume AI Image Generation & Editing Service. Automatically triggered when users send images or describe image needs.
+  Plume AI image generation and editing service. Auto-triggers when users send images or describe image needs.
   Supports: text-to-image, image-to-image, background removal, watermark removal, style transfer, text-to-video, image-to-video.
   Activate when user mentions: generate image, edit image, remove background, change background, remove watermark,
-  text-to-image, image-to-image, AI image, style transfer, generate poster, photo edit, generate video, AI video,
-  animate this image, make it move, image-to-video, turn image into video, seedance2, seedance.
-allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)
+  text-to-image, image-to-image, AI art, style transfer, generate poster, photo editing, generate video, AI video,
+  animate this image, make it move, image-to-video, make image into video, seedance2, seedance.
+allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*), Bash(cat ~/.openclaw/media/plume/*)
 ---
 
 # Plume AI Image Service
 
 Help users complete AI image generation and editing through natural language.
 
-## Critical Workflow Rules (Must Follow)
+## 🚨 Critical Workflow Rules (Must Follow)
 
-**All tasks must use: `create` → `cron register` → immediately reply to user → end**
+**All tasks must use: `create` → `poll_cron.py register` → reply to user immediately → end**
 
-**Absolutely prohibited:**
-- Do NOT use `process_image.py poll` command
-- Do NOT execute check after register
-- Do NOT use sleep to wait then poll
+**Strictly prohibited:**
+- ❌ Do NOT use `process_image.py poll` command
+- ❌ Do NOT run check after register
+- ❌ Do NOT use sleep to wait before polling
+- ❌ Do NOT ask users to paste API Key in chat
+- ❌ **Do NOT auto-create tasks when user sends only an image without text instructions** — the user may just be preparing a reference image; wait for explicit text instructions before acting
 
 **Correct approach:**
-- After creating a task, immediately call the corresponding `poll_cron_*.py register`
-- After register succeeds, immediately reply to user that processing is underway
-- End the current session, let cron poll in the background
+- ✅ Call `poll_cron.py register` immediately after creating a task
+- ✅ Reply to user right after register succeeds, informing them that processing has started
+- ✅ End the current session; background process polls automatically and delivers result
+- ✅ **When receiving a pure image (no text), just reply "Got your image. What would you like to do with it?" and wait for the user's next message**
 
-## Mandatory Pre-check (Must Execute Before Every Use)
-
-**Before performing any operation (including initialization, image generation, image processing, etc.), the first step must be:**
+## ⚠️ Mandatory Pre-check (Run Before Every Use)
 
 ```bash
-python3 ~/.openclaw/skills/plume-image/scripts/check_config.py
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_config.py
 ```
 
 - Output `CONFIGURED`: proceed with subsequent operations
-- Output `NOT_CONFIGURED`: **immediately stop all operations**, execute the initialization flow below
+- Output `NOT_CONFIGURED`: **stop immediately**, prompt user to configure as follows (do NOT ask for the key in chat):
 
-## Initialization (When API Key Is Not Configured)
+> To use the Plume AI image service, you need to configure your API Key first:
+> 1. Visit [Plume Platform](https://design.useplume.app/openclaw-skill) to register and obtain an API Key
+> 2. Edit `~/.openclaw/openclaw.json`, add to `skills.entries`:
+>    ```json
+>    "plume-image": { "env": { "PLUME_API_KEY": "your-key" } }
+>    ```
+>    Or add `PLUME_API_KEY=your-key` to the `~/.openclaw/.env` file
+> 3. Enter `/restart` to apply changes
 
-When `check_config.py` outputs `NOT_CONFIGURED`, reply to user with the following guidance:
+## Background Polling Behavior
 
-**Using Plume AI Image Service requires configuring an API Key first**
+This skill starts a background Python process via `poll_cron.py register` to poll task status. Results are delivered via `openclaw message send` when the task completes.
 
-Please follow these steps:
-1. Visit [Plume Platform](https://design.useplume.app/openclaw-skill) to register an account
-2. After logging in, get your API Key from "API Key" section
-3. Tell me your API Key and I'll configure it for you
+- Poll interval: images 3–5s, videos 10–30s
+- Default timeout: 30 minutes (adjustable by category)
+- Max concurrency: 5 active polling tasks
+- Process exits automatically and cleans up metadata after task completes, fails, or times out
+- Results delivered via `openclaw message send`, no direct channel API calls
 
-When user provides the API Key, execute:
+## Supported categories (fixed enum, do not invent)
 
-```bash
-python3 ~/.openclaw/skills/plume-image/scripts/setup_key.py <user-provided-key>
-python3 ~/.openclaw/skills/plume-image/scripts/validate_key.py
-```
-
-- `validate_key.py` outputs `VALID`: inform user configuration is successful, they can type `/restart` in the chat input to restart
-- `validate_key.py` outputs `INVALID`: prompt user to check if the key is correct
-
-After successful configuration, user restarts OpenClaw, next time `check_config.py` will output `CONFIGURED` and normal usage can begin.
-
-## Supported Categories (Fixed Enum, Do Not Invent)
-
-| category | Alias | Purpose | Default |
-|----------|-------|---------|---------|
-| `Banana2` | 香蕉 | Text-to-image / Image-to-image / Style transfer | Default for images |
-| `BananaPro` | 香蕉Pro | Text-to-image / Image-to-image (user explicitly specified) | |
-| `remove-bg` | | Background removal | |
-| `remove-watermark` | | Watermark removal | |
+| category | Alias | Use case | Default |
+|----------|-------|----------|---------|
+| `Banana2` | 香蕉 | text-to-image / image-to-image / style transfer | ✅ default for images |
+| `BananaPro` | 香蕉Pro | text-to-image / image-to-image (user explicitly requested) | |
+| `remove-bg` | | background removal | |
+| `remove-watermark` | | watermark removal | |
 | `seedream` | 即梦/豆包即梦 | Doubao Seedream image generation | |
-| `veo` | | Text-to-video / Image-to-video | Default for video |
-| `seedance2` | | Seedance2 video (user explicitly specified) | |
+| `veo` | | text-to-video / image-to-video | ✅ default for videos |
+| `seedance2` | | Seedance2 video (user explicitly requested) | |
 
-**Style transfer (cartoon, Pixar, watercolor, etc.) always uses `BananaPro` + `--prompt` to describe the style. Do NOT invent new categories.**
+**Style transfer (cartoon, Pixar, watercolor, etc.) defaults to `Banana2` + `--prompt` describing the style, unless user explicitly requests BananaPro. Do not invent new categories.**
 
-## Image/Video Specifications
+## Image/Video Specs
 
 - Default: `2K`, `9:16` (portrait)
 - Resolution: `1K` / `2K`
 - Aspect ratio: `21:9` / `16:9` / `4:3` / `3:2` / `1:1` / `9:16` / `3:4` / `2:3` / `5:4` / `4:5`
-- **Only adjust aspect ratio based on keywords explicitly stated by the user. Do NOT infer from image content.**
+- **Only adjust aspect ratio based on keywords the user explicitly states; do NOT infer from image content**
+
+## Multi-turn Dialog / Image-to-Image
+
+When the user requests modifications to an existing image (style transfer, background removal, image-to-video, etc.), first determine the image source:
+
+### Determine image source (priority: highest to lowest)
+
+1. **User sent both image and text instructions in the current turn** → `transfer --file <attachment path>` to upload to R2, get `image_url`, process per text instructions
+2. **User sent only an image in the current turn, no text** → **do not create a task**, reply "Got your image. What would you like to do with it?" and wait for next message
+3. **User sent an image in the previous turn, text instructions in the current turn** → `transfer` upload the previous turn's image, process per current text instructions
+4. **User references "last/this/just generated" image** → read `last_result_{channel}.json` to get `result_url`
+5. **None of the above** → prompt user to send an image
+
+### Read last result
+
+Files are isolated by channel to prevent cross-channel mix-up:
+
+```bash
+# {channel} = current channel: feishu / qqbot / telegram
+cat ~/.openclaw/media/plume/last_result_{channel}.json
+```
+
+Returns JSON:
+```json
+{"task_id": "xxx", "result_url": "https://pics.useplume.app/...", "local_file": "...", "media_type": "image", "created_at": ...}
+```
+
+**Must use `result_url` (remote URL) as `--image-url`; do NOT use `local_file`.**
+
+### Image-to-image example
+
+```bash
+# 1. Read last result (using QQ Bot channel as example)
+cat ~/.openclaw/media/plume/last_result_qqbot.json
+# get result_url = https://pics.useplume.app/xxx.png
+
+# 2. Create image-to-image task (processing_mode auto-detected as image_to_image)
+python3 ${CLAUDE_SKILL_DIR}/scripts/process_image.py create \
+  --category Banana2 \
+  --image-url "https://pics.useplume.app/xxx.png" \
+  --prompt "transform into Pixar 3D animation style"
+
+# 3. Register polling (same as standard flow)
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id <id> --channel qqbot --target "qqbot:c2c:XXXX" --interval 5 --max-duration 1800
+```
+
+### Context keywords
+
+When the user says any of the following, read last_result_{channel}.json for image-to-image:
+- Style-related: change to XX style, make it XX, convert to XX, Pixar, cartoon, watercolor, oil painting, sketch
+- Referencing previous: this image, the last one, the one just now, edit it, tweak it
+- Operations: remove background, remove watermark, animate it (image-to-video)
 
 ## Unified Workflow
 
-All tasks: `create` → `cron register` → immediately reply to user → end
+All tasks: `create` → `poll_cron.py register` → reply to user immediately → end
 
-**Very important: absolutely do NOT use `process_image.py poll`, do NOT execute check after register.**
-
-### Channel Detection
-
-| Condition | Channel | Cron Script |
-|-----------|---------|-------------|
-| Context contains `You are chatting with the user via QQ` | QQ Bot | `poll_cron_qqbot.py` |
-| Context contains Telegram or delivery target is `telegram:` | Telegram | `poll_cron_universal.py` |
-| Context contains `ou_` prefix sender_id or `img_v3_xxx` | Feishu | `poll_cron_feishu.py` |
-| Other | General | `poll_cron_universal.py` |
-
-### Group Delivery (Important)
-
-**All register commands must include `--session-key`, with your current full session key as the value.**
-The script will automatically determine if it's a group and deliver to the correct target. You don't need to make any additional judgments.
-
-### Create Task
+### Create task
 
 ```bash
-python3 ~/.openclaw/skills/plume-image/scripts/process_image.py create \
+python3 ${CLAUDE_SKILL_DIR}/scripts/process_image.py create \
   --category <category> \
   --prompt "<English prompt>" \
   [--processing-mode text_to_image|image_to_image|text_to_video] \
@@ -115,67 +149,92 @@ python3 ~/.openclaw/skills/plume-image/scripts/process_image.py create \
   [--aspect-ratio 9:16]
 ```
 
-**Output format:** JSON, must check `success` field
-- `{"success": true, "task_id": "xxx", ...}` → Task created successfully, proceed to register
-- `{"success": false, "error": "PLUME_API_KEY not configured..."}` → **Stop immediately**, prompt user to configure API Key
-- `{"success": false, "error": "..."}` → Task creation failed, report error to user
+**Output format:** JSON, always check the `success` field
+- `{"success": true, "task_id": "xxx", ...}` → proceed to register
+- `{"success": false, ...}` → **must inform user of the specific error reason**, classify by `code` field:
 
-### Register Cron Polling
+| code | User message |
+|------|-------------|
+| `INSUFFICIENT_CREDITS` | Inform user that Plume account credits are insufficient, guide them to [Plume Platform](https://design.useplume.app) to top up and retry |
+| `CREDITS_ACCOUNT_NOT_FOUND` | Inform user that credits account has not been created, guide them to [Plume Platform](https://design.useplume.app) to register |
+| `UNAUTHORIZED` | Inform user that API Key is invalid, guide them to re-obtain and configure |
+| `VALIDATION_ERROR` | Inform user of invalid parameters, show the specific message in the `error` field |
+| other | Show the `error` field content directly to user |
 
-**Choose parameters based on category:**
+**Important: when task creation fails, clearly explain the failure reason and resolution to the user; do not skip the error.**
 
-| Category | interval | max-duration | Description |
-|----------|----------|--------------|-------------|
-| Banana2 / BananaPro / seedream | 5s | 1800s | Image generation, 30min timeout |
-| remove-bg / remove-watermark | 3s | 1800s | Image processing, 30min timeout |
-| veo | 10s | 21600s | Video generation, 6hr timeout |
-| seedance2 | 30s | 172800s | Long video generation, 48hr timeout |
+### Register cron polling
+
+Use the unified script with `--channel` and `--target` to specify delivery channel and target:
 
 ```bash
-# Feishu
-python3 ~/.openclaw/skills/plume-image/scripts/poll_cron_feishu.py register \
-  --task-id <id> --user-id "<open_id>" --channel feishu \
-  --session-key "<your full session key>" \
-  --interval <interval> --max-duration <max>
-
-# QQ Bot (--user-id must contain qqbot:c2c: prefix, copy full value from context "delivery target")
-python3 ~/.openclaw/skills/plume-image/scripts/poll_cron_qqbot.py register \
-  --task-id <id> --channel qqbot --user-id "qqbot:c2c:XXXX" \
-  --interval <interval> --max-duration <max>
-
-# Telegram / Other
-python3 ~/.openclaw/skills/plume-image/scripts/poll_cron_universal.py register \
-  --task-id <id> --channel telegram --user-id "telegram:XXXX" \
-  --session-key "<your full session key>" \
-  --interval <interval> --max-duration <max>
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id <id> \
+  --channel <channel> \
+  --target <target> \
+  [--interval <seconds>] \
+  [--max-duration <seconds>]
 ```
 
-### Image Source (When No Attachment in Context)
+**Determining channel and target:**
 
-Read last generation result:
+| Context clue | --channel | --target |
+|-------------|-----------|----------|
+| sender_id with `ou_` prefix | `feishu` | `ou_xxx` (DM) or `oc_xxx` (group) |
+| Contains "You are chatting via QQ" | `qqbot` | full delivery target (e.g. `qqbot:c2c:XXXX`) |
+| Contains Telegram or target starts with `telegram:` | `telegram` | full delivery target (e.g. `telegram:6986707981`) |
+| Other | infer from context | infer from context |
+
+**Poll parameters by category:**
+
+| Category | --interval | --max-duration | Notes |
+|----------|-----------|---------------|-------|
+| Banana2 / BananaPro / seedream | 5 | 1800 | image, 30 min timeout |
+| remove-bg / remove-watermark | 3 | 1800 | image processing, 30 min timeout |
+| veo | 10 | 21600 | video, 6 hour timeout |
+| seedance2 | 30 | 172800 | long video, 48 hour timeout |
+
+**Examples:**
+
 ```bash
-cat ~/.openclaw/media/plume/last_result_<channel>.json  # Get result_url
+# Feishu DM
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id 123 --channel feishu --target ou_xxx --interval 5 --max-duration 1800
+
+# Feishu group
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id 123 --channel feishu --target oc_xxx --interval 5 --max-duration 1800
+
+# Telegram
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id 123 --channel telegram --target "telegram:6986707981" --interval 10 --max-duration 21600
+
+# QQ Bot
+python3 ${CLAUDE_SKILL_DIR}/scripts/poll_cron.py register \
+  --task-id 123 --channel qqbot --target "qqbot:c2c:XXXX" --interval 5 --max-duration 1800
 ```
-Channel to filename mapping: `feishu` / `qqbot` / `telegram` / others use `last_result.json`
+
+### Image source
+
+> See the "Multi-turn Dialog / Image-to-Image" section above for full image source priority rules.
 
 Upload user image to R2:
 ```bash
-python3 ~/.openclaw/skills/plume-image/scripts/process_image.py transfer \
-  --image-key "img_xxx"        # Feishu image_key
-  # or
-  --file "/path/to/image.jpg"  # Local file
+python3 ${CLAUDE_SKILL_DIR}/scripts/process_image.py transfer \
+  --file "/path/to/image.jpg"
 ```
 
 ## Prohibited Actions
 
-- Do NOT fabricate task_id (can only be obtained from create return value)
-- Do NOT fabricate image URLs (can only use `result_url` or `r2_url` returned by `transfer`, domain must be `pics.useplume.app`)
+- Do NOT fabricate task_id (only use values returned from create)
+- Do NOT fabricate image URLs (only use `result_url` or `r2_url` returned by `transfer`; domain must be `pics.useplume.app`)
 - Do NOT invent categories (only the 7 values in the table above are allowed)
-- Do NOT execute check after register
+- Do NOT run check after register
 - Do NOT use curl/wget to download images
-- Do NOT use /tmp directory
+- Do NOT use the /tmp directory
+- Do NOT ask users to paste API Key in chat
 
-## Reference Documentation
+## Reference Docs
 
 - Detailed workflow examples: [references/workflows.md](references/workflows.md)
 - Category parameter reference: [references/categories.md](references/categories.md)

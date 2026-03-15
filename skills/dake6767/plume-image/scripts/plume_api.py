@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Plume API Client
-Wraps Open API HTTP calls: create task, query task, upload image
+Plume API client
+HTTP wrapper for the Open API: create task, query task, upload image
 """
 
 import json
@@ -13,42 +13,22 @@ import urllib.error
 import urllib.parse
 from typing import Optional
 
-# Skip SSL verification (consistent with feishu-img-msg)
 SSL_CONTEXT = ssl.create_default_context()
-SSL_CONTEXT.check_hostname = False
-SSL_CONTEXT.verify_mode = ssl.CERT_NONE
-
-
-def _load_openclaw_json(path: str) -> dict:
-    """Read openclaw.json, tolerating trailing commas (JSON5 compatible)"""
-    import re
-    with open(path, "r", encoding="utf-8") as f:
-        text = f.read()
-    # Remove trailing commas (, followed by } or ])
-    text = re.sub(r",\s*([}\]])", r"\1", text)
-    return json.loads(text)
-
 
 API_BASE = "https://design.useplume.app"
 
 
 def get_config():
-    """Read PLUME_API_KEY from ~/.openclaw/openclaw.json, fallback to environment variable"""
-    api_key = None
-
-    openclaw_cfg = os.path.expanduser("~/.openclaw/openclaw.json")
-    if os.path.isfile(openclaw_cfg):
-        try:
-            cfg = _load_openclaw_json(openclaw_cfg)
-            api_key = cfg.get("env", {}).get("vars", {}).get("PLUME_API_KEY")
-        except (json.JSONDecodeError, OSError):
-            pass
+    """Read PLUME_API_KEY from environment variables"""
+    api_key = os.environ.get("PLUME_API_KEY")
 
     if not api_key:
-        api_key = os.environ.get("PLUME_API_KEY")
-
-    if not api_key:
-        raise ValueError("PLUME_API_KEY not configured (please set in openclaw.json env.vars)")
+        raise ValueError(
+            "PLUME_API_KEY not configured. Set it using one of:\n"
+            '  1. Edit ~/.openclaw/openclaw.json, add to skills.entries:\n'
+            '     "plume-image": { "env": { "PLUME_API_KEY": "your-key" } }\n'
+            "  2. echo 'PLUME_API_KEY=your-key' >> ~/.openclaw/.env"
+        )
 
     return api_key, API_BASE
 
@@ -91,10 +71,10 @@ def _request(method: str, url: str, data: dict = None, headers: dict = None,
 
 
 def _detect_mime_type(file_data: bytes, file_path: str) -> str:
-    """Detect real MIME type via magic bytes, file extension as fallback"""
+    """Detect MIME type via magic bytes, fall back to file extension"""
     import mimetypes
 
-    # Check magic bytes
+    # check magic bytes
     if file_data[:3] == b'\xff\xd8\xff':
         return "image/jpeg"
     if file_data[:8] == b'\x89PNG\r\n\x1a\n':
@@ -104,7 +84,7 @@ def _detect_mime_type(file_data: bytes, file_path: str) -> str:
     if file_data[:6] in (b'GIF87a', b'GIF89a'):
         return "image/gif"
 
-    # Fallback to file extension inference
+    # fallback to file extension
     return mimetypes.guess_type(file_path)[0] or "application/octet-stream"
 
 
@@ -158,7 +138,7 @@ def create_task(category: str, content: dict, project_id: str = None,
     payload = {
         "category": category,
         "content": content,
-        "type": 2,  # Async polling
+        "type": 2,  # async poll
     }
     if title:
         payload["title"] = title
@@ -233,7 +213,7 @@ def batch_get_tasks(task_ids: list) -> dict:
 
 def validate_api_key() -> dict:
     """
-    Validate if API Key is valid
+    Validate API key
     Returns: { success, data: { valid, user_id } }
     """
     api_key, api_base = get_config()
