@@ -146,7 +146,7 @@ def read_rsa_block_size(private_key_path: Path) -> int:
         stderr=subprocess.PIPE,
         text=True,
     )
-    match = re.search(r"Private-Key:\s*\((\d+)\s*bit\)", result.stdout)
+    match = re.search(r"Private-Key:\s*\((\d+)\s*bit(?:,.*)?\)", result.stdout)
     if not match:
         raise RuntimeError("Unable to determine RSA key size.")
     key_bits = int(match.group(1))
