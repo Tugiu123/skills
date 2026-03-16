@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Resignation Letter
 description: "Resignation Letter. Use when you need resignation letter capabilities. Triggers on: resignation letter."
   辞职信生成器。辞职信模板、离职原因、交接清单、感谢信、告别信、辞职时机分析。Resignation letter generator with templates, handover checklist, farewell notes, timing analysis. 辞职信、离职信、辞职模板。Use when writing resignation letters.
+author: BytesAgain
 ---
 # Resignation Letter
 
