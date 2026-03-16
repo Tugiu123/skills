@@ -225,6 +225,84 @@ else
     echo "   ⏭️  Skipped. You can always ask your OpenClaw assistant to use BinanceCoach manually."
 fi
 
+# ── OpenClaw Scheduled Analysis (optional) ───────────────────────────────────
+echo ""
+echo "📅 Scheduled Analysis (optional)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "   BinanceCoach can send you a portfolio analysis + position advice"
+echo "   every morning and evening via Telegram — automatically."
+echo ""
+echo "   Default: No — press Enter to skip."
+echo ""
+
+if [[ ! -t 0 ]]; then
+    echo "   ⏭️  Non-interactive mode — skipping cron setup."
+    setup_crons="n"
+else
+    read -rp "   Set up scheduled analysis? [y/N]: " setup_crons
+    setup_crons="${setup_crons:-N}"
+fi
+
+if [[ "${setup_crons,,}" == "y" ]]; then
+    if ! command -v openclaw &>/dev/null; then
+        echo "   ⚠️  openclaw CLI not found — skipping cron setup."
+        echo "   You can set this up later with: bc.sh setup-crons"
+    else
+        # Detect Telegram ID from .env or ask
+        TG_CHAT="${TELEGRAM_USER_ID:-}"
+        if [[ -z "$TG_CHAT" ]]; then
+            echo ""
+            echo "   Enter your Telegram user ID (message @userinfobot to get it):"
+            read -rp "   Telegram user ID: " TG_CHAT
+        fi
+
+        if [[ -z "$TG_CHAT" ]]; then
+            echo "   ⏭️  Skipped — no Telegram user ID provided."
+            echo "   Run 'bc.sh setup-crons' later to set this up."
+        else
+            TZ_LOCAL=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || echo "UTC")
+            [[ -z "$TZ_LOCAL" ]] && TZ_LOCAL="UTC"
+
+            MORNING_MSG="Run the BinanceCoach morning portfolio analysis: cd ~/workspace/binance-coach && python3 scripts/daily_analysis.py — then send the complete output to the user on Telegram."
+            EVENING_MSG="Run the BinanceCoach evening portfolio analysis: cd ~/workspace/binance-coach && python3 scripts/daily_analysis.py — then send the complete output to the user on Telegram."
+
+            # Remove existing to avoid duplicates
+            EXISTING_IDS=$(openclaw cron list 2>/dev/null | grep -E "BinanceCoach (Morning|Evening) Analysis" | awk '{print $1}' || true)
+            if [[ -n "$EXISTING_IDS" ]]; then
+                while IFS= read -r cid; do
+                    [[ -z "$cid" ]] && continue
+                    openclaw cron rm "$cid" 2>/dev/null || true
+                done <<< "$EXISTING_IDS"
+            fi
+
+            openclaw cron add \
+                --name "BinanceCoach Morning Analysis" \
+                --cron "0 9 * * *" \
+                --tz "$TZ_LOCAL" \
+                --session isolated \
+                --message "$MORNING_MSG" \
+                --announce \
+                --to "telegram:${TG_CHAT}" >/dev/null 2>&1 && \
+            echo "   ✅ Morning analysis cron created (09:00 daily)" || \
+            echo "   ⚠️  Morning cron failed — run 'bc.sh setup-crons' to retry"
+
+            openclaw cron add \
+                --name "BinanceCoach Evening Analysis" \
+                --cron "0 21 * * *" \
+                --tz "$TZ_LOCAL" \
+                --session isolated \
+                --message "$EVENING_MSG" \
+                --announce \
+                --to "telegram:${TG_CHAT}" >/dev/null 2>&1 && \
+            echo "   ✅ Evening analysis cron created (21:00 daily)" || \
+            echo "   ⚠️  Evening cron failed — run 'bc.sh setup-crons' to retry"
+        fi
+    fi
+else
+    echo "   ⏭️  Skipped. Run 'bc.sh setup-crons' anytime to set this up."
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

@@ -14,6 +14,35 @@ This file contains full dispatch instructions for OpenClaw. Read this when you n
 
 ---
 
+## Scheduled Analysis Crons
+
+BinanceCoach sends daily portfolio analysis via two OpenClaw crons — morning (09:00) and evening (21:00). These must be created with `agentTurn` payload + `isolated` session + `announce` delivery to actually reach the user on Telegram. Using `systemEvent` with `main` session will silently run but never deliver.
+
+**Correct cron config:**
+```bash
+openclaw cron add \
+  --name "BinanceCoach Morning Analysis" \
+  --cron "0 9 * * *" \
+  --tz "Europe/Amsterdam" \
+  --session isolated \
+  --message "Run the BinanceCoach morning portfolio analysis: cd ~/workspace/binance-coach && python3 scripts/daily_analysis.py — then send the complete output to the user on Telegram." \
+  --announce \
+  --to "telegram:<USER_TELEGRAM_ID>"
+```
+
+**If a user says they're not receiving analysis reports:**
+1. Check crons: `openclaw cron list` — look for `sessionTarget: main` or `payload.kind: systemEvent` on BinanceCoach jobs → those are broken
+2. Fix with: `bc.sh setup-crons`
+3. Or manually edit: `openclaw cron edit <id> --session isolated --message "<text>" --announce --to "telegram:<id>"`
+
+**To set up crons for a new install:**
+```bash
+bc.sh setup-crons
+```
+This is also offered as an optional step during `bc.sh setup`.
+
+---
+
 ## Updating BinanceCoach
 
 When a user says "update BinanceCoach", "upgrade the skill", or "get the latest version":

@@ -114,6 +114,98 @@ case "$COMMAND" in
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         exec bash "$SCRIPT_DIR/setup.sh"
         ;;
+    setup-crons)
+        # Create or repair OpenClaw scheduled analysis crons
+        echo "🕐 BinanceCoach — Cron Setup"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        # Check if openclaw CLI is available
+        if ! command -v openclaw &>/dev/null; then
+            echo "❌ openclaw CLI not found — cron setup requires OpenClaw."
+            exit 1
+        fi
+
+        # Try to detect Telegram user ID from .env or ask
+        TG_CHAT="${TELEGRAM_USER_ID:-}"
+        if [[ -z "$TG_CHAT" ]]; then
+            echo "   Your Telegram user ID is needed to deliver analysis reports."
+            echo "   You can get it from @userinfobot on Telegram."
+            echo ""
+            read -rp "   Telegram user ID: " TG_CHAT
+            [[ -z "$TG_CHAT" ]] && { echo "❌ Telegram user ID required."; exit 1; }
+        else
+            echo "   Using Telegram ID from .env: $TG_CHAT"
+        fi
+
+        # Morning/evening schedule options
+        read -rp "   Morning analysis time (default: 09:00): " MORNING_HOUR
+        MORNING_HOUR="${MORNING_HOUR:-9}"
+        MORNING_HOUR="${MORNING_HOUR//:/}"  # strip colon if user typed "9:00"
+        MORNING_HOUR="${MORNING_HOUR%00}"    # strip trailing 00
+        MORNING_HOUR="${MORNING_HOUR:-9}"
+
+        read -rp "   Evening analysis time (default: 21:00): " EVENING_HOUR
+        EVENING_HOUR="${EVENING_HOUR:-21}"
+        EVENING_HOUR="${EVENING_HOUR//:/}"
+        EVENING_HOUR="${EVENING_HOUR%00}"
+        EVENING_HOUR="${EVENING_HOUR:-21}"
+
+        TZ="${TZ:-Europe/Amsterdam}"
+
+        MORNING_MSG="Run the BinanceCoach morning portfolio analysis: cd ~/workspace/binance-coach && python3 scripts/daily_analysis.py — then send the complete output to the user on Telegram."
+        EVENING_MSG="Run the BinanceCoach evening portfolio analysis: cd ~/workspace/binance-coach && python3 scripts/daily_analysis.py — then send the complete output to the user on Telegram."
+
+        # Remove existing BinanceCoach analysis crons to avoid duplicates
+        EXISTING=$(openclaw cron list --json 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin) if isinstance(json.load(open('/dev/stdin')) if False else None, list) else []
+" 2>/dev/null || true)
+
+        # Use cron list to find and remove existing ones
+        EXISTING_IDS=$(openclaw cron list 2>/dev/null | grep -E "BinanceCoach (Morning|Evening) Analysis" | awk '{print $1}' || true)
+        if [[ -n "$EXISTING_IDS" ]]; then
+            echo ""
+            echo "   Found existing BinanceCoach analysis crons — removing to recreate..."
+            while IFS= read -r cid; do
+                [[ -z "$cid" ]] && continue
+                openclaw cron rm "$cid" 2>/dev/null && echo "   ✅ Removed $cid" || true
+            done <<< "$EXISTING_IDS"
+        fi
+
+        echo ""
+        echo "   Creating morning cron (${MORNING_HOUR}:00)..."
+        openclaw cron add \
+            --name "BinanceCoach Morning Analysis" \
+            --cron "0 ${MORNING_HOUR} * * *" \
+            --tz "$TZ" \
+            --session isolated \
+            --message "$MORNING_MSG" \
+            --announce \
+            --to "telegram:${TG_CHAT}" 2>&1 | grep -E '"id"|"name"|error' | head -5
+        echo "   ✅ Morning analysis cron created"
+
+        echo ""
+        echo "   Creating evening cron (${EVENING_HOUR}:00)..."
+        openclaw cron add \
+            --name "BinanceCoach Evening Analysis" \
+            --cron "0 ${EVENING_HOUR} * * *" \
+            --tz "$TZ" \
+            --session isolated \
+            --message "$EVENING_MSG" \
+            --announce \
+            --to "telegram:${TG_CHAT}" 2>&1 | grep -E '"id"|"name"|error' | head -5
+        echo "   ✅ Evening analysis cron created"
+
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ Crons active! You'll receive portfolio analysis:"
+        echo "   🌅 Every morning at ${MORNING_HOUR}:00"
+        echo "   🌆 Every evening at ${EVENING_HOUR}:00"
+        echo ""
+        echo "   To rebuild crons anytime: bc.sh setup-crons"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        ;;
     update)
         echo "🔄 BinanceCoach update — review before applying"
         echo "   Changelog: https://clawhub.ai/skills/binance-coach"
@@ -232,6 +324,7 @@ case "$COMMAND" in
         echo "  telegram             Start standalone Telegram bot"
         echo "  demo                 Demo mode (no API keys needed)"
         echo "  setup                First-time setup wizard"
+        echo "  setup-crons          Create/repair OpenClaw scheduled analysis crons"
         echo "  update               Update to latest version from ClaWHub"
         ;;
     *)

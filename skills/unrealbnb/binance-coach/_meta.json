@@ -1,13 +1,18 @@
 {
   "owner": "unrealbnb",
   "slug": "binance-coach",
-  "displayName": "BinanceCoach",
+  "displayName": "Binance Coach",
   "latest": {
-    "version": "1.5.1",
-    "publishedAt": 1773408712961,
-    "commit": "https://github.com/openclaw/skills/commit/06d3fd0ca37deb49e084ebf14c6f5712dc9672aa"
+    "version": "2.1.2",
+    "publishedAt": 1773659319402,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.1",
+      "publishedAt": 1773408712961,
+      "commit": "https://github.com/openclaw/skills/commit/06d3fd0ca37deb49e084ebf14c6f5712dc9672aa"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1773214257764,
