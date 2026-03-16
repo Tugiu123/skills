@@ -4,7 +4,7 @@
 # 创建时间：2026-03-09 19:30
 # 作者：米粒儿
 
-WORKSPACE="/root/.openclaw/workspace"
+WORKSPACE="/home/zhaog/.openclaw/workspace"
 AGENT_NAME="${AGENT_NAME:-main}"
 MEMORY_DIR="$WORKSPACE/memory/agents/$AGENT_NAME"
 SHARED_DIR="$WORKSPACE/memory/shared"
@@ -13,11 +13,9 @@ TAIL_FILE="$MEMORY_DIR/.tail.tmp.json"
 
 # Python 组件路径（吸收 memu-engine 优势）
 PYTHON_DIR="$WORKSPACE/skills/session-memory-enhanced/python"
-VENV_DIR="$WORKSPACE/skills/session-memory-enhanced/venv"
 EXTRACTOR="$PYTHON_DIR/extractor.py"
 EMBEDDER="$PYTHON_DIR/embedder.py"
 SEARCHER="$PYTHON_DIR/searcher.py"
-REVIEWER="$PYTHON_DIR/reviewer.py"
 
 # 配置文件
 CONFIG_FILE="$WORKSPACE/skills/session-memory-enhanced/config/unified.json"
@@ -33,14 +31,21 @@ OPENAI_API_KEY=""
 # 确保目录存在
 mkdir -p "$MEMORY_DIR" "$SHARED_DIR" "$(dirname "$LOG_FILE")"
 
-# **关键：在脚本开始时激活虚拟环境（官家要求）**
-if [ -f "$VENV_DIR/bin/activate" ]; then
-    source "$VENV_DIR/bin/activate" 2>/dev/null && log "✅ 虚拟环境已激活：$VENV_DIR"
-fi
+# =============================================================================
+# 集成 Error Handler Library
+# =============================================================================
+ERROR_HANDLER_LOG="$LOG_FILE"
+source "$WORKSPACE/skills/utils/error-handler.sh"
 
-# 日志函数
+# 别名函数（兼容旧代码）
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$AGENT_NAME] $1" >> "$LOG_FILE"
+    local level="${2:-INFO}"
+    case "$level" in
+        INFO) log_info "$1" ;;
+        WARN) log_warn "$1" ;;
+        ERROR) log_error "$1" ;;
+        DEBUG) log_debug "$1" ;;
+    esac
 }
 
 log "================================"
@@ -71,23 +76,8 @@ load_config() {
         [ -n "$AGENT_MAX" ] && MAX_MESSAGES_PER_PART="$AGENT_MAX"
     fi
     
-    # 加载 OpenAI API Key（多层fallback）
-    # 1. 从 openai.env 文件加载
-    if [ -f "$WORKSPACE/config/openai.env" ]; then
-        source "$WORKSPACE/config/openai.env" 2>/dev/null
-    fi
-    
-    # 2. 从配置文件读取（可能是占位符）
-    local config_key=$(jq -r '.openaiApiKey // empty' "$CONFIG_FILE" 2>/dev/null)
-    
-    # 3. 如果配置文件是占位符，使用环境变量
-    if [[ "$config_key" == *'$'* ]]; then
-        # 占位符，使用环境变量（已从 openai.env 加载）
-        :
-    elif [ -n "$config_key" ]; then
-        # 配置文件有实际值
-        OPENAI_API_KEY="$config_key"
-    fi
+    # 加载环境变量
+    OPENAI_API_KEY="${OPENAI_API_KEY:-$(jq -r '.openaiApiKey // empty' "$CONFIG_FILE" 2>/dev/null)}"
     
     log "✅ 配置加载完成"
     log "   - 闲置时间：${FLUSH_IDLE_SECONDS}秒"
@@ -98,11 +88,6 @@ load_config() {
 
 # 检查 Python 环境
 check_python_available() {
-    # 优先使用虚拟环境
-    if [ -f "$VENV_DIR/bin/activate" ]; then
-        source "$VENV_DIR/bin/activate" 2>/dev/null
-    fi
-    
     if ! command -v python3 &> /dev/null; then
         log "⚠️ Python3 未安装"
         return 1
@@ -186,26 +171,21 @@ enhance_memory() {
     log "✅ 记忆增强完成"
 }
 
-# 4. 结构化记忆提取（吸收 memu-engine 优势）
+# 4. 结构化记忆提取（吸收 memu-engine 优势 + Error Handler）
 extract_structured_memory() {
     local part_file="$1"
     
-    log "📊 提取结构化记忆..."
+    log_info "📊 提取结构化记忆..."
     
     if [ -f "$EXTRACTOR" ]; then
-        python3 "$EXTRACTOR" \
-            --input "$part_file" \
-            --output "$MEMORY_DIR/structured.db" \
-            --agent "$AGENT_NAME" \
-            --api-key "$OPENAI_API_KEY" 2>&1 | tee -a "$LOG_FILE"
+        # 使用 safe_python 替代直接 python3 调用（P0 改进项 #1）
+        safe_python "$EXTRACTOR" \
+            "--input '$part_file' --output '$MEMORY_DIR/structured.db' --agent '$AGENT_NAME' --api-key '$OPENAI_API_KEY'" \
+            "log_warn '结构化提取失败，降级运行'"
         
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
-            log "✅ 结构化提取完成"
-        else
-            log "❌ 结构化提取失败"
-        fi
+        log_info "✅ 结构化提取完成"
     else
-        log "⚠️ 提取器不存在：$EXTRACTOR"
+        log_warn "⚠️ 提取器不存在：$EXTRACTOR"
     fi
 }
 
@@ -232,81 +212,7 @@ generate_embeddings() {
     fi
 }
 
-# 6. 回顾当天聊天，查漏补缺（官家要求的智能回顾）
-review_and_fill_gaps() {
-    log "🔍 回顾当天聊天，查漏补缺..."
-    
-    local today=$(date '+%Y-%m-%d')
-    local today_memory="$WORKSPACE/memory/$today.md"
-    local long_term_memory="$WORKSPACE/MEMORY.md"
-    local review_report="$WORKSPACE/memory/review-$today.md"
-    
-    # 检查今天的记忆文件是否存在
-    if [ ! -f "$today_memory" ]; then
-        log "ℹ️ 今天还没有记忆文件，跳过回顾"
-        return 0
-    fi
-    
-    # 统计今天的记忆行数
-    local today_lines=$(wc -l < "$today_memory")
-    log "📄 今天记忆：$today_lines 行"
-    
-    # 如果有 Python AI 组件 + API Key，进行智能分析
-    if check_python_available && [ -n "$OPENAI_API_KEY" ]; then
-        log "🤖 使用 AI 进行智能查漏补缺..."
-        
-        # 激活虚拟环境（解决子shell环境丢失问题）
-        if [ -f "$VENV_DIR/bin/activate" ]; then
-            source "$VENV_DIR/bin/activate"
-        fi
-        
-        python3 "$REVIEWER" \
-            --today-memory "$today_memory" \
-            --long-term-memory "$long_term_memory" \
-            --output "$review_report" \
-            --api-key "$OPENAI_API_KEY" 2>&1 | tee -a "$LOG_FILE"
-        
-        if [ ${PIPESTATUS[0]} -eq 0 ]; then
-            log "✅ 智能回顾完成"
-            
-            # 如果有审查报告，显示摘要
-            if [ -f "$review_report" ]; then
-                local report_lines=$(wc -l < "$review_report")
-                log "📊 审查报告：$report_lines 行"
-            fi
-        else
-            log "⚠️ 智能回顾失败，使用基础回顾"
-            basic_review "$today_memory"
-        fi
-    else
-        log "ℹ️ 使用基础回顾（无需 AI）"
-        basic_review "$today_memory"
-    fi
-}
-
-# 基础回顾（不使用 AI）
-basic_review() {
-    local today_memory="$1"
-    
-    log "📋 基础回顾：检查今天的记忆完整性..."
-    
-    # 简单检查：文件大小、关键内容
-    local today_lines=$(wc -l < "$today_memory")
-    local has_events=$(grep -c "事件\|决定\|决策\|教训" "$today_memory" 2>/dev/null || echo "0")
-    
-    log "📊 今天记忆统计："
-    log "   - 总行数：$today_lines"
-    log "   - 关键词出现次数：$has_events"
-    
-    # 如果记忆较少，提醒
-    if [ "$today_lines" -lt 20 ]; then
-        log "⚠️ 今天记忆较少（<20行），可能遗漏内容"
-    fi
-    
-    log "✅ 基础回顾完成"
-}
-
-# 7. 更新 QMD 知识库（保留 session-memory 优势）
+# 6. 更新 QMD 知识库（保留 session-memory 优势）
 update_qmd() {
     log "📚 更新 QMD 知识库..."
     
@@ -388,19 +294,15 @@ main() {
         # 3. 固化分片
         flush_tail
         
-        # 4. 回顾当天聊天，查漏补缺（官家要求）
-        review_and_fill_gaps
-        
-        # 5. 更新 QMD
+        # 4. 更新 QMD
         update_qmd
         
-        # 6. Git 提交
+        # 5. Git 提交
         git_commit
     fi
     
     log "✅ Session-Memory Enhanced v4.0 完成"
     log "🎯 已吸收 memu-engine 核心优势"
-    log "🔍 已添加查漏补缺功能（官家要求）"
     log "================================"
 }
 
