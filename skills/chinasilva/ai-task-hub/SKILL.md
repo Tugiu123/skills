@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
-description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, and async execute/poll/presentation orchestration. Use when users need hosted AI outcomes while host runtime manages identity, credits, payment, and risk control.
-version: 3.1.1
+description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, points balance/ledger lookup, and async execute/poll/presentation orchestration. Use when users need hosted AI outcomes while host runtime manages identity, credits, payment, and risk control.
+version: 3.2.3
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -21,7 +21,7 @@ Formerly `skill-hub-gateway`.
 
 Public package boundary:
 
-- Only orchestrates `portal.skill.execute`, `portal.skill.poll`, and `portal.skill.presentation`.
+- Only orchestrates `portal.skill.execute`, `portal.skill.poll`, `portal.skill.presentation`, `portal.account.balance`, and `portal.account.ledger`.
 - Does not exchange `api_key` or `userToken` inside this package.
 - Does not handle recharge or payment flows inside this package.
 - Assumes host runtime injects short-lived task tokens and attachment URLs.
@@ -40,6 +40,7 @@ Use this skill when the user asks to:
 - start async jobs and check status later (`poll`, `check job status`)
 - fetch rendered visual outputs such as `overlay`, `mask`, and `cutout`
 - run embedding or reranking tasks for retrieval workflows
+- check current account points balance or recent points ledger rows
 
 ## Common Requests
 
@@ -55,6 +56,8 @@ Example requests that should trigger this skill:
 - "Start this job now and let me poll the run status later."
 - "Fetch overlay and mask files for run_456."
 - "Generate embeddings for this text list and rerank the candidates."
+- "Check my current points balance."
+- "Show my recent points ledger from 2026-03-01 to 2026-03-15."
 
 ## Search-Friendly Capability Aliases
 
@@ -65,17 +68,22 @@ Example requests that should trigger this skill:
 - `markdown_convert` aliases: document to markdown, file to markdown, markdown conversion
 - `poll` aliases: check job status, poll long-running task, async run status
 - `presentation` aliases: rendered output, overlay, mask, cutout files
+- `account.balance` aliases: points balance, credits balance, remaining points
+- `account.ledger` aliases: points ledger, credits history, points statement
 - `embeddings/reranker` aliases: vectorization, semantic vectors, relevance reranking
 
 ## Runtime Contract
 
 Default API base URL: `https://gateway-api.binaryworks.app`
+Published package policy: outbound base URL is locked to the default API base URL to reduce token exfiltration risk.
 
 Action to endpoint mapping:
 
 - `portal.skill.execute` -> `POST /agent/skill/execute`
 - `portal.skill.poll` -> `GET /agent/skill/runs/:run_id`
 - `portal.skill.presentation` -> `GET /agent/skill/runs/:run_id/presentation`
+- `portal.account.balance` -> `GET /agent/skill/account/balance`
+- `portal.account.ledger` -> `GET /agent/skill/account/ledger`
 
 ## Auth Contract (Host-Managed)
 
@@ -83,19 +91,46 @@ Every request must include:
 
 - `X-Agent-Task-Token: <jwt_or_paseto>`
 
-Recommended token claims:
+Required token claims:
 
 - `sub` (user_id)
 - `agent_uid`
 - `conversation_id`
-- `scope` (`execute|poll|presentation`)
+- `scope` (one or more of `execute|poll|presentation|account_read`)
 - `exp`
 - `jti`
 
+Required scope per action:
+
+- `portal.skill.execute` -> `execute`
+- `portal.skill.poll` -> `poll`
+- `portal.skill.presentation` -> `presentation`
+- `portal.account.balance` -> `account_read`
+- `portal.account.ledger` -> `account_read`
+
+Token lifetime policy:
+
+- Host should issue short-lived tokens (default 300s, max 900s).
+- Host should mint least-privilege scope for the current action; do not include `account_read` unless account actions are needed.
+
 CLI argument order for `scripts/skill.mjs`:
 
-- `[agent_task_token] <action> <payload_json> [base_url]`
+- `[agent_task_token] <action> <payload_json>`
 - If token arg is omitted, script reads `AGENT_TASK_TOKEN` from environment.
+- Legacy `base_url` override is not allowed in the published package; calls are pinned to the default API base URL.
+- Host runtime should refresh and inject short-lived, action-scoped `AGENT_TASK_TOKEN` automatically to avoid user-facing auth friction.
+
+Host-side token bridge (outside published package):
+
+- To keep this package compliant and low-privilege, token issuance is expected to happen in host runtime.
+- Host may call `POST /agent/task-token/issue` with host-managed gateway credential headers and then inject the returned `AGENT_TASK_TOKEN`.
+- Recommended host behavior: retry once on `AUTH_UNAUTHORIZED` by refreshing task token, then re-run the same action.
+
+Host integration modes:
+
+- `automatic` (recommended): host runtime silently issues short-lived action-scoped token and injects `AGENT_TASK_TOKEN`.
+- `interactive fallback` (optional): if host has no server-side token bridge yet, host may present a host-owned authorization URL (example template: `https://gateway.binaryworks.app/portal/agent-auth?agent_uid=<agent_uid>&conversation_id=<conversation_id>`), let user complete authorization, then host issues/injects short-lived `AGENT_TASK_TOKEN`.
+- Published skill package itself does not open browser, persist credentials, or perform OAuth/token exchange flows.
 
 ## Payload Contract
 
@@ -103,6 +138,8 @@ CLI argument order for `scripts/skill.mjs`:
 - `payload.request_id` is optional and passed through.
 - `portal.skill.poll` and `portal.skill.presentation`: payload requires `run_id`.
 - `portal.skill.presentation` supports `include_files` (defaults to `true`).
+- `portal.account.balance`: payload is optional and ignored.
+- `portal.account.ledger`: payload may include `date_from` + `date_to` (`YYYY-MM-DD`, must be provided together).
 
 Attachment normalization:
 
@@ -121,6 +158,7 @@ Attachment normalization:
 
 - `scripts/skill.mjs`
 - `scripts/agent-task-auth.mjs`
+- `scripts/base-url.mjs`
 - `scripts/attachment-normalize.mjs`
 - `scripts/telemetry.mjs` (compatibility shim)
 - `references/capabilities.json`

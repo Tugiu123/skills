@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// release-gate: allow-env-network
 
 import { pathToFileURL } from 'node:url';
+import { getDefaultBaseUrl, normalizeBaseUrl } from './base-url.mjs';
 
-const DEFAULT_BASE_URL = 'https://gateway-api.binaryworks.app';
+const DEFAULT_BASE_URL = getDefaultBaseUrl();
 
 export const AGENT_TASK_DEFAULT_BASE_URL = DEFAULT_BASE_URL;
 
@@ -27,19 +27,6 @@ export async function resolveAgentTaskAuth(params = {}) {
   };
 }
 
-function normalizeBaseUrl(baseUrlRaw) {
-  const candidate = readToken(baseUrlRaw) || DEFAULT_BASE_URL;
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error('invalid protocol');
-    }
-    return parsed.toString().replace(/\/+$/, '');
-  } catch {
-    throw createAuthError(400, 'VALIDATION_BAD_REQUEST', `invalid base_url: ${String(baseUrlRaw ?? '')}`);
-  }
-}
-
 function readToken(value) {
   if (typeof value !== 'string') {
     return '';
@@ -55,34 +42,10 @@ function createAuthError(status, code, message) {
 }
 
 function parseCliArgs(args) {
-  if (args.length === 0) {
-    return {
-      explicitAgentTaskToken: '',
-      baseUrl: DEFAULT_BASE_URL
-    };
-  }
-
-  const first = args[0] ?? '';
-  if (isHttpBaseUrl(first)) {
-    return {
-      explicitAgentTaskToken: '',
-      baseUrl: first
-    };
-  }
-
   return {
-    explicitAgentTaskToken: first,
+    explicitAgentTaskToken: args[0] ?? '',
     baseUrl: args[1] ?? DEFAULT_BASE_URL
   };
-}
-
-function isHttpBaseUrl(value) {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
 }
 
 async function main() {

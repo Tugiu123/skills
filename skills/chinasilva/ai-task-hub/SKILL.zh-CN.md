@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
-description: AI Task Hub 用于图像检测与分析、去背景与抠图、语音转文字、文本转语音、文档转 Markdown 和异步任务编排。适用于用户需要通过 execute/poll/presentation 完成结果交付，且由宿主统一管理身份、积分、支付和风控的场景。
-version: 3.1.1
+description: AI Task Hub 用于图像检测与分析、去背景与抠图、语音转文字、文本转语音、文档转 Markdown、积分余额/流水查询和异步任务编排。适用于用户需要通过 execute/poll/presentation 与账户积分查询完成结果交付，且由宿主统一管理身份、积分、支付和风控的场景。
+version: 3.2.3
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -21,7 +21,7 @@ metadata:
 
 公开包能力边界：
 
-- 只保留 `portal.skill.execute`、`portal.skill.poll`、`portal.skill.presentation`。
+- 只保留 `portal.skill.execute`、`portal.skill.poll`、`portal.skill.presentation`、`portal.account.balance`、`portal.account.ledger`。
 - 不在公开包内交换 `api_key` 或 `userToken`。
 - 不在公开包内处理支付、充值与积分 UI 闭环。
 - 由宿主运行时注入短期任务 token 与附件 URL。
@@ -38,6 +38,7 @@ metadata:
 - 发起异步任务并在稍后查询任务状态（轮询）
 - 获取 run 的渲染结果（叠加图、蒙版、抠图文件）
 - 执行向量化或重排序任务（embeddings / reranker）
+- 查询当前积分余额或积分流水
 
 ## 示例请求
 
@@ -53,6 +54,8 @@ metadata:
 - "先发起任务，稍后我再查任务状态。"
 - "帮我拉取 run_456 的叠加图和蒙版文件。"
 - "为这组文本生成向量并做重排序。"
+- "帮我查一下当前积分余额。"
+- "帮我查 2026-03-01 到 2026-03-15 的积分流水。"
 
 ## 能力别名（便于检索）
 
@@ -63,17 +66,22 @@ metadata:
 - `markdown_convert` 别名：文档转 Markdown / 文件转 Markdown
 - `poll` 别名：轮询 / 查询任务状态 / 异步任务状态
 - `presentation` 别名：结果渲染 / 叠加图 / 蒙版 / 抠图文件
+- `account.balance` 别名：积分余额 / 剩余积分 / credits 余额
+- `account.ledger` 别名：积分流水 / 积分明细 / credits 历史
 - `embeddings/reranker` 别名：向量化 / 语义向量 / 重排序
 
 ## 运行时契约
 
 默认 API 基址：`https://gateway-api.binaryworks.app`
+发布包策略：对外请求基址锁定为默认 API 基址，以降低 token 被重定向外发的风险。
 
 Action 与接口映射：
 
 - `portal.skill.execute` -> `POST /agent/skill/execute`
 - `portal.skill.poll` -> `GET /agent/skill/runs/:run_id`
 - `portal.skill.presentation` -> `GET /agent/skill/runs/:run_id/presentation`
+- `portal.account.balance` -> `GET /agent/skill/account/balance`
+- `portal.account.ledger` -> `GET /agent/skill/account/ledger`
 
 ## 鉴权契约（宿主管理）
 
@@ -81,19 +89,46 @@ Action 与接口映射：
 
 - `X-Agent-Task-Token: <jwt_or_paseto>`
 
-建议 token claim：
+必需 token claim：
 
 - `sub`（user_id）
 - `agent_uid`
 - `conversation_id`
-- `scope`（`execute|poll|presentation`）
+- `scope`（`execute|poll|presentation|account_read` 中的一个或多个）
 - `exp`
 - `jti`
 
+Action 对应必需 scope：
+
+- `portal.skill.execute` -> `execute`
+- `portal.skill.poll` -> `poll`
+- `portal.skill.presentation` -> `presentation`
+- `portal.account.balance` -> `account_read`
+- `portal.account.ledger` -> `account_read`
+
+Token 时效策略：
+
+- 宿主应签发短期 token（默认 300 秒，最大 900 秒）。
+- 宿主应按当前 action 签发最小权限 scope；非账户查询场景不要包含 `account_read`。
+
 `scripts/skill.mjs` CLI 参数顺序：
 
-- `[agent_task_token] <action> <payload_json> [base_url]`
+- `[agent_task_token] <action> <payload_json>`
 - 若省略 token 参数，脚本会读取环境变量 `AGENT_TASK_TOKEN`。
+- 发布包不允许通过 CLI 覆盖 `base_url`；请求会固定发往默认 API 基址。
+- 建议由宿主运行时自动续签并注入短期、按 action 最小权限的 `AGENT_TASK_TOKEN`，避免用户侧出现登录/验证摩擦。
+
+宿主侧 token 桥接（不属于公开发布包）：
+
+- 为保持公开包低权限与合规，token 签发应在宿主运行时完成。
+- 宿主可用自身托管网关凭证头调用 `POST /agent/task-token/issue`，再把返回的 `AGENT_TASK_TOKEN` 注入 skill 调用。
+- 建议宿主在出现 `AUTH_UNAUTHORIZED` 时只自动续签重试一次，再返回最终结果。
+
+宿主接入模式：
+
+- `自动模式`（推荐）：宿主运行时无感签发短期、按 action 最小权限 token，并注入 `AGENT_TASK_TOKEN`。
+- `交互兜底模式`（可选）：若宿主暂时没有服务端签发桥接，可先让用户打开宿主自有授权 URL（示例模板：`https://gateway.binaryworks.app/portal/agent-auth?agent_uid=<agent_uid>&conversation_id=<conversation_id>`）完成授权，再由宿主签发/注入短期 `AGENT_TASK_TOKEN`。
+- 公开 skill 包本身不会拉起浏览器、持久化凭证或执行 OAuth/token 交换。
 
 ## Payload 约定
 
@@ -101,6 +136,8 @@ Action 与接口映射：
 - 可选 `payload.request_id` 会透传给后端。
 - `portal.skill.poll`、`portal.skill.presentation`：`payload` 必须含 `run_id`。
 - `portal.skill.presentation` 支持 `include_files`（默认 `true`）。
+- `portal.account.balance`：`payload` 可省略，传入内容会被忽略。
+- `portal.account.ledger`：`payload` 可带 `date_from` + `date_to`（`YYYY-MM-DD`，需成对出现）。
 
 附件归一化：
 
@@ -119,6 +156,7 @@ Action 与接口映射：
 
 - `scripts/skill.mjs`
 - `scripts/agent-task-auth.mjs`
+- `scripts/base-url.mjs`
 - `scripts/attachment-normalize.mjs`
 - `scripts/telemetry.mjs`（兼容占位）
 - `references/capabilities.json`

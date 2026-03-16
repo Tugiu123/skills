@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// release-gate: allow-env-network
 
 import { basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,7 +9,9 @@ import { emitTelemetry, extractRequestContext } from './telemetry.mjs';
 const ACTIONS = {
   'portal.skill.execute': { method: 'POST' },
   'portal.skill.poll': { method: 'GET' },
-  'portal.skill.presentation': { method: 'GET' }
+  'portal.skill.presentation': { method: 'GET' },
+  'portal.account.balance': { method: 'GET' },
+  'portal.account.ledger': { method: 'GET' }
 };
 
 const IMAGE_CAPABILITIES = new Set([
@@ -120,6 +121,7 @@ export async function runSkillAction(params = {}, options = {}) {
 
   const body = await response.text();
   const parsed = parseJson(body);
+  let apiError = response.ok ? null : parseApiError(parsed, body, response.status);
 
   if (response.ok) {
     emitStderr({
@@ -128,7 +130,7 @@ export async function runSkillAction(params = {}, options = {}) {
       status: response.status
     });
   } else {
-    const apiError = parseApiError(parsed, body, response.status);
+    apiError = parseApiError(parsed, body, response.status);
     emitStderr({
       event: 'portal_action_failed',
       action,
@@ -161,34 +163,34 @@ export async function runSkillAction(params = {}, options = {}) {
 
   const context = extractRequestContext(body);
   if (action === 'portal.skill.execute') {
-    const apiError = response.ok ? null : parseApiError(parsed, body, response.status);
+    const actionApiError = response.ok ? null : parseApiError(parsed, body, response.status);
     void emitTelemetryImpl({
       eventName: response.ok ? 'agent.execute.success' : 'agent.execute.failed',
       status: response.ok ? 'ok' : 'error',
       capability: capability ?? undefined,
       runId: context.runId ?? undefined,
-      requestId: context.requestId ?? apiError?.requestId ?? undefined,
+      requestId: context.requestId ?? actionApiError?.requestId ?? undefined,
       properties: response.ok
         ? {}
         : {
-            code: apiError?.code,
-            message: apiError?.message
+            code: actionApiError?.code,
+            message: actionApiError?.message
           }
     });
   } else if (action === 'portal.skill.poll') {
-    const apiError = response.ok ? null : parseApiError(parsed, body, response.status);
+    const actionApiError = response.ok ? null : parseApiError(parsed, body, response.status);
     void emitTelemetryImpl({
       eventName: response.ok ? 'agent.poll.terminal' : 'agent.poll.failed',
       status: response.ok ? 'ok' : 'error',
       runId: context.runId ?? runIdHint ?? undefined,
-      requestId: context.requestId ?? apiError?.requestId ?? undefined,
+      requestId: context.requestId ?? actionApiError?.requestId ?? undefined,
       properties: response.ok
         ? {
             run_status: context.status
           }
         : {
-            code: apiError?.code,
-            message: apiError?.message
+            code: actionApiError?.code,
+            message: actionApiError?.message
           }
     });
   }
@@ -253,6 +255,16 @@ async function buildActionRequest(action, payload, normalizeExecutePayloadImpl) 
         })
       };
     }
+    case 'portal.account.balance':
+      return {
+        method: 'GET',
+        path: '/agent/skill/account/balance'
+      };
+    case 'portal.account.ledger':
+      return {
+        method: 'GET',
+        path: buildPathWithQuery('/agent/skill/account/ledger', resolveDateRange(payload))
+      };
     default:
       throw createActionError(400, 'VALIDATION_BAD_REQUEST', `unsupported action: ${action}`);
   }
@@ -298,6 +310,34 @@ function resolveOptionalIdentifier(payload, keys) {
     }
   }
   return null;
+}
+
+function resolveDateRange(payload) {
+  const dateFrom = readOptionalDate(payload.date_from, 'date_from');
+  const dateTo = readOptionalDate(payload.date_to, 'date_to');
+  if (!dateFrom && !dateTo) {
+    return {};
+  }
+  if (!dateFrom || !dateTo) {
+    throw createActionError(400, 'VALIDATION_BAD_REQUEST', 'date_from and date_to are required together');
+  }
+  if (dateFrom > dateTo) {
+    throw createActionError(400, 'VALIDATION_BAD_REQUEST', 'invalid date range');
+  }
+  return {
+    date_from: dateFrom,
+    date_to: dateTo
+  };
+}
+
+function readOptionalDate(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+    throw createActionError(400, 'VALIDATION_BAD_REQUEST', `${fieldName} must use YYYY-MM-DD`);
+  }
+  return value.trim();
 }
 
 function readText(value) {

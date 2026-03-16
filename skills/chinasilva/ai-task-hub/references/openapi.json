@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Task Hub Skill API",
-    "version": "3.1.1",
-    "description": "Public skill contract for execute/poll/presentation via host-managed agent task token."
+    "version": "3.2.3",
+    "description": "Public skill contract for execute/poll/presentation/account balance/account ledger via host-managed agent task token."
   },
   "servers": [
     {
@@ -20,7 +20,8 @@
       },
       "output_schema": {
         "$ref": "#/components/schemas/PortalSkillExecuteOutput"
-      }
+      },
+      "required_scope": "execute"
     },
     "portal.skill.poll": {
       "summary": "Poll run state via host proxy",
@@ -31,7 +32,8 @@
       },
       "output_schema": {
         "$ref": "#/components/schemas/PortalSkillPollOutput"
-      }
+      },
+      "required_scope": "poll"
     },
     "portal.skill.presentation": {
       "summary": "Fetch presentation payload via host proxy",
@@ -42,7 +44,32 @@
       },
       "output_schema": {
         "$ref": "#/components/schemas/PortalSkillPresentationOutput"
-      }
+      },
+      "required_scope": "presentation"
+    },
+    "portal.account.balance": {
+      "summary": "Read account points balance via host proxy",
+      "method": "GET",
+      "path": "/agent/skill/account/balance",
+      "input_schema": {
+        "$ref": "#/components/schemas/PortalAccountBalanceInput"
+      },
+      "output_schema": {
+        "$ref": "#/components/schemas/PortalAccountBalanceOutput"
+      },
+      "required_scope": "account_read"
+    },
+    "portal.account.ledger": {
+      "summary": "Read account points ledger via host proxy",
+      "method": "GET",
+      "path": "/agent/skill/account/ledger",
+      "input_schema": {
+        "$ref": "#/components/schemas/PortalAccountLedgerInput"
+      },
+      "output_schema": {
+        "$ref": "#/components/schemas/PortalAccountLedgerOutput"
+      },
+      "required_scope": "account_read"
     }
   },
   "paths": {
@@ -85,6 +112,26 @@
       "get": {
         "summary": "Read skill markdown (Chinese)"
       }
+    },
+    "/agent/skill/account/balance": {
+      "get": {
+        "summary": "portal.account.balance",
+        "security": [
+          {
+            "AgentTaskToken": []
+          }
+        ]
+      }
+    },
+    "/agent/skill/account/ledger": {
+      "get": {
+        "summary": "portal.account.ledger",
+        "security": [
+          {
+            "AgentTaskToken": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -93,7 +140,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Agent-Task-Token",
-        "description": "Host-issued short-lived token. Required claims: sub, agent_uid, conversation_id, scope, exp, jti."
+        "description": "Host-issued short-lived token. Required claims: sub, agent_uid, conversation_id, scope, exp, jti. Required action scopes: execute|poll|presentation|account_read."
       }
     },
     "schemas": {
@@ -267,6 +314,53 @@
               "null"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "PortalAccountBalanceInput": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "No input required; payload is optional."
+      },
+      "PortalAccountBalanceOutput": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "available_points": {
+            "type": "number"
+          },
+          "recharge_url": {
+            "type": "string"
+          }
+        }
+      },
+      "PortalAccountLedgerInput": {
+        "type": "object",
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "date_to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        }
+      },
+      "PortalAccountLedgerOutput": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         }
       }
