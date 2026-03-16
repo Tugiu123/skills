@@ -1,28 +1,54 @@
 ---
+version: "2.0.0"
 name: Changelog Writer
-description: >-
+description: "Changelog Writer - CHANGELOG管理工具. Use when you need changelog writer capabilities. Triggers on: changelog writer."
   CHANGELOG生成器。变更日志、版本发布、语义化版本、差异对比、模板。Changelog writer with release notes, semver, diff, templates. CHANGELOG、版本管理。
+author: BytesAgain
 ---
 # Changelog Writer
 
 CHANGELOG生成器。变更日志、版本发布、语义化版本、差异对比、模板。Changelog writer with release notes, semver, diff, templates. CHANGELOG、版本管理。
 
-## Commands
+## 与手动操作对比
 
-- `generate` — generate
-- `format` — format
-- `release` — release
-- `semver` — semver
-- `diff` — diff
-- `template` — template
+| | 手动 | 使用本工具 |
+|---|---|---|
+| 时间 | 数小时 | 几分钟 |
+| 专业度 | 取决于经验 | 专业级输出 |
+| 一致性 | 易遗漏 | 标准化模板 |
 
-## Usage
+## 可用命令
 
-Run any command with your input to get started. Use `help` to see all available commands.
-
-## About
-
-Part of the BytesAgain productivity toolkit. Visit [bytesagain.com](https://bytesagain.com) for more tools.
+- **generate** — generate
+- **format** — format
+- **release** — release
+- **semver** — semver
+- **diff** — diff
+- **template** — template
 
 ---
-Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
+*Changelog Writer by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+- `keepachangelog` — Keepachangelog
+- `simple` — Simple
+- `compact` — Compact
+- `init` — Init
+- `add` — version "1.2.0" [--added "..."] [--changed "..."] [--fixed "..."]
+- `format` — style <keepachangelog|simple|compact>
+- `unreleased` — added "Feature description"
+- `diff` — from "1.0.0" --to "1.1.0" [--file CHANGELOG.md]
+
+## Examples
+
+```bash
+# Show help
+changelog-writer help
+
+# Run
+changelog-writer run
+```
