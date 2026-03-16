@@ -1,6 +1,6 @@
 ---
 name: aa-pair-analysis
-description: 蛋白质氨基酸功能类别相邻对频率分析。对给定分类群的蛋白质序列进行多序列比对（MSA）、共识序列提取、对型统计和配方计算，输出Top5高频对型及φ值。适用于：（1）对新物种/类群运行完整分析流程，（2）从已有共识序列进行对型统计，（3）与文献结果对比验证，（4）修改氨基酸分类或统计参数后重新分析。
+description: 蛋白质氨基酸功能类别相邻对频率分析。对任意蛋白质家族的多物种序列进行多序列比对（MSA）、共识序列提取、对型统计和配方计算，输出Top5高频对型及φ值。适用于：（1）对新物种/类群运行完整分析流程，（2）从已有共识序列进行对型统计，（3）横向比较不同物种/类群的氨基酸对组成差异，（4）修改氨基酸分类或统计参数后重新分析。适用于任何蛋白质家族。
 ---
 
 # 氨基酸对频率分析（aa-pair-analysis）
@@ -28,21 +28,20 @@ bash skills/aa-pair-analysis/scripts/setup.sh
 
 ## 核心文件
 
-- **分析脚本（完整流程）**: `../../run_pdf_analysis.py`（PDF批量）/ `../../species_analysis_workflow.py`（FASTA→MSA→结果）
+- **分析脚本（完整流程）**: `scripts/species_analysis_workflow.py`（FASTA→MSA→结果）
 - **方法详情**: `references/method.md`
 - **氨基酸分类**: `references/classification.md`
 
 ## 快速运行
 
 ```bash
-# 从PDF共识序列批量分析
-python run_pdf_analysis.py
+cd skills/aa-pair-analysis
 
 # 从原始FASTA完整流程（MSA→共识→对分析）
-python species_analysis_workflow.py 任务名 数据目录 --threshold 0.5
+python scripts/species_analysis_workflow.py 任务名 数据目录 --threshold 0.5
 
 # 断点续传
-python species_analysis_workflow.py 任务名 数据目录 --resume 已有结果目录
+python scripts/species_analysis_workflow.py 任务名 数据目录 --resume 已有结果目录
 ```
 
 ## 关键参数
@@ -77,7 +76,7 @@ python species_analysis_workflow.py 任务名 数据目录 --resume 已有结果
 
 ## 修改分析参数时的注意事项
 
-- **修改氨基酸分类**：同步更新 `run_pdf_analysis.py` 和 `species_analysis_workflow.py` 中的 `FUNCTIONAL_CLASSES` 字典
+- **修改氨基酸分类**：同步更新 `scripts/run_pdf_analysis.py` 和 `scripts/species_analysis_workflow.py` 中的 `FUNCTIONAL_CLASSES` 字典
 - **修改阈值**：使用 `--threshold` 参数，无需改代码
 - **修改计数方法**：Step3（过滤拼接）和Step5（对称合并）需同步修改两个脚本
 

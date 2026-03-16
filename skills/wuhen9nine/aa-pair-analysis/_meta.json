@@ -1,11 +1,17 @@
 {
   "owner": "wuhen9nine",
   "slug": "aa-pair-analysis",
-  "displayName": "aa-pair-analysis",
+  "displayName": "氨基酸对频率分析（AA Pair Analysis）",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773123637363,
-    "commit": "https://github.com/openclaw/skills/commit/d53b42dd6919dbaad2053a4ac16bf9f30825456c"
+    "version": "1.0.2",
+    "publishedAt": 1773637297699,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773123637363,
+      "commit": "https://github.com/openclaw/skills/commit/d53b42dd6919dbaad2053a4ac16bf9f30825456c"
+    }
+  ]
 }
