@@ -3,11 +3,16 @@
   "slug": "mem9-ai",
   "displayName": "mem9.ai",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773156014284,
-    "commit": "https://github.com/openclaw/skills/commit/910a7452526620c665be03edc4ac4bb5b6736e2f"
+    "version": "1.0.7",
+    "publishedAt": 1773480626698,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773156014284,
+      "commit": "https://github.com/openclaw/skills/commit/910a7452526620c665be03edc4ac4bb5b6736e2f"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772954134744,
