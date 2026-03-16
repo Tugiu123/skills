@@ -24,6 +24,7 @@ Let OpenClaw **speak** in Feishu: turn any text into a **native voice message** 
 ## Setup
 
 - **Required (all modes):** `FEISHU_APP_ID`, `FEISHU_APP_SECRET` in `.env` or OpenClaw config. **FFmpeg** must be on `PATH` or set `FFMPEG_PATH`.
+- **Optional default target chat:** `FEISHU_DEFAULT_CHAT_ID` can be set in `.env` so you don't have to pass a chat ID every time.
 - **Edge TTS (default):** No extra keys. Optional `EDGE_VOICE` (e.g. `zh-CN-XiaoxiaoNeural`).
 - **ElevenLabs:** Set `TTS_PROVIDER=ELEVEN`, and add `ELEVEN_API_KEY`, `VOICE_ID`.
 
@@ -32,11 +33,11 @@ Let OpenClaw **speak** in Feishu: turn any text into a **native voice message** 
 From the skill directory (or with `PYTHONPATH` set):
 
 ```bash
-python main.py "<text to speak>" "<feishu_chat_id>" [receive_id_type]
+python main.py "<text to speak>" "[feishu_chat_id]" [receive_id_type]
 ```
 
 - **Arg 1:** Text to speak.
-- **Arg 2:** Feishu chat ID (or other `receive_id`).
+- **Arg 2 (optional):** Feishu chat ID (or other `receive_id`). If omitted, the skill will use `FEISHU_DEFAULT_CHAT_ID` from `.env` when available.
 - **Arg 3 (optional):** `receive_id_type`, default `chat_id` (can be `open_id` etc. per Feishu API).
 
 OpenClaw can call this with env vars injected and the same two (or three) arguments.

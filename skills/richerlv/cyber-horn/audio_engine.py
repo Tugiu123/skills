@@ -62,7 +62,7 @@ def edge_tts_to_mp3(text: str, voice: str, out_path: str | Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 使用同步保存接口，避免在调用方处理异步
-    communicate = edge_tts.Communicate(text=text, voice=voice)
+    communicate = edge_tts.Communicate(text, voice)
     try:
         communicate.save_sync(str(out_path))
     except Exception as e:
