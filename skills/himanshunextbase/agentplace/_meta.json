@@ -3,11 +3,16 @@
   "slug": "agentplace",
   "displayName": "Agentplace",
   "latest": {
-    "version": "2.0.2",
-    "publishedAt": 1773318724117,
-    "commit": "https://github.com/openclaw/skills/commit/d2dabd9cf3c3bbb6417d32be48ce1a2d774181b9"
+    "version": "2.0.3",
+    "publishedAt": 1773378207647,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.2",
+      "publishedAt": 1773318724117,
+      "commit": "https://github.com/openclaw/skills/commit/d2dabd9cf3c3bbb6417d32be48ce1a2d774181b9"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772018876505,
