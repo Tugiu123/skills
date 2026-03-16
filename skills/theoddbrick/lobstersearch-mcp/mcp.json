@@ -1,0 +1,205 @@
+{
+  "name": "lobstersearch",
+  "version": "1.0.0",
+  "description": "Find the best local businesses through AI — search, compare, and discover verified businesses with confidence-scored data optimized for AI agent recommendations.",
+  "homepage": "https://lobstersearch.ai",
+  "repository": "https://github.com/theoddbrick/lobstersearch-mcp",
+  "endpoint": "https://mcp.lobstersearch.ai/mcp",
+  "transport": "streamable-http",
+  "authentication": "none",
+  "tools": [
+    {
+      "name": "search_businesses",
+      "description": "Search businesses globally by natural language query. Returns structured business data with match relevance, quality signals, and confidence annotations optimized for AI agent recommendations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language query e.g. 'vegan restaurant in Shoreditch open Sunday'"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "ISO 2-letter country code"
+          },
+          "city": {
+            "type": "string",
+            "description": "City name"
+          },
+          "business_type": {
+            "type": "string",
+            "description": "Specific type e.g. salon_hair, clinic_gp"
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum results to return",
+            "default": 10
+          },
+          "min_confidence": {
+            "type": "number",
+            "description": "Minimum confidence threshold (0-1)",
+            "default": 0.3
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "get_business_details",
+      "description": "Get full details for a specific business including services, products, and promotions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "string",
+            "description": "UUID of the business"
+          },
+          "include_services": {
+            "type": "boolean",
+            "description": "Include services data",
+            "default": true
+          },
+          "include_products": {
+            "type": "boolean",
+            "description": "Include products data",
+            "default": true
+          },
+          "include_promotions": {
+            "type": "boolean",
+            "description": "Include promotions data",
+            "default": true
+          }
+        },
+        "required": ["business_id"]
+      }
+    },
+    {
+      "name": "list_nearby_businesses",
+      "description": "Find businesses near GPS coordinates within a radius.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "description": "GPS latitude"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "GPS longitude"
+          },
+          "radius_km": {
+            "type": "number",
+            "description": "Search radius in kilometers",
+            "default": 2
+          },
+          "business_type": {
+            "type": "string",
+            "description": "Filter by business category"
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum results to return",
+            "default": 10
+          }
+        },
+        "required": ["latitude", "longitude"]
+      }
+    },
+    {
+      "name": "get_promotions",
+      "description": "Find active promotions and deals, optionally filtered by category, city, or business type. Great for finding current offers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City to filter by"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "ISO 2-letter country code"
+          },
+          "business_type": {
+            "type": "string",
+            "description": "Business type e.g. restaurant, salon_hair"
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum results to return",
+            "default": 20
+          }
+        }
+      }
+    },
+    {
+      "name": "compare_businesses",
+      "description": "Compare 2-3 businesses side-by-side. Returns key fields for each business including services, pricing, ratings, and GEO scores for easy comparison.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "business_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 2,
+            "maxItems": 3,
+            "description": "Array of 2-3 business UUIDs to compare"
+          }
+        },
+        "required": ["business_ids"]
+      }
+    },
+    {
+      "name": "get_trending",
+      "description": "Get trending businesses based on recent MCP query volume. Shows what AI agents are asking about most.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "Filter by city"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "ISO 2-letter country code"
+          },
+          "days": {
+            "type": "number",
+            "description": "Look-back period in days",
+            "default": 7
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum results to return",
+            "default": 10
+          }
+        }
+      }
+    },
+    {
+      "name": "report_data_mismatch",
+      "description": "Report when LobsterSearch data doesn't match reality. Triggers a re-crawl.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "string",
+            "description": "UUID of the business with incorrect data"
+          },
+          "field_name": {
+            "type": "string",
+            "description": "The field that is wrong"
+          },
+          "expected_value": {
+            "type": "string",
+            "description": "What LobsterSearch showed"
+          },
+          "actual_value": {
+            "type": "string",
+            "description": "What the real value is"
+          }
+        },
+        "required": ["business_id", "field_name", "expected_value", "actual_value"]
+      }
+    }
+  ]
+}
