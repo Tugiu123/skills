@@ -1,6 +1,6 @@
 ---
-name: Doubao ASR / 豆包语音转写
-description: "Transcribe audio files via Doubao Seed-ASR 2.0 (豆包录音文件识别模型2.0, recorded audio → text) API from ByteDance/Volcengine. Best-in-class Chinese speech recognition. 调用字节跳动火山引擎「豆包录音文件识别模型2.0」转写录音文件，中文识别效果业界领先。Use when the user needs to transcribe recorded audio files, or asks for Doubao/豆包/Volcengine/火山引擎 audio file transcription. Do NOT use for real-time/streaming speech recognition, text-to-speech (TTS), or live captioning. 不适用于实时语音识别、语音合成(TTS)或直播字幕。"
+name: doubao-asr（豆包语音转写）
+description: "Transcribe recorded audio files to text via Doubao Seed-ASR 2.0 (豆包录音文件识别模型2.0) from ByteDance/Volcengine. Best-in-class Chinese speech recognition with speaker diarization. Use this skill whenever the user wants to: convert audio/recording to text, transcribe a meeting recording or voice memo, identify who said what in a recording (说话人分离), transcribe m4a/mp3/wav/ogg/flac files, or mentions 录音转文字/豆包/火山引擎/Volcengine/Doubao ASR. Also use when the user has an audio file and needs a transcript, even if they don't explicitly say 'transcribe'. Do NOT use for real-time/streaming speech recognition, text-to-speech (TTS), live captioning, or audio format conversion."
 allowed-tools: "Bash(python3:*)"
 homepage: https://www.volcengine.com/docs/6561/1354868
 metadata:
@@ -42,8 +42,8 @@ metadata:
             "VOLCENGINE_TOS_REGION":
               {
                 "required": true,
-                "description": "TOS 区域代码，必须与创建桶时选择的区域一致。海外服务器必须用 cn-hongkong / TOS region code, must match the region selected when creating the bucket. Overseas servers MUST use cn-hongkong",
-                "howToGet": "填写你在创建 TOS 存储桶时选择的区域代码。\n如果服务器在中国大陆以外，必须设为 cn-hongkong。\n海外服务器切勿使用 cn-beijing/cn-shanghai，否则上传极慢（约 15KB/s）。\n\nEnter the region code you selected when creating the TOS bucket.\nIf your server is outside China mainland, MUST use cn-hongkong.\nDo NOT use cn-beijing/cn-shanghai for overseas servers — upload ~15KB/s.",
+                "description": "TOS 区域代码，必须与创建桶时选择的区域一致。海外服务器推荐使用海外节点（如 cn-hongkong、ap-southeast-1） / TOS region code, must match the region selected when creating the bucket. Overseas servers should use an overseas region (e.g. cn-hongkong, ap-southeast-1)",
+                "howToGet": "填写你在创建 TOS 存储桶时选择的区域代码。\n如果服务器在中国大陆以外，推荐使用海外节点（如 cn-hongkong、ap-southeast-1）。\n海外服务器切勿使用 cn-beijing/cn-shanghai，否则上传极慢（约 15KB/s）。\n\nEnter the region code you selected when creating the TOS bucket.\nIf your server is outside China mainland, use an overseas region (e.g. cn-hongkong, ap-southeast-1).\nDo NOT use cn-beijing/cn-shanghai for overseas servers — upload ~15KB/s.",
               },
           },
       },
@@ -229,15 +229,15 @@ export VOLCENGINE_SECRET_ACCESS_KEY="xxxx..."
 | China mainland / 中国内地 | cn-beijing, cn-shanghai, cn-guangzhou | `cn-beijing` |
 | Hong Kong / 香港 | cn-hongkong | `cn-hongkong` |
 | Southeast Asia / 东南亚 | ap-southeast-1 (Singapore) | `ap-southeast-1` |
-| US, Europe, other overseas / 美国、欧洲等海外 | **cn-hongkong** (recommended) | `cn-hongkong` |
+| US, Europe, other overseas / 美国、欧洲等海外 | Any overseas region (e.g. `cn-hongkong`, `ap-southeast-1`) / 任意海外节点 | `cn-hongkong` |
 
-> **Important**: If your server is **outside China mainland**, do NOT use `cn-beijing` / `cn-shanghai` — cross-border upload will be extremely slow (~15KB/s). Use `cn-hongkong` instead.
+> **Important**: If your server is **outside China mainland**, use an overseas region (e.g. `cn-hongkong`, `ap-southeast-1`) — do NOT use `cn-beijing` / `cn-shanghai`, cross-border upload will be extremely slow (~15KB/s).
 >
-> **重要**：如果你的服务器在**中国大陆以外**，不要用 `cn-beijing` / `cn-shanghai`——跨境上传会非常慢（约 15KB/s）。请使用 `cn-hongkong`。
+> **重要**：如果你的服务器在**中国大陆以外**，请使用海外节点（如 `cn-hongkong`、`ap-southeast-1`），不要用 `cn-beijing` / `cn-shanghai`——跨境上传会非常慢（约 15KB/s）。
 
 ```bash
 export VOLCENGINE_TOS_BUCKET="your_bucket_name"
-export VOLCENGINE_TOS_REGION="cn-hongkong"  # see region table above / 见上方区域表
+export VOLCENGINE_TOS_REGION="cn-hongkong"  # or other overseas region / 或其他海外节点，见上方区域表
 ```
 
 ### Summary of all environment variables / 环境变量汇总
@@ -248,7 +248,7 @@ export VOLCENGINE_TOS_REGION="cn-hongkong"  # see region table above / 见上方
 | `VOLCENGINE_ACCESS_KEY_ID` | Yes | IAM Access Key ID (starts with `AKLT`) / IAM 访问密钥 ID |
 | `VOLCENGINE_SECRET_ACCESS_KEY` | Yes | IAM Secret Access Key / IAM 访问密钥 |
 | `VOLCENGINE_TOS_BUCKET` | Yes | TOS bucket name / TOS 存储桶名称 |
-| `VOLCENGINE_TOS_REGION` | Yes | TOS region code, must match bucket region. 必须与创建桶时选择的区域一致。Overseas: `cn-hongkong`; China: `cn-beijing` |
+| `VOLCENGINE_TOS_REGION` | Yes | TOS region code, must match bucket region. 必须与创建桶时选择的区域一致。Overseas: e.g. `cn-hongkong`, `ap-southeast-1`; China: `cn-beijing` |
 
 ## Supported formats
 

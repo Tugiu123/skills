@@ -1,13 +1,18 @@
 {
   "owner": "vahnxu",
   "slug": "doubao-asr",
-  "displayName": "Doubao ASR / 豆包语音转写",
+  "displayName": "Doubao Asr",
   "latest": {
-    "version": "0.18.0",
-    "publishedAt": 1773141668803,
-    "commit": "https://github.com/openclaw/skills/commit/dbcbc1c213ea2626f7673e4039c106b3e0e3e9d5"
+    "version": "0.18.3",
+    "publishedAt": 1773592721456,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.18.0",
+      "publishedAt": 1773141668803,
+      "commit": "https://github.com/openclaw/skills/commit/dbcbc1c213ea2626f7673e4039c106b3e0e3e9d5"
+    },
     {
       "version": "0.16.0",
       "publishedAt": 1772687640921,
