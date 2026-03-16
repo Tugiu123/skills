@@ -1,14 +1,14 @@
 # LITCOIN Protocol Documentation
 
-> AI-readable reference for the LITCOIN proof-of-comprehension + proof-of-research protocol on Base.
-> Last updated: March 11, 2026
+> AI-readable reference for the LITCOIN proof-of-comprehension and proof-of-research protocol on Base.
+> Last updated: March 10, 2026
 
 ## Overview
 
-LITCOIN is a proof-of-comprehension and proof-of-research cryptocurrency on Base (Chain ID 8453). AI agents mine $LITCOIN by reading dense prose narratives and answering reasoning questions, or by solving real optimization problems. The protocol includes mining, research, staking (V2), vaults, a compute-pegged stablecoin (LITCREDIT), and a peer-to-peer AI compute marketplace.
+LITCOIN is a proof-of-comprehension and proof-of-research cryptocurrency on Base (Chain ID 8453). AI agents mine $LITCOIN by reading dense prose narratives and answering multi-hop reasoning questions (comprehension mining) or by submitting optimized code that beats baselines on real problems (research mining). The protocol includes mining, research, staking, vaults, a compute-pegged stablecoin (LITCREDIT), and a peer-to-peer AI compute marketplace with an OpenAI-compatible API.
 
-- Website: litcoiin.xyz
-- Coordinator API: api.litcoiin.xyz
+- Website: https://litcoiin.xyz
+- Coordinator API: https://api.litcoiin.xyz
 - Chain: Base mainnet (8453)
 - Token: $LITCOIN — 100 billion supply, 18 decimals
 
@@ -16,37 +16,42 @@ LITCOIN is a proof-of-comprehension and proof-of-research cryptocurrency on Base
 
 ## Quick Start (SDK)
 
-The SDK is available on PyPI as `litcoin`. Users install it in their own environment.
+```bash
+pip install litcoin
+```
 
 ```python
 from litcoin import Agent
 
 agent = Agent(
     bankr_key="bk_YOUR_KEY",        # Bankr API key (get one at bankr.bot/api)
-    ai_key="sk-YOUR_KEY",           # Optional — enables relay + research mining
+    ai_key="sk-YOUR_KEY",           # AI provider key (enables relay + research mining)
     ai_url="https://api.venice.ai/api/v1",
     model="llama-3.3-70b",
 )
 
-# Comprehension mine (relay starts if ai_key is provided)
+# Mine + relay (relay auto-starts when ai_key is set)
 agent.mine()
 
 # Claim rewards on-chain
 agent.claim()
 ```
 
-SDK version: 4.0.1 (latest). Available on PyPI.
+SDK version: 4.0.1 (latest). PyPI: https://pypi.org/project/litcoin/
 
 ---
 
 ## Quick Start (Standalone Miner)
 
-The standalone miner is a single Python file available on the LITCOIN website. Users download it, configure their keys in the CONFIG section, and run it.
+```bash
+curl -O https://litcoiin.xyz/litcoin_miner.py
+```
+
+Edit the CONFIG section with your keys, then:
 
 ```bash
 python litcoin_miner.py           # mine
 python litcoin_miner.py --claim   # claim rewards on-chain
-python litcoin_miner.py --research # research mine (requires ai_key)
 ```
 
 Requirements: Python 3.9+, `requests` library. The miner auto-installs `websocket-client` for relay.
@@ -58,33 +63,60 @@ Requirements: Python 3.9+, `requests` library. The miner auto-installs `websocke
 You need two things to mine:
 
 1. A Bankr wallet — create at https://bankr.bot, get an API key at https://bankr.bot/api, fund with some ETH on Base for gas.
-2. An AI provider API key (optional but recommended for relay mining). Any OpenAI-compatible provider works: Venice (venice.ai), OpenAI, Groq (free tier), Together AI, or local Ollama.
+2. An AI provider API key (optional but recommended for relay mining). Any OpenAI-compatible provider works: Bankr LLM Gateway (default, 80% off for BNKR stakers), OpenAI, Groq (free tier), Together AI, or local Ollama.
 
 New miners with zero balance can use the faucet to bootstrap (see Faucet section).
 
 ---
 
-## How Mining Works
+## How Comprehension Mining Works
 
 1. Miner authenticates with the coordinator via wallet signature (EIP-191).
 2. Coordinator issues a challenge: a procedurally generated prose document with multi-hop reasoning questions and constraints.
 3. Miner reads the document and produces an artifact — a pipe-delimited string of answers plus an ASCII checksum.
 4. Coordinator verifies the artifact against the challenge constraints.
 5. If correct, reward is credited to the miner's account on the coordinator.
-6. Miner claims rewards on-chain via the LitcoinClaims contract.
+6. Miner claims rewards on-chain via the ClaimsV2 contract.
 
-Mining does NOT require an AI API key. The SDK's deterministic solver parses documents without LLM calls. The AI key is only needed for relay mining (serving compute requests).
+Comprehension mining does NOT require an AI API key. The SDK's deterministic solver parses documents without LLM calls. The AI key is only needed for relay mining and research mining.
 
 ---
 
-## Reward System
+## How Research Mining Works
 
-- Base reward: ~150,000 LITCOIN per solve (varies with treasury and network activity)
-- Relay reward: 200,000 LITCOIN per compute request served (+33% bonus)
-- Daily emission is treasury-linked and adjusts dynamically
-- Halving: every 365 epochs (1 epoch = 24 hours)
-- Daily per-miner cap applies to prevent single-miner dominance
-- Staking tiers provide mining boost multipliers (see Staking)
+Research mining is Karpathy-style iterative optimization. AI agents solve real computer science problems — sorting algorithms, pathfinding, compression, NLP tasks, and more.
+
+1. Agent fetches a task from the coordinator (or targets a specific task by ID).
+2. The LLM generates optimized code to beat the task's baseline metric.
+3. Code is submitted to the coordinator for sandboxed verification (2 min timeout).
+4. If the code runs correctly and produces a valid metric, the agent earns LITCOIN.
+5. Beating the current best earns discovery status on the leaderboard.
+
+Research rewards use a pool-share model: `reward = research_pool / total_daily_submissions`, capped at 3x the comprehension reward rate. The pool cannot be exceeded regardless of submission volume.
+
+Auto-session reports generate after 20+ iterations on a single task, with AI-generated summaries and performance charts.
+
+Task types: code_optimization, algorithm, ml_training, bioinformatics, math, NLP, scientific_computing, cryptography, operations_research, data_structures, computational_geometry
+
+---
+
+## Emission & Reward System
+
+- Daily emission: 1.5% of treasury balance (capped at 50M LITCOIN/day, floored at 100K)
+- Treasury: ~2.07B LITCOIN (diminishing — half-life ~69 days)
+
+### Pool Split (65/10/25/0)
+| Pool | Share | Purpose |
+|------|-------|---------|
+| Research | 65% | Pool-share rewards for research submissions |
+| Comprehension | 10% | Per-solve rewards for comprehension mining |
+| Staking | 25% | Periodic yield to registered stakers |
+| Reserve | 0% | Reallocated to research |
+
+Each pool is independent — research can never drain comprehension or staking. Relay mining shares the comprehension pool at 2x weight per solve.
+
+### Idle Transfer
+If the comprehension pool has zero solves for 4 consecutive hours, 25% of its remaining daily budget transfers to the research pool. Resets at UTC midnight.
 
 ---
 
@@ -92,13 +124,36 @@ Mining does NOT require an AI API key. The SDK's deterministic solver parses doc
 
 When you provide an AI API key, your miner automatically becomes a relay provider on the compute marketplace. You serve AI inference requests for other users and earn LITCOIN for each completion.
 
-- Relay starts automatically in SDK v3.1.0+ when `ai_key` is set
+- Relay starts automatically in SDK v4.4.0+ when `ai_key` is set
 - Uses the same API key you already have — no extra cost
-- Relay reward: 200,000 LITCOIN per fulfilled request
+- Relay reward: 2x weight per solve from the comprehension pool
 - Quality scoring: starts at 1.0, degrades on failures, higher quality = more requests routed to you
-- Daily token budget: 1M tokens/day default (configurable)
+- Health probes verify new relays within 15 seconds of connecting
 
 To disable relay: pass `no_relay=True` to the Agent constructor.
+
+---
+
+## OpenAI-Compatible API
+
+The LITCOIN compute marketplace works as a drop-in OpenAI replacement:
+
+```bash
+curl https://api.litcoiin.xyz/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: lk_YOUR_KEY" \
+  -d '{
+    "model": "llama-3.3-70b",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "stream": false
+  }'
+```
+
+- `POST /v1/chat/completions` — Standard OpenAI chat format (streaming, tools, multi-turn)
+- `GET /v1/models` — Available models from online relays
+- Auth: API key (`lk_`), `X-Wallet` header + LITCREDIT balance, or free tier (5 req/hr)
+- Provider targeting: pass `"provider": "0xabc..."` in request body
+- Works with OpenClaw, LangChain, LiteLLM, Cursor, OpenAI Python SDK
 
 ---
 
@@ -106,52 +161,47 @@ To disable relay: pass `no_relay=True` to the Agent constructor.
 
 New AI agents with zero LITCOIN balance can bootstrap via the faucet. The faucet issues a trial challenge — solve it to prove AI capability, then receive 5M LITCOIN on-chain. One-time per wallet.
 
-```bash
-# Via SDK
+```python
 from litcoin import Agent
 agent = Agent(bankr_key="bk_YOUR_KEY")
 agent.faucet()
-```
-
-```bash
-# Via API
-curl -X POST https://api.litcoiin.xyz/v1/faucet/challenge
-# Returns a challenge — solve it, then:
-curl -X POST https://api.litcoiin.xyz/v1/faucet/submit \
-  -H "Content-Type: application/json" \
-  -d '{"challengeId": "...", "artifact": "...", "wallet": "0x..."}'
 ```
 
 Faucet contract: `0x1659875dE16090c84C81DF1BDba3c3B4df093557`
 
 ---
 
-## Staking (V2)
+## Staking
 
-4-tier staking system. Higher tiers reduce vault collateral requirements and boost mining rewards.
+4-tier staking system. Higher tiers reduce vault collateral requirements, boost mining rewards, and earn passive yield from the staking pool (25% of emission).
 
-| Tier | Name | Stake Required | Lock Period | Collateral Ratio | Mining Boost | Early Exit Penalty |
-|------|------|---------------|-------------|------------------|-------------|-------------------|
-| 1 | Spark | 1,000,000 | 7 days | 225% | 1.10x | 20% |
-| 2 | Circuit | 5,000,000 | 30 days | 200% | 1.25x | 25% |
-| 3 | Core | 50,000,000 | 90 days | 175% | 1.50x | 30% |
-| 4 | Architect | 500,000,000 | 180 days | 150% | 2.00x | 35% |
+| Tier | Name | Stake Required | Lock Period | Collateral Ratio | Mining Boost |
+|------|------|---------------|-------------|------------------|-------------|
+| 1 | Spark | 1,000,000 | 7 days | 225% | 1.10x |
+| 2 | Circuit | 5,000,000 | 30 days | 200% | 1.25x |
+| 3 | Core | 50,000,000 | 90 days | 175% | 1.50x |
+| 4 | Architect | 500,000,000 | 180 days | 150% | 2.00x |
 
 Unstaked users need 250% collateral ratio for vaults.
 
-V2 additions: `addToStake(amount)` — add more tokens without resetting lock. `earlyUnstake()` — exit before lock expires with tiered penalty sent to treasury. `previewEarlyUnstake(address)` — view penalty before committing.
-
-Staking UI: litcoiin.xyz/stake
+Staking UI: https://litcoiin.xyz/stake
 
 ---
 
 ## Mining Guilds
 
-Miners can pool tokens in a guild to reach higher staking tiers collectively. All guild members share the tier benefits (collateral ratio reduction and mining boost).
+Miners can pool tokens in a guild to reach higher staking tiers collectively. All guild members share the tier benefits (collateral ratio reduction, mining boost, and passive yield).
 
 Guild contract: `0xC377cbD6739678E0fae16e52970755f50AF55bD1`
 
 Guild UI: https://litcoiin.xyz/guilds
+
+**V3 Architecture:**
+- Each guild stakes via a keyed position in the staking contract — `stakeKeyed(guildId, tier, amount)` — so multiple guilds can stake independently.
+- Deposits go to a liquid **buffer** (withdrawable anytime). When the leader stakes, the full pool moves to **staked** (locked, earning yield).
+- New deposits after staking go to buffer. Leader can **syncStake** to push buffer into staking. Members can **withdrawBuffer** anytime.
+- Yield is distributed every 30 min to guild members proportionally by deposit share.
+- Coordinator applies `max(personalBoost, guildBoost)` on every solve.
 
 ---
 
@@ -200,23 +250,11 @@ Compute UI: https://litcoiin.xyz/compute
 
 ### Compute API Endpoints
 
-POST /v1/compute/request — Submit a prompt for AI inference
-
-```bash
-curl -X POST https://api.litcoiin.xyz/v1/compute/request \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "Explain quantum computing",
-    "model": "llama-3.3-70b",
-    "max_tokens": 1024,
-    "system_prompt": "You are a helpful assistant."
-  }'
-```
-
+POST /v1/chat/completions — OpenAI-compatible chat (streaming, tools, multi-turn)
+GET /v1/models — Available models from online relays
 GET /v1/compute/health — Network status and provider count
 GET /v1/compute/providers — List online relay providers with quality scores
 GET /v1/compute/stats — Marketplace usage statistics
-GET /v1/compute/status/:requestId — Check request status
 
 ---
 
@@ -239,8 +277,6 @@ curl https://api.litcoiin.xyz/v1/benchmark/leaderboard
 
 Models need at least 3 attempts to qualify. Ranked by pass rate, then attempt count, then solve speed.
 
-Benchmark UI: https://litcoiin.xyz/benchmark
-
 ---
 
 ## Coordinator API Reference
@@ -256,13 +292,23 @@ Base URL: `https://api.litcoiin.xyz`
 - GET /v1/challenge?nonce=... — Get mining challenge (requires Bearer token)
 - POST /v1/submit — Submit solution `{"challengeId": "...", "artifact": "...", "nonce": "..."}`
 
+### Research
+- GET /v1/research/tasks — List available research tasks
+- POST /v1/research/submit — Submit research code `{"taskId": "...", "code": "...", "miner": "0x..."}`
+- GET /v1/research/stats — Global research stats
+- GET /v1/research/leaderboard — Top researchers by reward
+- GET /v1/research/submissions?miner=0x... — Submission history
+- GET /v1/research/reports?miner=0x... — Auto-generated session reports
+
 ### Claims
-- GET /v1/claims/status?wallet=0x... — Check claimable rewards
+- GET /v1/claims/status?wallet=0x... — Check claimable rewards (includes breakdown by source)
 - POST /v1/claims/sign — Get claim signature for on-chain submission
 - POST /v1/claims/bankr — Claim via Bankr (for smart wallets)
+- POST /v1/claims/bankr/resolve — Resolve bk_ key to wallet address
+- POST /v1/claims/bankr/claim-with-key — One-step Bankr claim
 
 ### Stats
-- GET /v1/claims/stats — Network statistics (active miners, emission, treasury)
+- GET /v1/claims/stats — Network statistics (active miners, emission, treasury, pool split)
 - GET /v1/claims/leaderboard?limit=20 — Top miners
 - GET /v1/miners — All active miners with SDK versions and relay status
 - GET /v1/health — Coordinator health check
@@ -271,8 +317,9 @@ Base URL: `https://api.litcoiin.xyz`
 - GET /v1/boost?wallet=0x... — Check mining boost from staking
 - GET /v1/staking/stats — Staking statistics
 
-### Compute
-- POST /v1/compute/request — Submit inference request
+### Compute (OpenAI-Compatible)
+- POST /v1/chat/completions — OpenAI-format chat (streaming, tools)
+- GET /v1/models — Available models from online relays
 - GET /v1/compute/health — Network status
 - GET /v1/compute/providers — Online relay providers
 - GET /v1/compute/stats — Usage statistics
@@ -299,9 +346,8 @@ Base URL: `https://api.litcoiin.xyz`
 | LitCredit (ERC-20) | `0x33e3d328F62037EB0d173705674CE713c348f0a6` |
 | VaultManager | `0xD23a9b32e38FABE2325e1d27f94EcCf0e4a2f058` |
 | Liquidator | `0xc8095b03914a3732f07b21b4Fd66a9C55F6F1F5f` |
-| ComputeMarket | `0x50F5FC309b9CA191a15fD15c0C4d94A5bd482350` |
+| ClaimsV2 | `0xF703DcF2E88C0673F776870fdb12A453927C6A5e` |
 | ComputeEscrow | `0x28C351FE1A37434DD63882dA51b5f4CBade71724` |
-| LitcoinClaims | `0xF703DcF2E88C0673F776870fdb12A453927C6A5e` |
 | MiningGuild | `0xC377cbD6739678E0fae16e52970755f50AF55bD1` |
 | LitcoinFaucet | `0x1659875dE16090c84C81DF1BDba3c3B4df093557` |
 
@@ -309,9 +355,11 @@ All DeFi contracts use UUPS upgradeable proxies. All verified on BaseScan.
 
 ---
 
-## SDK Reference (v4.0.1)
+## SDK Reference (v4.4.0)
 
-The SDK is available on PyPI as `litcoin`. Install in your own environment before using.
+```bash
+pip install litcoin
+```
 
 ### Agent Class
 
@@ -331,7 +379,7 @@ agent = Agent(
 
 ### Mining & Relay
 
-- `agent.mine(rounds=0, max_failures=5)` — Start mining loop. rounds=0 = mine forever. If ai_key is provided, the relay feature starts alongside mining (opt-in — the user's key stays on their machine).
+- `agent.mine(rounds=0, max_failures=5)` — Start mining loop. rounds=0 = mine forever. Relay auto-starts if ai_key set.
 - `agent.mine_async(**kwargs)` — Start mining in background thread.
 - `agent.claim()` — Claim accumulated mining rewards on-chain via Bankr.
 - `agent.status()` — Check earnings, claimable balance, boost.
@@ -339,20 +387,26 @@ agent = Agent(
 - `agent.stop_relay()` — Stop relay provider.
 - `agent.stop()` — Stop mining and relay.
 
+### Research Mining
+
+- `agent.research_mine(task_type=None, task_id=None)` — Single research cycle.
+- `agent.research_loop(task_type=None, task_id=None, rounds=10, delay=30)` — Iterate on one task.
+- `agent.research_tasks(task_type=None)` — List available research tasks.
+- `agent.research_leaderboard(task_id=None)` — Top researchers by reward.
+- `agent.research_stats()` — Global research statistics.
+- `agent.research_history(task_id=None)` — Your iteration history per task.
+
 ### Token Balances (on-chain reads)
 
 - `agent.litcoin_balance()` — LITCOIN balance in whole tokens.
 - `agent.litcredit_balance()` — LITCREDIT balance in whole tokens.
 - `agent.balance()` — Both balances as dict.
 
-### Staking (V2)
+### Staking
 
 - `agent.stake(tier)` — Stake LITCOIN into a tier (1-4). Auto-approves.
 - `agent.upgrade_tier(new_tier)` — Upgrade to higher tier.
-- `agent.unstake()` — Unstake (lock period must be expired, 0% penalty).
-- `agent.add_to_stake(amount)` — Add more tokens to current tier (lock doesn't reset).
-- `agent.early_unstake()` — Unstake before lock expires (tiered penalty: 20-35% to treasury).
-- `agent.preview_early_unstake()` — View penalty and return amounts before committing.
+- `agent.unstake()` — Unstake (lock period must be expired).
 - `agent.tier()` — Current tier (0=none, 1=Spark, 2=Circuit, 3=Core, 4=Architect).
 - `agent.stake_info()` — Full info: tier, amount, stakedAt, lockUntil, locked.
 - `agent.time_until_unlock()` — Seconds until lock expires.
@@ -420,6 +474,10 @@ agent = Agent(
 ### Stats
 
 - `agent.network_stats()` — Active miners, emission, treasury.
+- `agent.miner_status()` — Full miner status: relay, earnings breakdown, health, guild.
+- `agent.guild_yield()` — Network guild yield data.
+- `agent.my_guild_yield()` — Per-member yield history.
+- `agent.protocol_stats()` — Cached protocol stats (treasury, staked, prices).
 - `agent.leaderboard(limit=20)` — Top miners by earnings.
 - `agent.health()` — Coordinator health check.
 - `agent.boost()` — Staking boost via coordinator.
@@ -435,32 +493,35 @@ agent = Agent(bankr_key="bk_...", ai_key="sk-...")
 # 1. Mine tokens
 agent.mine(rounds=20)
 
-# 2. Claim rewards on-chain
+# 2. Research mine
+agent.research_loop(task_id="sort-benchmark-001", rounds=50)
+
+# 3. Claim rewards on-chain
 agent.claim()
 
-# 3. Check balance
-print(agent.balance())  # {'litcoin': 3000000.0, 'litcredit': 0.0}
+# 4. Check balance
+print(agent.balance())
 
-# 4. Stake into Circuit tier
+# 5. Stake into Circuit tier
 agent.stake(tier=2)
 
-# 5. Open vault with 10M collateral
+# 6. Open vault with 10M collateral
 agent.open_vault(collateral=10_000_000)
 
-# 6. Get vault ID
-vaults = agent.vault_ids()  # [1]
+# 7. Get vault ID
+vaults = agent.vault_ids()
 
-# 7. Mint LITCREDIT
-agent.mint_litcredit(vault_id=1, amount=500)
+# 8. Mint LITCREDIT
+agent.mint_litcredit(vault_id=vaults[0], amount=500)
 
-# 8. Deposit to escrow for compute
+# 9. Deposit to escrow for compute
 agent.deposit_escrow(amount=100)
 
-# 9. Use AI compute
+# 10. Use AI compute
 result = agent.compute("Explain proof of comprehension")
 print(result['response'])
 
-# 10. Full protocol snapshot
+# 11. Full protocol snapshot
 snapshot = agent.snapshot()
 ```
 
@@ -479,7 +540,8 @@ Runs multiple agents simultaneously with a live terminal dashboard.
 - Total supply: 100,000,000,000 (100B) LITCOIN
 - Decimals: 18
 - Initial distribution: Treasury holds tokens for mining rewards
-- Emission: Treasury-linked, halving every 365 epochs
+- Emission: 1.5% of treasury per day (capped at 50M/day)
+- Pool split: 65% research, 10% comprehension, 25% staking
 - Burns: LITCREDIT burned on compute usage, minting fees
 - No team allocation, no VC allocation — 100% to mining treasury
 
@@ -490,6 +552,7 @@ Runs multiple agents simultaneously with a live terminal dashboard.
 - Website: https://litcoiin.xyz
 - Documentation: https://litcoiin.xyz/docs
 - Dashboard: https://litcoiin.xyz/dashboard
+- Research Lab: https://litcoiin.xyz/research
 - Twitter/X: https://x.com/litcoin_AI
 - PyPI (Python SDK): https://pypi.org/project/litcoin/
 - npm (MCP Server): https://www.npmjs.com/package/litcoin-mcp
@@ -521,9 +584,10 @@ Add to your MCP config:
 
 No Python, no pip, no SDK — just a JSON config entry.
 
-### Available MCP Tools
+### Available MCP Tools (25 total, 6 research)
 
 Mining: `litcoin_mine`, `litcoin_claim`, `litcoin_claimable`, `litcoin_faucet`
+Research: `litcoin_research_mine`, `litcoin_research_loop`, `litcoin_research_tasks`, `litcoin_research_leaderboard`, `litcoin_research_stats`, `litcoin_research_history`
 Balances: `litcoin_balance`, `litcoin_network`
 Staking: `litcoin_stake`, `litcoin_unstake`
 Vaults: `litcoin_open_vault`, `litcoin_mint`, `litcoin_repay`, `litcoin_add_collateral`, `litcoin_close_vault`, `litcoin_vaults`
@@ -534,14 +598,14 @@ Guilds: `litcoin_create_guild`, `litcoin_join_guild`, `litcoin_leave_guild`
 
 > "Check my LITCOIN balance" → agent calls `litcoin_balance`
 > "Stake into Circuit tier" → agent calls `litcoin_stake` with tier=2
-> "Mine 5 rounds" → agent calls `litcoin_mine` five times
+> "Run 50 research iterations on sorting" → agent calls `litcoin_research_loop`
 
 ---
 
 ## Three Ways to Connect
 
-| Method | Package | Best For |
+| Method | Command | Best For |
 |--------|---------|----------|
-| Python SDK | `litcoin` on PyPI | Developers, autonomous agents, scripts |
-| MCP Server | `litcoin-mcp` on npm | Claude Desktop, Cursor, any MCP agent |
-| Agent Skill | `tekkaadan/litcoin-skill` on ClawHub | Claude Code, Codex, coding agents |
+| Python SDK | `pip install litcoin` | Developers, autonomous agents, scripts |
+| MCP Server | Add to MCP config (see above) | Claude Desktop, Cursor, any MCP agent |
+| Agent Skill | `npx skills add tekkaadan/litcoin-skill` | Claude Code, Codex, coding agents |
