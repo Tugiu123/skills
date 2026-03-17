@@ -1,0 +1,11 @@
+{
+  "owner": "samledger67-dotcom",
+  "slug": "agent-deployment-checklist",
+  "displayName": "Agent Deployment Checklist",
+  "latest": {
+    "version": "98.0.1",
+    "publishedAt": 1773724909664,
+    "commit": null
+  },
+  "history": []
+}
