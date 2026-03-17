@@ -1,7 +1,7 @@
 {
   "name": "openclaw-daily-backup",
-  "version": "1.3.0",
-  "description": "Daily backup and restore for OpenClaw workspace SOUL files with recovery and rollback",
+  "version": "1.3.1",
+  "description": "This skill should be used when the user asks for daily backup, scheduled backup, restore, rollback, recovery, or routine protection of core OpenClaw workspace identity and configuration files.",
   "type": "module",
   "main": "scripts/backup.mjs",
   "bin": {
