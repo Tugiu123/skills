@@ -1,0 +1,11 @@
+{
+  "owner": "pipsqueakup",
+  "slug": "new-slug",
+  "displayName": "myskill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773647506600,
+    "commit": null
+  },
+  "history": []
+}
