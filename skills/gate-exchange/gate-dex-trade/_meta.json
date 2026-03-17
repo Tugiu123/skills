@@ -1,0 +1,11 @@
+{
+  "owner": "gate-exchange",
+  "slug": "gate-dex-trade",
+  "displayName": "Gate DEX Trade",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773388699067,
+    "commit": null
+  },
+  "history": []
+}
