@@ -3,9 +3,15 @@
   "slug": "ip-advisor",
   "displayName": "Ip Advisor",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447171679,
-    "commit": "https://github.com/openclaw/skills/commit/8b7bc3f6cec1d1c6657fd0fcc69c326518283840"
+    "version": "2.3.7",
+    "publishedAt": 1773666278890,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447171679,
+      "commit": "https://github.com/openclaw/skills/commit/8b7bc3f6cec1d1c6657fd0fcc69c326518283840"
+    }
+  ]
 }
