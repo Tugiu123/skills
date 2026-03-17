@@ -1,0 +1,11 @@
+{
+  "owner": "qomg",
+  "slug": "screen-record-frames",
+  "displayName": "android record screen and extract key frames",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773649492950,
+    "commit": null
+  },
+  "history": []
+}
