@@ -3,9 +3,15 @@
   "slug": "mingle",
   "displayName": "Mingle",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773435860406,
-    "commit": "https://github.com/openclaw/skills/commit/3333d25a85a553dad4a56df3e2712d552cb9e28d"
+    "version": "2.2.1",
+    "publishedAt": 1773606967578,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773435860406,
+      "commit": "https://github.com/openclaw/skills/commit/3333d25a85a553dad4a56df3e2712d552cb9e28d"
+    }
+  ]
 }
