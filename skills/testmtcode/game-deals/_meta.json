@@ -1,0 +1,11 @@
+{
+  "owner": "testmtcode",
+  "slug": "game-deals",
+  "displayName": "Game Deals",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773575595619,
+    "commit": null
+  },
+  "history": []
+}
