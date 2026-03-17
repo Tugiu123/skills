@@ -1,64 +1,85 @@
 ---
 name: font
-version: 1.0.0
+description: "List, search, and preview system fonts. Get metadata, suggest pairings, and install font files."
+version: "3.2.0"
 author: BytesAgain
-license: MIT-0
-tags: [font, tool, utility]
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
+tags:
+  - fonts
+  - typography
+  - design
+  - font-management
+  - preview
 ---
 
-# Font
+# Font — Font Management Tool
 
-Font management toolkit — preview fonts, find pairings, check availability, generate font stacks, compare weights, and CSS snippet generation.
+Manage system fonts: list installed fonts, search by name, preview samples, get metadata, find pairings, and install new fonts.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `font preview` | <font> |
-| `font pair` | <font> |
-| `font stack` | <font> |
-| `font compare` | <f1> <f2> |
-| `font weights` | <font> |
-| `font css` | <font> |
-
-## Usage
+### list — List installed fonts
 
 ```bash
-# Show help
-font help
-
-# Quick start
-font preview <font>
+bash scripts/script.sh list [--family] [--limit N]
 ```
 
-## Examples
+Shows all installed system fonts. Use `--family` to group by family. Use `--limit N` to cap output.
+
+### search — Search fonts by name
 
 ```bash
-# Example 1
-font preview <font>
-
-# Example 2
-font pair <font>
+bash scripts/script.sh search "<query>"
 ```
 
-- Run `font help` for all available commands
+Searches installed fonts matching the query string (case-insensitive).
 
----
-*Powered by BytesAgain | bytesagain.com*
+### preview — Preview a font sample
 
-## Configuration
+```bash
+bash scripts/script.sh preview "<font_name>" ["sample text"]
+```
 
-Set `FONT_DIR` to change data directory. Default: `~/.local/share/font/`
+Prints a text sample rendered as ASCII art banner using the specified font. Falls back to a formatted display if figlet is not available.
 
-## When to Use
+### pair — Font pairing suggestions
 
-- Quick font tasks from terminal
-- Automation pipelines
+```bash
+bash scripts/script.sh pair "<font_name>"
+```
+
+Suggests complementary fonts for pairing based on font classification (serif, sans-serif, monospace, display).
+
+### info — Font metadata
+
+```bash
+bash scripts/script.sh info "<font_name_or_path>"
+```
+
+Shows metadata for a font: family, style, weight, file path, format, and character count.
+
+### install — Install a font file
+
+```bash
+bash scripts/script.sh install "<font_file_path>"
+```
+
+Installs a `.ttf`, `.otf`, or `.woff2` font file to the user font directory and refreshes the font cache.
 
 ## Output
 
-Results go to stdout. Save with `font run > output.txt`.
+All commands print plain text to stdout. Font operations use `fc-list`, `fc-query`, and `fc-cache` on Linux; `system_profiler` on macOS.
 
-## Configuration
 
-Set `FONT_DIR` to change data directory. Default: `~/.local/share/font/`
+## Requirements
+- bash 4+
+- python3 (standard library only)
+
+## Feedback
+
+Report issues or suggestions: [https://bytesagain.com/feedback/](https://bytesagain.com/feedback/)
+
+---
+
+Powered by BytesAgain | bytesagain.com
