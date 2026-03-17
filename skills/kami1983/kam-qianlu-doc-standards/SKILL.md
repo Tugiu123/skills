@@ -1,11 +1,43 @@
 ---
 name: kam-qianlu-doc-standards
-description: 千路订单管理系统的文件执行标准。Returns table header standards and file naming rules for import/export (quotation, rfq, reply, order, purchase). When user provides an Excel and a document type, offers to verify headers and suggest a compliant filename; if accepted, validates and normalizes headers and renames the file. Use when user asks for 表头标准、导入要求、导出格式、命名规则、文件执行标准, or when user uploads/shares an Excel and says 这是回询单/询价单/报价单/订货单 and wants header verification or filename correction.
+description: 千路订单管理系统的文件执行标准与术语/流程参考。Returns table header standards and file naming rules for import/export (quotation, rfq, reply, order, purchase). When user provides an Excel and a document type, offers to verify headers and suggest a compliant filename; if accepted, validates and normalizes headers and renames the file. Also references naming-and-terminology and process-and-rules for 术语、命名、业务流程、规则. Use when user asks for 表头标准、导入要求、导出格式、命名规则、文件执行标准、流程、怎么用、如何使用、术语、询价单和报价单区别、订货单匹配、业务流程, or when user uploads/shares an Excel and says 这是回询单/询价单/报价单/订货单 and wants header verification or filename correction.
 ---
 
 # kam-qianlu-doc-standards — 订单管理系统文件执行标准
 
-本 SKILL 定义**千路订单管理系统**的单据**文件执行标准**：表头规范与文件名命名规则。提供两类能力：**① 返回各类导入/导出文件的表头标准与命名规则**；**② 根据用户提供的 Excel 与单据类型，核验表头并建议/执行文件名与表头整理**。权威数据以同目录 [REFERENCE.md](REFERENCE.md) 为准，与项目 `docs/naming-and-terminology.md`、`shared/utils.py`、`server/services/order_import_service.py` 等一致。
+本 SKILL 定义**千路订单管理系统**的单据**文件执行标准**：表头规范与文件名命名规则；并纳入项目**术语**（naming-and-terminology）与**流程与规则**（process-and-rules）的引用，便于对术语、业务流程、数据规则等问题对答。提供三类能力：**① 返回各类导入/导出文件的表头标准与命名规则**；**② 根据用户提供的 Excel 与单据类型，核验表头并建议/执行文件名与表头整理**；**③ 用户问术语、命名、业务流程、校验规则时，引用 [REFERENCE.md](REFERENCE.md) 第十一节，打开同目录 [naming-and-terminology.md](naming-and-terminology.md)、[process-and-rules.md](process-and-rules.md) 作答或概括**。权威数据以同目录 [REFERENCE.md](REFERENCE.md) 为准（表头与文件名为第一～十节；术语与流程见第十一节）；**术语与流程**使用本 SKILL 目录内冗余副本 [naming-and-terminology.md](naming-and-terminology.md)、[process-and-rules.md](process-and-rules.md)，便于独立打包后不依赖项目路径即可对答。
+
+---
+
+## 使用流程（用户问「流程」「怎么用」时如何对答）
+
+当用户询问**流程**、**怎么用**、**如何使用**、**步骤**时，按下列场景对答：
+
+### 场景 A：只查标准（不问 Excel）
+
+- **用户意图**：想了解某类单据的表头要求或命名规则，没有提供文件。
+- **回答要点**：说明属于**功能一**，直接引用 [REFERENCE.md](REFERENCE.md) 对应章节，给出表头/命名表格或列表；并提示「若手头有 Excel 需要核验或改名，可把文件/路径和单据类型发给我，我按功能二帮你核验并建议文件名」。
+
+### 场景 B：手头有 Excel，要核验或整理
+
+- **用户意图**：已有 Excel 文件，希望核验表头是否符合系统要求，或希望得到合规文件名/表头建议。
+- **回答要点**：说明属于**功能二**，流程为：
+  1. **确认单据类型**：先确认是 询价单 / 报价单 / 回询单 / 订货单 / 采购单回传 等中的哪一种；若用户未说清，可根据文件名或内容推断并反问确认。
+  2. **确认是否核验**：明确问用户「是否需要我核验表头并建议合规文件名？」用户回复「是」或「核验」后再继续。
+  3. **核验表头**：按 REFERENCE 对应章节读取表头，检查必填列、可识别别名，给出「当前表头 → 建议表头」映射及通过/需修改项。
+  4. **建议/修改文件名**：按 REFERENCE 第一节命名规则给出建议文件名；若用户同意且环境允许，可执行重命名或输出新文件。
+  5. **返回结果**：汇总核验结果、表头映射、建议文件名及（若已处理）输出位置。
+
+### 场景 C：从零到合规的完整流程（举例）
+
+- **用户意图**：想了解「客户发来一个订货单 Excel，要怎么才能导入系统？」等端到端流程。
+- **回答要点**：先说明**文件执行标准**在本 SKILL 的职责（表头 + 命名），再简述流程：
+  1. **拿到客户/供应商的 Excel** → 确认单据类型（订货单/报价单/回询单等）。
+  2. **核验表头** → 用本 SKILL 功能二：提供文件与类型，确认核验后得到「表头是否合规、建议表头与建议文件名」。
+  3. **按建议修改** → 用户或 Agent 按建议调整表头/文件名（或在用户同意下由 Agent 写回 Excel/重命名）。
+  4. **导入系统** → 在系统对应页面（订货单导入/报价单导入等）上传合规后的文件完成导入。
+
+若用户问的是**系统内业务操作流程**（如询价→报价→回询→订货→采购）、**术语定义**（如询价单与报价单区别、回询单与订货单关系）、**数据校验规则**（订货单如何匹配回询单、Invalid/替换号规则等），可依据 [REFERENCE.md](REFERENCE.md) **第十一节**，**直接打开本 SKILL 同目录下的 [naming-and-terminology.md](naming-and-terminology.md)（术语与命名）、[process-and-rules.md](process-and-rules.md)（流程与规则）** 作答或概括；本 SKILL 负责文件表头与命名，术语与流程以该两文件为准。
 
 ---
 
@@ -17,12 +49,14 @@ description: 千路订单管理系统的文件执行标准。Returns table heade
 - **文件名命名规则**（如「报价单怎么命名」「订货单文件名格式」）
 - 某类单据「可识别的列名」「必填列」「推荐表头」
 - **订单管理系统文件执行标准**、**单据规范**
+- **业务术语与命名**（如询价单与报价单区别、回询单/订货单/采购单定义、替换号与报价单名等）→ 见 REFERENCE 第十一节，打开同目录 [naming-and-terminology.md](naming-and-terminology.md)
+- **业务流程与规则**（如询价→报价→订货→采购流程、订货单如何匹配回询单、Invalid/替换号校验规则等）→ 见 REFERENCE 第十一节，打开同目录 [process-and-rules.md](process-and-rules.md)
 
 **操作**：
 
-1. 打开并引用 [REFERENCE.md](REFERENCE.md) 中对应章节（文件名规范、询价单导入、报价单导入、问价单导出、回询单导出、订货单导入、订货单导出、采购单导出、采购单回传等）。
+1. 打开并引用 [REFERENCE.md](REFERENCE.md) 中对应章节：表头与文件名为第一～十节；术语、业务流程与规则见**第十一节**，使用同目录 [naming-and-terminology.md](naming-and-terminology.md)、[process-and-rules.md](process-and-rules.md)。
 2. 用简洁表格或列表给出：标准表头/推荐列名、可识别别名、必填项、文件名格式与示例。
-3. 若项目内还有 `docs/naming-and-terminology.md`、`docs/functions/process-and-rules.md`，可提示用户进一步查阅，但以 REFERENCE.md 为本 SKILL 的单一数据源，避免重复维护。
+3. 用户问术语/命名/流程/规则时，按 REFERENCE 第十一节指向上述两文档作答或概括；表头与文件名以 REFERENCE 第一～十节为单一数据源。
 
 ---
 
@@ -99,4 +133,17 @@ description: 千路订单管理系统的文件执行标准。Returns table heade
 
 ---
 
-*本 SKILL 为千路订单管理系统的文件执行标准；表头与命名规则以 [REFERENCE.md](REFERENCE.md) 为准；项目术语以 `docs/naming-and-terminology.md` 为准。*
+## 典型流程问答（用户问流程时可直接参考）
+
+| 用户问法示例 | 回答要点 |
+|--------------|----------|
+| 「这个 SKILL 的流程是什么？」 | 本 SKILL 有两类用法：① 只查表头/命名 → 直接按 REFERENCE 回答；② 有 Excel 要核验 → 先确认单据类型和是否核验，再按「核验表头 → 建议表头/文件名 → 返回结果」执行。 |
+| 「我想查订货单导入表头，流程怎么走？」 | 属于功能一：直接引用 REFERENCE 第六节「订货单（导入）」，列出必填列与可识别别名即可，无需文件。 |
+| 「我有个订货单 Excel，怎么核验成能导入的？」 | 属于功能二：先确认「这是订货单」；再问「是否需要核验表头并建议文件名」；用户确认后按 REFERENCE 第六节核验表头、第一节建议文件名（订货单-XXXX-日期.xlsx），输出映射与建议或改好后的文件。 |
+| 「从拿到客户 Excel 到导入系统完整流程？」 | 见上文「场景 C」：确认类型 → 核验表头（本 SKILL 功能二）→ 按建议改表头/文件名 → 在系统对应页面上传导入。业务顺序（询价→报价→回询→订货）见 REFERENCE 第十一节 [process-and-rules.md](process-and-rules.md)。 |
+| 「询价单和报价单有什么区别？」「回询单、订货单、采购单怎么定义？」 | 属**术语/命名**：见 [REFERENCE.md](REFERENCE.md) 第十一节，打开本 SKILL 同目录 [naming-and-terminology.md](naming-and-terminology.md) 作答（单据与业务实体、字段与 UI 标签、易混点）。 |
+| 「业务流程是什么？」「订货单怎么和回询单匹配？」「Invalid、替换号规则？」 | 属**流程与规则**：见 [REFERENCE.md](REFERENCE.md) 第十一节，打开本 SKILL 同目录 [process-and-rules.md](process-and-rules.md) 作答（交易环节流程图、数据校验规则、回询单与订货单关系等）。 |
+
+---
+
+*本 SKILL 为千路订单管理系统的文件执行标准并包含术语与流程冗余副本；表头与命名以 [REFERENCE.md](REFERENCE.md) 第一～十节为准；术语与流程以 REFERENCE 第十一节及同目录 [naming-and-terminology.md](naming-and-terminology.md)、[process-and-rules.md](process-and-rules.md) 为准，便于独立打包使用。*
