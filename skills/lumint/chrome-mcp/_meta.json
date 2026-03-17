@@ -1,0 +1,11 @@
+{
+  "owner": "lumint",
+  "slug": "chrome-mcp",
+  "displayName": "Chrome Mcp",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773579425559,
+    "commit": null
+  },
+  "history": []
+}
