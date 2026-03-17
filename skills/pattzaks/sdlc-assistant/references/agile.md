@@ -1,6 +1,6 @@
 # Agile SDLC Reference Guide
 
-> **Analogy:** Agile is like navigating with GPS — you have a destination, but the route adjusts in real time based on traffic (feedback, changing requirements).
+> **Analogy:** Agile is like navigating with GPS - you have a destination, but the route adjusts in real time based on traffic (feedback, changing requirements).
 
 ---
 
@@ -36,13 +36,13 @@
 
 **Artifacts:** Sprint Backlog, Sprint Goal, Capacity Plan
 
-> **Tip:** A story is "sprint-ready" when it is: Independent, Negotiable, Valuable, Estimable, Small, Testable — the INVEST criteria.
+> **Tip:** A story is "sprint-ready" when it is: Independent, Negotiable, Valuable, Estimable, Small, Testable - the INVEST criteria.
 
 ---
 
 ### Phase 3: Design
 
-**Goal:** Define how the solution will be built — UI, architecture, data model.
+**Goal:** Define how the solution will be built - UI, architecture, data model.
 
 | Role | Key Tasks |
 |------|-----------|
@@ -72,7 +72,7 @@
 - **Daily Standup** (15 min): What did I do? What will I do? Any blockers?
 - **Backlog Refinement** (ongoing): Groom upcoming stories, add details, re-estimate
 
-> **Analogy:** The sprint is like a relay race. Devs build, hand off to QA, who verify, then PO accepts — each leg matters.
+> **Analogy:** The sprint is like a relay race. Devs build, hand off to QA, who verify, then PO accepts - each leg matters.
 
 ---
 
@@ -121,12 +121,12 @@
 
 **Goal:** Inspect and adapt team process.
 
-> **Analogy:** Retro is like a pit stop in Formula 1 — a brief pause to tune the car before the next race.
+> **Analogy:** Retro is like a pit stop in Formula 1 - a brief pause to tune the car before the next race.
 
 **Format (Start / Stop / Continue):**
 - **Start**: Things we should begin doing
 - **Stop**: Things that aren't working
-- **Continue**: Things working well — keep doing them
+- **Continue**: Things working well - keep doing them
 
 **PM/Scrum Master** facilitates. **All team members** participate.
 

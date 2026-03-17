@@ -1,6 +1,6 @@
 # Waterfall SDLC Reference Guide
 
-> **Analogy:** Waterfall is like constructing a bridge — you complete every design drawing, get all approvals, then build from foundation to deck. Going back to change the foundation after laying the road surface is expensive and risky.
+> **Analogy:** Waterfall is like constructing a bridge - you complete every design drawing, get all approvals, then build from foundation to deck. Going back to change the foundation after laying the road surface is expensive and risky.
 
 ---
 
@@ -22,7 +22,7 @@
 
 **Sign-off Gate:** BRD / FRD signed by business stakeholders before proceeding.
 
-> **Tip:** Any requirement change after this gate requires a formal **Change Request (CR)** — documented, estimated, approved, and logged.
+> **Tip:** Any requirement change after this gate requires a formal **Change Request (CR)** - documented, estimated, approved, and logged.
 
 ---
 
@@ -61,11 +61,11 @@
 | **PO** | Available for critical clarifications; monitor milestone delivery |
 
 **PM Tracking Tools:**
-- Gantt Chart — track timeline vs. actuals
-- Risk Register — log and monitor risks
-- RAID Log — Risks, Assumptions, Issues, Dependencies
+- Gantt Chart - track timeline vs. actuals
+- Risk Register - log and monitor risks
+- RAID Log - Risks, Assumptions, Issues, Dependencies
 
-> **Analogy:** Development in Waterfall is like a factory assembly line — each station (module) must complete its task before passing to the next. No component skips its station.
+> **Analogy:** Development in Waterfall is like a factory assembly line - each station (module) must complete its task before passing to the next. No component skips its station.
 
 ---
 
@@ -159,26 +159,26 @@
 
 ```
 Project
-├── Project Charter
-├── Requirements
-│   ├── BRD (Business Requirements Document)
-│   ├── FRD (Functional Requirements Document)
-│   └── RTM (Requirement Traceability Matrix)
-├── Design
-│   ├── HLD (High-Level Design)
-│   ├── LLD (Low-Level Design)
-│   └── API / DB Specifications
-├── Testing
-│   ├── Master Test Plan
-│   ├── Test Cases
-│   ├── Defect Log
-│   └── UAT Sign-off Report
-├── Deployment
-│   ├── Deployment Runbook
-│   └── Release Notes
-└── Closure
-    ├── Lessons Learned
-    └── Project Closure Report
+ Project Charter
+ Requirements
+    BRD (Business Requirements Document)
+    FRD (Functional Requirements Document)
+    RTM (Requirement Traceability Matrix)
+ Design
+    HLD (High-Level Design)
+    LLD (Low-Level Design)
+    API / DB Specifications
+ Testing
+    Master Test Plan
+    Test Cases
+    Defect Log
+    UAT Sign-off Report
+ Deployment
+    Deployment Runbook
+    Release Notes
+ Closure
+     Lessons Learned
+     Project Closure Report
 ```
 
 ---
@@ -196,7 +196,7 @@ Project
 
 ---
 
-## Requirement Traceability Matrix (RTM) — Template
+## Requirement Traceability Matrix (RTM) - Template
 
 | Req ID | Requirement Description | Design Ref | Dev Module | Test Case IDs | Status |
 |--------|------------------------|------------|------------|---------------|--------|
@@ -205,7 +205,7 @@ Project
 
 ---
 
-## Waterfall vs Agile — Quick Comparison
+## Waterfall vs Agile - Quick Comparison
 
 | Dimension | Waterfall | Agile |
 |-----------|-----------|-------|

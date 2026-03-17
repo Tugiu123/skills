@@ -3,9 +3,15 @@
   "slug": "sdlc-assistant",
   "displayName": "sdlc- get software development life cycle",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773491250200,
-    "commit": "https://github.com/openclaw/skills/commit/504eaae53664d001c425fa2f87fc328ec4f69692"
+    "version": "1.0.1",
+    "publishedAt": 1773581571255,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773491250200,
+      "commit": "https://github.com/openclaw/skills/commit/504eaae53664d001c425fa2f87fc328ec4f69692"
+    }
+  ]
 }
