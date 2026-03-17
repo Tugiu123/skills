@@ -3,9 +3,15 @@
   "slug": "dingtalk-ai-table-only-curl",
   "displayName": "Dingtalk Ai Table Only Curl",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773329880150,
-    "commit": "https://github.com/openclaw/skills/commit/7f0d09f9cc2a39cc6bc9da7c967d156f4021d5eb"
+    "version": "0.1.3",
+    "publishedAt": 1773673601003,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773329880150,
+      "commit": "https://github.com/openclaw/skills/commit/7f0d09f9cc2a39cc6bc9da7c967d156f4021d5eb"
+    }
+  ]
 }
