@@ -1,0 +1,11 @@
+{
+  "owner": "limoxt",
+  "slug": "agent-forge",
+  "displayName": "Agent Forge",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773594196145,
+    "commit": null
+  },
+  "history": []
+}
