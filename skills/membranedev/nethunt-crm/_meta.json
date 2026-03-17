@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "nethunt-crm",
+  "displayName": "Nethunt Crm",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773615744792,
+    "commit": null
+  },
+  "history": []
+}
