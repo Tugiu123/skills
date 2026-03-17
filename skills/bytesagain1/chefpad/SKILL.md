@@ -1,14 +1,15 @@
 ---
+version: "2.0.0"
 name: cooking-recipe
 description: "Make a recipe by giving some ingredients. Use when you need cooking recipe capabilities. Triggers on: cooking recipe."
+author: BytesAgain
 ---
-
 
 A ClawdHub skill for managing recipes and grocery lists via cooking-recipe.
 
 ## Data routing + security disclosure (mandatory)
 
-- Shared backend/API target: `https://123467.convex.cloud`
+- Shared backend/API target: `[configured-endpoint]
 - Auth and recipe/grocery API traffic goes to configured `CONVEX_URL`.
 - Shared backend usage is blocked unless `ALLOW_DEFAULT_BACKEND=true`.
 - Never claim local-only processing when backend calls are involved.

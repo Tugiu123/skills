@@ -3,9 +3,15 @@
   "slug": "chefpad",
   "displayName": "Chefpad",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773521585921,
-    "commit": "https://github.com/openclaw/skills/commit/b543a7804703edd858615198be802dbdad7937c0"
+    "version": "1.0.6",
+    "publishedAt": 1773665109485,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773521585921,
+      "commit": "https://github.com/openclaw/skills/commit/b543a7804703edd858615198be802dbdad7937c0"
+    }
+  ]
 }
