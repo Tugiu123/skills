@@ -1,9 +1,10 @@
 ---
 name: lottery
-version: 1.0.0
+version: "2.0.0"
 author: BytesAgain
 license: MIT-0
 tags: [lottery, tool, utility]
+description: "Lottery - command-line tool for everyday use"
 ---
 
 # Lottery
@@ -48,3 +49,35 @@ Set `LOTTERY_DIR` to change data directory. Default: `~/.local/share/lottery/`
 ---
 *Powered by BytesAgain | bytesagain.com*
 *Feedback & Feature Requests: https://bytesagain.com/feedback*
+
+
+## Features
+
+- Simple command-line interface for quick access
+- Local data storage with JSON/CSV export
+- History tracking and activity logs
+- Search across all entries
+
+## Quick Start
+
+```bash
+# Check status
+lottery status
+
+# View help
+lottery help
+
+# Export data
+lottery export json
+```
+
+## How It Works
+
+Lottery stores all data locally in `~/.local/share/lottery/`. Each command logs activity with timestamps for full traceability.
+
+## Support
+
+- Feedback: https://bytesagain.com/feedback/
+- Website: https://bytesagain.com
+
+Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
