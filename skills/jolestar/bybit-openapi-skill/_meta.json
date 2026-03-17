@@ -1,0 +1,11 @@
+{
+  "owner": "jolestar",
+  "slug": "bybit-openapi-skill",
+  "displayName": "Bybit OpenAPI Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773622300373,
+    "commit": null
+  },
+  "history": []
+}
