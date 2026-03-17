@@ -3,9 +3,15 @@
   "slug": "octen-search-skills",
   "displayName": "Octen Search",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773475852411,
-    "commit": "https://github.com/openclaw/skills/commit/25602c897c25d50968504178b62f75917222a00e"
+    "version": "1.0.4",
+    "publishedAt": 1773712460907,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773475852411,
+      "commit": "https://github.com/openclaw/skills/commit/25602c897c25d50968504178b62f75917222a00e"
+    }
+  ]
 }
