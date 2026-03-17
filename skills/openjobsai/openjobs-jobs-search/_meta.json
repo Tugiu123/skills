@@ -1,0 +1,11 @@
+{
+  "owner": "openjobsai",
+  "slug": "openjobs-jobs-search",
+  "displayName": "Openjobs Jobs Search",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773316431620,
+    "commit": null
+  },
+  "history": []
+}
