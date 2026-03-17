@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: labor-law
 description: "劳动法速查工具。劳动者权益、加班规定、休假制度、劳动合同、劳动争议、经济补偿。Labor law quick reference with rights, overtime, leave, contracts, disputes, severance. 劳动法、劳动权益、加班、年假、劳动仲裁。Use when checking labor law regulations. Triggers on: labor law."
+author: BytesAgain
 ---
 # labor-law
 
@@ -22,7 +24,6 @@ description: "劳动法速查工具。劳动者权益、加班规定、休假制
 - **dispute** — dispute
 - **severance** — severance
 
-
 ## 专业建议
 
 - 劳动者权益 (rights)**: 了解法律赋予的基本权利
@@ -36,3 +37,17 @@ description: "劳动法速查工具。劳动者权益、加班规定、休假制
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+labor-law help
+
+# Run
+labor-law run
+```
+
+## Commands
+
+Run `labor-law help` to see all available commands.
