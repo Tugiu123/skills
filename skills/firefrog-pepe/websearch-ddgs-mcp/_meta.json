@@ -1,0 +1,11 @@
+{
+  "owner": "firefrog-pepe",
+  "slug": "websearch-ddgs-mcp",
+  "displayName": "DDGS Metasearch via local MCP",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773782661288,
+    "commit": null
+  },
+  "history": []
+}
