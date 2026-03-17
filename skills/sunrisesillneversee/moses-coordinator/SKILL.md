@@ -5,13 +5,11 @@ metadata:
   openclaw:
     emoji: 🔄
     tags: [coordinator, multi-agent, sequencing, daemon, websocket]
-requires:
-  env:
-    - MOSES_OPERATOR_SECRET
-  bins:
-    - python3
-  stateDirs:
-    - ~/.openclaw/audits/moses
+    version: 0.1.2
+    bins:
+      - python3
+    stateDirs:
+      - ~/.openclaw/audits/moses
 example: |
   # Run coordinator daemon in background
   python3 scripts/coordinator.py &
@@ -151,3 +149,17 @@ Then: `launchctl load ~/Library/LaunchAgents/com.elloCello.moses-coordinator.pli
 ```bash
 pip3 install websockets
 ```
+
+---
+
+## External Script — audit_stub.py
+
+On sequence violations, the coordinator calls `audit_stub.py` via subprocess to log the event. This script is part of the `moses-governance` skill bundle and ships in this repo at:
+
+```
+~/.openclaw/workspace/skills/moses-governance/scripts/audit_stub.py
+```
+
+It writes to the local ledger at `~/.openclaw/audits/moses/audit_ledger.jsonl`. No network calls. No credentials required. Source is included and reviewable.
+
+`MOSES_OPERATOR_SECRET` is **not used** by this skill. Do not provide it — the coordinator does not need it.
