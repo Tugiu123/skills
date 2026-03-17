@@ -5,11 +5,14 @@ metadata:
   openclaw:
     emoji: 🔐
     tags: [audit, sha256, tamper-evident, governance, ledger]
-requires:
-  bins:
-    - python3
-  stateDirs:
-    - ~/.openclaw/audits/moses
+    version: 0.1.2
+    bins:
+      - python3
+    env:
+      - MOSES_OPERATOR_SECRET
+    stateDirs:
+      - ~/.openclaw/audits/moses
+      - ~/.openclaw/governance
 example: |
   # Log an action
   python3 scripts/audit_stub.py log --agent primary --action "treasury_check" --detail "50 SOL transfer evaluated" --outcome "held_pending_confirmation"
@@ -108,4 +111,22 @@ Every agent in the MO§ES™ hierarchy appends to this shared ledger before fina
 - **Governance-aware** — active mode/posture/role recorded with every entry
 - **Verifiable** — full chain can be verified at any time
 
-Session hashes (① config + ② content) are derived from the ledger. Onchain anchoring (③) writes the current chain tip to Solana or Base as a memo transaction.
+Session hashes (① config + ② content) are derived from the ledger. Onchain anchoring (③ — planned, not yet implemented) will write the chain tip to Solana or Base as a memo transaction.
+
+---
+
+## Data Sensitivity
+
+The `detail` field is freeform. Do not log raw secrets, private keys, tokens, or PII in this field. Log action descriptions and outcomes only. Example of what belongs:
+
+```
+detail: "Transfer 50 SOL evaluated under High Security + DEFENSE — held pending confirmation"
+```
+
+Not:
+
+```
+detail: "API key sk-abc123 used to authenticate transfer"
+```
+
+`MOSES_OPERATOR_SECRET` is used locally for HMAC attestation only. It is never written to the ledger and never transmitted.
