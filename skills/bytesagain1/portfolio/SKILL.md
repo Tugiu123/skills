@@ -1,60 +1,86 @@
 ---
 name: portfolio
-version: "2.0.0"
+description: "Track investment holdings. Analyze allocation, calculate returns, and generate rebalance suggestions."
+version: "3.2.0"
 author: BytesAgain
-license: MIT-0
-tags: [portfolio, tool, utility]
-description: "Portfolio - command-line tool for everyday use"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
+tags:
+  - portfolio
+  - investment
+  - finance
+  - stocks
+  - allocation
+  - rebalance
 ---
 
-# Portfolio
+# Portfolio Skill
 
-Investment portfolio tracker — track holdings, calculate returns, asset allocation analysis, dividend tracking, rebalancing suggestions, and performance reports.
+Manage investment holdings, analyze allocation, rebalance, and track performance.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `portfolio add` | <ticker> <qty> <price> |
-| `portfolio holdings` | Holdings |
-| `portfolio returns` | Returns |
-| `portfolio allocation` | Allocation |
-| `portfolio dividends` | Dividends |
-| `portfolio rebalance` | Rebalance |
+### add
 
-## Usage
+Add a position to the portfolio.
 
 ```bash
-# Show help
-portfolio help
-
-# Quick start
-portfolio add <ticker> <qty> <price>
+bash scripts/script.sh add <ticker> <quantity> <price> [--date YYYY-MM-DD]
 ```
 
-## Examples
+### remove
+
+Remove a position from the portfolio.
 
 ```bash
-# Example 1
-portfolio add <ticker> <qty> <price>
-
-# Example 2
-portfolio holdings
+bash scripts/script.sh remove <ticker> [--quantity <num>]
 ```
 
-- Run `portfolio help` for all available commands
+### list
 
-## When to Use
+Display all current holdings.
 
-- for batch processing portfolio operations
-- as part of a larger automation pipeline
+```bash
+bash scripts/script.sh list [--format table|json|csv]
+```
+
+### analyze
+
+Analyze portfolio allocation by asset.
+
+```bash
+bash scripts/script.sh analyze [--by ticker|sector] [--format table|json]
+```
+
+### rebalance
+
+Generate rebalance suggestions against target weights.
+
+```bash
+bash scripts/script.sh rebalance [--target <ticker:weight,...>] [--threshold <pct>]
+```
+
+### performance
+
+Calculate portfolio returns.
+
+```bash
+bash scripts/script.sh performance [--period 1d|1w|1m|3m|1y|all] [--format table|json]
+```
 
 ## Output
 
-Returns logs to stdout. Redirect to a file with `portfolio run > output.txt`.
+All commands print to stdout. Portfolio data is stored in `~/.portfolio/holdings.json`. Use `--format json` for machine-readable output where supported.
+
+
+## Requirements
+- bash 4+
+- python3 (standard library only)
+
+## Feedback
+
+Questions or suggestions? → [https://bytesagain.com/feedback/](https://bytesagain.com/feedback/)
 
 ---
-*Powered by BytesAgain | bytesagain.com*
-*Feedback & Feature Requests: https://bytesagain.com/feedback*
 
-- Run `portfolio help` for all commands
+Powered by BytesAgain | bytesagain.com

@@ -3,9 +3,15 @@
   "slug": "portfolio",
   "displayName": "Portfolio",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773662916512,
-    "commit": "https://github.com/openclaw/skills/commit/9e80659a30a7b74d77a558507e7e7cba648f7511"
+    "version": "3.2.0",
+    "publishedAt": 1773716911383,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773662916512,
+      "commit": "https://github.com/openclaw/skills/commit/9e80659a30a7b74d77a558507e7e7cba648f7511"
+    }
+  ]
 }
