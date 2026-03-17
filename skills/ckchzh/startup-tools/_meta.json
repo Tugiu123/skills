@@ -3,9 +3,15 @@
   "slug": "startup-tools",
   "displayName": "Startup Tools",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447275984,
-    "commit": "https://github.com/openclaw/skills/commit/f1f22b35cf147a75759b3c87a87ab671c17b6149"
+    "version": "1.0.6",
+    "publishedAt": 1773673906682,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447275984,
+      "commit": "https://github.com/openclaw/skills/commit/f1f22b35cf147a75759b3c87a87ab671c17b6149"
+    }
+  ]
 }

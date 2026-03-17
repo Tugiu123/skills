@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: startup-tools
 description: "创业工具包。创业清单、公司注册、MVP规划、融资准备、法律合规、增长策略。Startup toolkit with checklist, register, MVP planning, fundraise, legal compliance, and growth strategies. Use when you need startup tools capabilities. Triggers on: startup tools."
+author: BytesAgain
 ---
 # startup-tools
 
@@ -21,7 +23,6 @@ description: "创业工具包。创业清单、公司注册、MVP规划、融资
   growth          growth
 ```
 
-
 ## 专业建议
 
 - Identify the stage: idea / validation / MVP / launch / growth / scale
@@ -35,3 +36,7 @@ description: "创业工具包。创业清单、公司注册、MVP规划、融资
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Run `startup-tools help` to see all available commands.
