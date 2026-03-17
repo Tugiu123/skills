@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Study Plan
 description: "学习计划生成器。考研计划、考证规划、每日学习、番茄钟。Study plan generator for exams, certifications, daily schedules. 学习计划、考研计. Use when you need study plan capabilities. Triggers on: study plan."
   学习计划生成器。考研计划、考证规划、每日学习、番茄钟。Study plan generator for exams, certifications, daily schedules. 学习计划、考研计划、备考规划。Use when creating study schedules.
+author: BytesAgain
 ---
 # Study Plan
 
@@ -14,8 +16,6 @@ description: "学习计划生成器。考研计划、考证规划、每日学习
 | 时间 | 数小时 | 几分钟 |
 | 专业度 | 取决于经验 | 专业级输出 |
 | 一致性 | 易遗漏 | 标准化模板 |
-
-
 
 ## 专业建议
 
@@ -30,3 +30,19 @@ description: "学习计划生成器。考研计划、考证规划、每日学习
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+study-plan help
+
+# Run
+study-plan run
+```
+
+- Run `study-plan help` for all commands
+
+## Commands
+
+Run `study-plan help` to see all available commands.
