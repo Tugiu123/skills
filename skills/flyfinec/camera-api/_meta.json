@@ -1,0 +1,11 @@
+{
+  "owner": "flyfinec",
+  "slug": "camera-api",
+  "displayName": "My Camera API",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1773668786750,
+    "commit": null
+  },
+  "history": []
+}
