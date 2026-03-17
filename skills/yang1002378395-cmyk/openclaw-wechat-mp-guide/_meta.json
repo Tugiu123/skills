@@ -3,9 +3,15 @@
   "slug": "openclaw-wechat-mp-guide",
   "displayName": "Openclaw Wechat Mp Guide",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773492550932,
-    "commit": "https://github.com/openclaw/skills/commit/aef21a97d77bd12666521e3355cd83b9ff3c1a9e"
+    "version": "1.0.1",
+    "publishedAt": 1773523925762,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773492550932,
+      "commit": "https://github.com/openclaw/skills/commit/aef21a97d77bd12666521e3355cd83b9ff3c1a9e"
+    }
+  ]
 }
