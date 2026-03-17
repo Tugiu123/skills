@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: Config
 description: "# # Automatically generated file; DO NOT EDIT. # OpenWrt Configuration # CONFIG_MODULES=y CONFIG_HAV config, shell. Use when you need config capabilities. Triggers on: config."
+author: BytesAgain
 ---
 
 # Config
