@@ -1,0 +1,11 @@
+{
+  "owner": "zx13719",
+  "slug": "harbor",
+  "displayName": "Harbor — Curated and shared Memory for AI Agents",
+  "latest": {
+    "version": "0.4.0",
+    "publishedAt": 1773747179015,
+    "commit": null
+  },
+  "history": []
+}
