@@ -1,0 +1,11 @@
+{
+  "owner": "jessiondai",
+  "slug": "mcdonalds-mcp",
+  "displayName": "麦当劳MCP服务集成，支持点餐、优惠券、麦麦商城、积分兑换等功能。",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773837021657,
+    "commit": null
+  },
+  "history": []
+}
