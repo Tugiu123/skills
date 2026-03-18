@@ -1,0 +1,11 @@
+{
+  "owner": "cp0204",
+  "slug": "quark-auto-save",
+  "displayName": "Manage quark-auto-save(QAS, 夸克自动转存, 夸克转存, 夸克订阅) tasks via API.",
+  "latest": {
+    "version": "0.8.6",
+    "publishedAt": 1773831541285,
+    "commit": null
+  },
+  "history": []
+}
