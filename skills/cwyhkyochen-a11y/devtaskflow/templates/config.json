@@ -1,0 +1,23 @@
+{
+  "project": {
+    "name": "your-project-name",
+    "repo_path": ".",
+    "language": "typescript"
+  },
+  "pipeline": {
+    "versions_dir": "versions",
+    "docs_dir": "docs",
+    "state_file": ".state.json"
+  },
+  "llm": {
+    "provider": "openai-compatible",
+    "base_url_env": "DTFLOW_LLM_BASE_URL",
+    "api_key_env": "DTFLOW_LLM_API_KEY",
+    "model_env": "DTFLOW_LLM_MODEL"
+  },
+  "adapters": {
+    "deploy": "manual",
+    "archive": "local-copy",
+    "orchestration": "none"
+  }
+}
