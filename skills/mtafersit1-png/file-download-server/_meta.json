@@ -1,0 +1,11 @@
+{
+  "owner": "mtafersit1-png",
+  "slug": "file-download-server",
+  "displayName": "文件下载服务器",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1773819487296,
+    "commit": null
+  },
+  "history": []
+}
