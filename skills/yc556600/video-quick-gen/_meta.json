@@ -1,0 +1,11 @@
+{
+  "owner": "yc556600",
+  "slug": "video-quick-gen",
+  "displayName": "基于需求描述智能生成脚本和视频，让你的每个营销视频都出彩。适用于用户希望“把这个需求直接生成视频”时，通过API自动生成结果而非人工撰写。",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773750938328,
+    "commit": null
+  },
+  "history": []
+}
