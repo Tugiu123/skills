@@ -3,9 +3,15 @@
   "slug": "ai-vlog-editor",
   "displayName": "AI Vlog Editor",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773758135298,
-    "commit": "https://github.com/openclaw/skills/commit/035ddc59619b87e65ed92d55eeccfc39710e5292"
+    "version": "1.0.8",
+    "publishedAt": 1773825835662,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773758135298,
+      "commit": "https://github.com/openclaw/skills/commit/035ddc59619b87e65ed92d55eeccfc39710e5292"
+    }
+  ]
 }
