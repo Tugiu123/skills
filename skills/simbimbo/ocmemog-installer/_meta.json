@@ -1,13 +1,18 @@
 {
   "owner": "simbimbo",
   "slug": "ocmemog-installer",
-  "displayName": "ocmemog Installer",
+  "displayName": "ocmemog-installer",
   "latest": {
-    "version": "0.1.2",
-    "publishedAt": 1773668254073,
-    "commit": "https://github.com/openclaw/skills/commit/90a8feccc0211571a59552752b71c10f4b7b8fb3"
+    "version": "0.1.5",
+    "publishedAt": 1773794820830,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.2",
+      "publishedAt": 1773668254073,
+      "commit": "https://github.com/openclaw/skills/commit/90a8feccc0211571a59552752b71c10f4b7b8fb3"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1773667834855,

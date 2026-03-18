@@ -1,39 +1,44 @@
 ---
 name: ocmemog-installer
-description: One-click installer and setup skill for ocmemog, the OpenClaw durable memory plugin and sidecar. Use when a user asks to install ocmemog, set up ocmemog, add durable memory to OpenClaw, improve long-term memory, enable transcript-backed continuity, configure the ocmemog sidecar, reinstall or update ocmemog, or troubleshoot an existing ocmemog install. Prefer the bundled install script for the fastest path.
+description: Install and configure ocmemog, the OpenClaw durable memory plugin and sidecar. Use when a user asks to install ocmemog, set up durable memory, improve OpenClaw memory, enable transcript-backed continuity, configure the ocmemog sidecar, reinstall/update ocmemog, or troubleshoot its install. Prefer the public package install path first; fall back to the GitHub repo installer path when package install is unavailable or source checkout is explicitly desired.
 ---
 
 # ocmemog Installer
 
-Install `ocmemog` from the canonical GitHub repo and configure OpenClaw to use it as the memory plugin.
+Install `ocmemog` from the canonical public package/repo and configure OpenClaw to use it as the memory plugin.
 
-## Canonical source
+## Public install paths
 
-- Repo: `https://github.com/simbimbo/ocmemog.git`
+- npm package: `@openclaw/memory-ocmemog`
+- GitHub repo: `https://github.com/simbimbo/ocmemog.git`
+- GitHub release: `https://github.com/simbimbo/ocmemog/releases/tag/v0.1.2`
 - Plugin id: `memory-ocmemog`
 - Default sidecar endpoint: `http://127.0.0.1:17890`
-- Primary bundled installer: `scripts/install-ocmemog.sh`
+- Default timeout: `30000`
+- Bundled repo installer: `scripts/install-ocmemog.sh`
 
 ## Preferred workflow
 
-1. Run the bundled installer script first.
-   - Default: `scripts/install-ocmemog.sh`
-   - Optional target dir: `scripts/install-ocmemog.sh /custom/path/ocmemog`
-2. Let the script clone/update the repo, build the venv, install Python requirements, start the sidecar, and install/enable the plugin when the `openclaw` CLI is available.
-3. Patch OpenClaw config so the `memory` slot points at `memory-ocmemog` and the plugin entry uses `http://127.0.0.1:17890`.
+1. If OpenClaw package install is available, prefer:
+   - `openclaw plugins install @openclaw/memory-ocmemog`
+   - `openclaw plugins enable memory-ocmemog`
+2. If package install is unavailable, or the user wants a source checkout, use the repo installer flow:
+   - clone/update `https://github.com/simbimbo/ocmemog.git`
+   - run `scripts/install-ocmemog.sh`
+   - this path creates `.venv`, installs Python requirements, attempts plugin install/enable, loads LaunchAgents, and pulls local Ollama models when Ollama is available
+   - on macOS/Homebrew systems, `OCMEMOG_INSTALL_PREREQS=true` can also auto-install missing `ollama` and `ffmpeg`
+3. Patch OpenClaw config so the `memory` slot points at `memory-ocmemog` and the plugin entry uses `http://127.0.0.1:17890` with `timeoutMs: 30000`.
 4. Validate `/healthz` and a memory search/get smoke test.
 
 ## Agent behavior
 
-- Default to the script-driven flow instead of narrating manual steps.
-- Treat user phrases like "install ocmemog", "set up durable memory", "improve OpenClaw memory", and "add long-term memory" as direct triggers.
+- Prefer the package install path when available because it is the cleanest public distribution path.
+- Fall back to the repo installer path when package install is unavailable, when the user needs a source checkout, or when debugging/pinning commits.
 - If config patch tooling is available, patch config automatically instead of asking the user to hand-edit files.
 - After install, verify the sidecar and plugin state before claiming success.
 - If the environment blocks automatic config changes, provide the exact config snippet and the shortest possible manual next step.
 
 ## Config patching
-
-If the Gateway tool is available, prefer patching config automatically instead of asking the user to hand-edit config.
 
 Target config shape:
 
@@ -49,11 +54,12 @@ plugins:
       enabled: true
       config:
         endpoint: http://127.0.0.1:17890
-        timeoutMs: 10000
+        timeoutMs: 30000
 ```
 
 Rules:
-- Use the actual install path chosen by the script.
+- If installed from package tooling, use the normal plugin install location chosen by OpenClaw.
+- If installed from the repo installer flow, use the actual checkout path chosen by the script.
 - Preserve existing unrelated plugin configuration.
 - If config patch tooling is unavailable, provide the exact patch/snippet the user should apply.
 
@@ -62,16 +68,17 @@ Rules:
 - Sidecar responds on `/healthz`
 - `openclaw plugins` shows `memory-ocmemog` installed/enabled when CLI access exists
 - Memory search/get calls return data instead of connection errors
-- If packaging/publish questions arise, remember this skill is a ClawHub wrapper for the plugin repo, not the plugin package itself
+- If packaging/publish questions arise, remember this skill is a ClawHub wrapper for the public plugin package/repo, not the plugin package itself
 
 ## Troubleshooting
 
-- If `clawhub` users expect a direct plugin package, explain that this skill installs/configures the real plugin repo.
+- If package install fails, fall back to the GitHub repo installer path.
+- If ClawHub users expect a direct plugin package, explain that this skill installs/configures the real plugin package/repo.
 - If macOS LaunchAgents fail, rerun the installer and inspect `launchctl print gui/$UID/com.openclaw.ocmemog.sidecar`.
 - If the sidecar health check fails, inspect repo logs / terminal output before changing config.
 - Keep the sidecar bound to `127.0.0.1` unless explicit auth/network hardening is added.
 
 ## Notes
 
-- Prefer the script-driven flow over manual step-by-step setup.
-- Prefer publishing the plugin itself through GitHub/npm/plugin-install flows; use this skill as the ClawHub-distributed installer/config guide.
+- Prefer public package install over source checkout when both are viable.
+- Use this skill as the ClawHub-distributed installer/config guide for the public ocmemog package/repo.
