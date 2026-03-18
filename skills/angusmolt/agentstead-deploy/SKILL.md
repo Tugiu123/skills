@@ -1,167 +1,201 @@
----
-name: agentstead-deploy
-description: Deploy OpenClaw AI agents to AgentStead cloud hosting. Use when a user wants to deploy a sub-agent on AgentStead, connect Telegram/Discord, and launch quickly with AgentStead-provided AI models.
-version: 1.2.0
----
+# AgentStead Deploy Skill
 
-# AgentStead Deploy
+Deploy and manage AI agents on [AgentStead](https://agentstead.com) cloud hosting.
 
-Deploy an OpenClaw agent to AgentStead's cloud hosting in minutes.
+## Prerequisites
 
-**API Base URL:** `https://www.agentstead.com/api/v1`
+- An AgentStead account (sign up at https://agentstead.com/signup)
+- `curl` and `jq` installed (standard on most systems)
+- An auth token from logging in
 
-## Quick Deploy Flow
+## Authentication
 
-1. Register/login → 2. Create agent → 3. Add channel → 4. Set up billing → 5. Start agent → 6. Verify
-
-## Conversation Guide
-
-Before calling any APIs, gather from the user:
-
-1. **Agent name** — What should the agent be called?
-2. **Personality/instructions** — System prompt or personality description
-3. **Channel** — Telegram (need bot token from @BotFather) or Discord (need bot token from Discord Developer Portal)
-4. **AI credit plan** — Pay-as-you-go ($0 base), 1K ($10/mo), 3K ($30/mo), 5K ($50/mo), or 10K ($100/mo) ASTD/mo
-5. **AI model** — Claude 3.5 Haiku (fast), Claude Sonnet 4 (balanced), or Claude Opus 4.6 (most capable)
-6. **Hosting plan** — Starter $9/mo, Pro $19/mo, Business $39/mo, Enterprise $79/mo
-7. **Payment method** — ASTD Balance, Crypto (USDC on Base/Polygon), or Card (Stripe)
-
-## Step-by-Step Workflow
-
-### Step 1: Register
+First, log in to get an auth token. The skill provides a helper script that safely handles credentials:
 
 ```bash
-curl -X POST https://www.agentstead.com/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "securepass123"}'
+# Save the deploy helper script
+cat > /tmp/agentstead-deploy.sh << 'SCRIPT'
+#!/bin/bash
+# AgentStead Deploy Helper — handles JSON escaping safely
+set -e
+
+API="https://www.agentstead.com/api"
+TOKEN_FILE="/tmp/.agentstead-token"
+
+cmd_login() {
+  local email="$1" password="$2"
+  local body
+  body=$(jq -n --arg e "$email" --arg p "$password" '{email: $e, password: $p}')
+  local resp
+  resp=$(curl -s -X POST "$API/auth/login" -H "Content-Type: application/json" -d "$body")
+  local token
+  token=$(echo "$resp" | jq -r '.token // empty')
+  if [ -z "$token" ]; then
+    echo "ERROR: Login failed — $(echo "$resp" | jq -r '.error // "unknown error"')" >&2
+    return 1
+  fi
+  echo "$token" > "$TOKEN_FILE"
+  chmod 600 "$TOKEN_FILE"
+  echo "OK: Logged in successfully"
+}
+
+cmd_create() {
+  local name="$1" plan="${2:-STARTER}" ai_plan="${3:-PAYG}" model="${4:-SONNET}"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  local body
+  body=$(jq -n \
+    --arg name "$name" \
+    --arg plan "$plan" \
+    --arg aiPlan "$ai_plan" \
+    --arg model "$model" \
+    '{name: $name, plan: $plan, aiPlan: $aiPlan, defaultModel: $model}')
+  curl -s -X POST "$API/agents" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" \
+    -d "$body" | jq .
+}
+
+cmd_configure() {
+  local agent_id="$1" personality="$2"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  local body
+  body=$(jq -n --arg p "$personality" '{personality: $p}')
+  curl -s -X PATCH "$API/agents/$agent_id" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" \
+    -d "$body" | jq .
+}
+
+cmd_channel() {
+  local agent_id="$1" type="$2" bot_token="$3"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  local body
+  body=$(jq -n --arg t "$type" --arg bt "$bot_token" '{type: $t, config: {botToken: $bt}}')
+  curl -s -X POST "$API/agents/$agent_id/channels" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" \
+    -d "$body" | jq .
+}
+
+cmd_start() {
+  local agent_id="$1"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  curl -s -X POST "$API/agents/$agent_id/start" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" | jq .
+}
+
+cmd_stop() {
+  local agent_id="$1"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  curl -s -X POST "$API/agents/$agent_id/stop" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" | jq .
+}
+
+cmd_list() {
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  curl -s "$API/agents" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" | jq '.agents[] | {id, name, status, plan, aiPlan, defaultModel}'
+}
+
+cmd_subscribe() {
+  local agent_id="$1" astd_cost="$2"
+  local token
+  token=$(cat "$TOKEN_FILE" 2>/dev/null) || { echo "ERROR: Not logged in" >&2; return 1; }
+  local body
+  body=$(jq -n --argjson cost "$astd_cost" '{planAstdCost: $cost}')
+  curl -s -X POST "$API/agents/$agent_id/subscribe-astd" \
+    -H "Content-Type: application/json" \
+    -H "x-cognito-id: $(cat "$TOKEN_FILE")" \
+    -d "$body" | jq .
+}
+
+case "$1" in
+  login)     cmd_login "$2" "$3" ;;
+  create)    cmd_create "$2" "$3" "$4" "$5" ;;
+  configure) cmd_configure "$2" "$3" ;;
+  channel)   cmd_channel "$2" "$3" "$4" ;;
+  start)     cmd_start "$2" ;;
+  stop)      cmd_stop "$2" ;;
+  list)      cmd_list ;;
+  subscribe) cmd_subscribe "$2" "$3" ;;
+  *) echo "Usage: agentstead-deploy.sh {login|create|configure|channel|start|stop|list|subscribe}" ;;
+esac
+SCRIPT
+chmod +x /tmp/agentstead-deploy.sh
 ```
 
-Response includes `token` — use as `Authorization: Bearer <token>` for all subsequent requests.
+## Usage
 
-If user already has an account, use login instead:
+### 1. Log in
 
 ```bash
-curl -X POST https://www.agentstead.com/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "securepass123"}'
+/tmp/agentstead-deploy.sh login "user@example.com" "password123"
 ```
 
-### Step 2: Create Agent
+### 2. Create an agent
 
 ```bash
-curl -X POST https://www.agentstead.com/api/v1/agents \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "MyAgent",
-    "personality": "You are a helpful assistant...",
-    "plan": "pro",
-    "aiPlan": "ASTD_5000",
-    "defaultModel": "anthropic/claude-sonnet-4-20250514"
-  }'
+# Args: name, hardware_plan, ai_plan, default_model
+/tmp/agentstead-deploy.sh create "My Agent" "STARTER" "PAYG" "SONNET"
 ```
 
-**Valid `aiPlan` values:**
-| Plan | Price | Description |
-|------|-------|-------------|
-| `PAYG` | $0 base | Pay-as-you-go, deducts from ASTD balance per use |
-| `ASTD_1000` | $10/mo | 1,000 ASTD monthly credits |
-| `ASTD_3000` | $30/mo | 3,000 ASTD monthly credits |
-| `ASTD_5000` | $50/mo | 5,000 ASTD monthly credits |
-| `ASTD_10000` | $100/mo | 10,000 ASTD monthly credits |
+**Hardware plans:** STARTER ($9/mo), PRO ($29/mo), BUSINESS ($59/mo), ENTERPRISE ($99/mo)
 
-**Valid `defaultModel` values:**
-| Model | ID | Best For |
-|-------|----|----------|
-| Claude 3.5 Haiku | `anthropic/claude-haiku-3-5` | Fast, efficient responses |
-| Claude Sonnet 4 | `anthropic/claude-sonnet-4-20250514` | Balanced performance |
-| Claude Opus 4.6 | `anthropic/claude-opus-4-6` | Most capable reasoning |
+**AI plans:** BYOK (bring your own key), PAYG (pay-as-you-go from ASTD wallet), ASTD_1000–ASTD_10000
 
-Response includes the agent `id` — save it for subsequent steps.
+**Models (AgentStead Provided):**
+- Anthropic: HAIKU, SONNET, OPUS
+- AWS Bedrock: BEDROCK_HAIKU, BEDROCK_SONNET, BEDROCK_OPUS, BEDROCK_HAIKU45, BEDROCK_NOVA_PRO, BEDROCK_NOVA_LITE, BEDROCK_NOVA_MICRO, BEDROCK_LLAMA4_MAVERICK, BEDROCK_LLAMA33_70B, BEDROCK_DEEPSEEK_R1, BEDROCK_MISTRAL_LARGE, BEDROCK_COMMAND_R_PLUS
+- Ollama (free): DEEPSEEK_V3, QWEN3, LLAMA4, GEMMA3, MISTRAL_LARGE, GLM5, KIMI_K2, MINIMAX
 
-### Step 3: Add Channel
-
-**Telegram:**
-```bash
-curl -X POST https://www.agentstead.com/api/v1/agents/<agent_id>/channels \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"type": "telegram", "botToken": "123456:ABC-DEF..."}'
-```
-
-**Discord:**
-```bash
-curl -X POST https://www.agentstead.com/api/v1/agents/<agent_id>/channels \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"type": "discord", "botToken": "MTIz..."}'
-```
-
-### Step 4: Set Up Billing
-
-**Crypto (USDC):**
-```bash
-curl -X POST https://www.agentstead.com/api/v1/billing/crypto/create-invoice \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"agentId": "<agent_id>", "plan": "pro", "aiPlan": "ASTD_5000"}'
-```
-
-Returns a deposit address. Guide user to send USDC on Base or Polygon chain.
-
-**Stripe (card):**
-```bash
-curl -X POST https://www.agentstead.com/api/v1/billing/checkout \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"agentId": "<agent_id>", "plan": "pro", "aiPlan": "ASTD_5000"}'
-```
-
-Returns a Stripe checkout URL. Send to user to complete payment.
-
-### Step 5: Start Agent
+### 3. Activate subscription (deduct ASTD from wallet)
 
 ```bash
-curl -X POST https://www.agentstead.com/api/v1/agents/<agent_id>/start \
-  -H "Authorization: Bearer <token>"
+# Args: agent_id, astd_cost (900=Starter, 2900=Pro, 5900=Business, 9900=Enterprise)
+/tmp/agentstead-deploy.sh subscribe "agent-uuid-here" 900
 ```
 
-### Step 6: Verify
+### 4. Set personality
 
 ```bash
-curl -X GET https://www.agentstead.com/api/v1/agents/<agent_id> \
-  -H "Authorization: Bearer <token>"
+/tmp/agentstead-deploy.sh configure "agent-uuid-here" "You are a helpful coding assistant specializing in Python."
 ```
 
-Check that `status` is `"RUNNING"`. If not, wait a few seconds and retry.
+### 5. Add a channel (Telegram, Discord, WhatsApp, Slack)
 
-## Pricing Reference
+```bash
+/tmp/agentstead-deploy.sh channel "agent-uuid-here" "TELEGRAM" "123456:ABC-DEF..."
+```
 
-### Hardware Plans (per agent)
-| Plan | Price | Specs |
-|------|-------|-------|
-| Starter | $9/mo | t3.micro · 1 vCPU · 1GB RAM · 5GB storage |
-| Pro | $19/mo | t3.small · 2 vCPU · 2GB RAM · 20GB storage |
-| Business | $39/mo | t3.medium · 2 vCPU · 4GB RAM · 50GB storage |
-| Enterprise | $79/mo | t3.large · 2 vCPU · 8GB RAM · 100GB storage |
+### 6. Start the agent
 
-### AI Credit Plans
-| Plan | Price | Description |
-|------|-------|-------------|
-| PAYG | $0 base | Pay-as-you-go from ASTD balance |
-| ASTD_1000 | $10/mo | 1,000 ASTD monthly credits |
-| ASTD_3000 | $30/mo | 3,000 ASTD monthly credits |
-| ASTD_5000 | $50/mo | 5,000 ASTD monthly credits |
-| ASTD_10000 | $100/mo | 10,000 ASTD monthly credits |
+```bash
+/tmp/agentstead-deploy.sh start "agent-uuid-here"
+```
 
-All plans include access to Claude 3.5 Haiku, Claude Sonnet 4, and Claude Opus 4.6.
+### 7. List agents
 
-**ASTD conversion:** 100 ASTD = $1 USD. Platform fee: 4% on top of AI provider cost.
+```bash
+/tmp/agentstead-deploy.sh list
+```
 
-## Notes
+### 8. Stop an agent
 
-- Telegram bot tokens come from [@BotFather](https://t.me/BotFather)
-- Discord bot tokens come from the [Discord Developer Portal](https://discord.com/developers/applications)
-- Agents can be stopped with `POST /agents/:id/stop` and restarted anytime
-- Top up ASTD balance via the web dashboard or iOS app
-- See `references/api-reference.md` for full API documentation
+```bash
+/tmp/agentstead-deploy.sh stop "agent-uuid-here"
+```
+
+## Security
+
+- All user input is passed through `jq` for safe JSON encoding — never interpolated directly into shell commands
+- Auth tokens are stored in a file with 600 permissions (owner-only read)
+- All API calls use HTTPS
+- Network access is restricted to agentstead.com only
