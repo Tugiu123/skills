@@ -1,20 +1,32 @@
 #!/bin/bash
-# OpenClaw Security Monitor - Enhanced Threat Scanner v3.0
+# OpenClaw Security Monitor - Enhanced Threat Scanner v4.0
 # https://github.com/adibirzu/openclaw-security-monitor
 #
-# 40-point security scanner. Detects: ClawHavoc AMOS stealer (824+ skills),
+# 59-point security scanner. Detects: ClawHavoc AMOS stealer (824+ skills),
 # C2 infrastructure, reverse shells, credential exfiltration, memory
 # poisoning, WebSocket hijacking (CVE-2026-25253), ClawJacked brute-force
 # (v2026.2.25), SKILL.md injection, log poisoning, Vidar infostealer
 # targeting, path traversal (CVE-2026-26329), exec bypass, SSRF
 # (CVE-2026-26322, CVE-2026-27488), safeBins bypass (CVE-2026-28363),
-# ACP auto-approval bypass (GHSA-7jx5), PATH hijacking (GHSA-jqpq),
-# env override injection (GHSA-82g8), deep link truncation (CVE-2026-26320),
-# log poisoning, MCP tool poisoning, DM/tool/sandbox policy violations,
-# persistence mechanisms, plugin threats, and more.
+# ACP auto-approval bypass (GHSA-7jx5), PATH hijacking (GHSA-jqpq,
+# CVE-2026-29610), env override injection (GHSA-82g8), deep link truncation
+# (CVE-2026-26320), log poisoning, Browser Relay CDP auth bypass
+# (CVE-2026-28458), browser control path traversal (CVE-2026-28462), exec
+# shell expansion bypass (CVE-2026-28463), approval field injection
+# (CVE-2026-28466), /agent/act no-auth (CVE-2026-28485), sandbox bridge
+# auth bypass (CVE-2026-28468), SHA-1 cache poisoning (CVE-2026-28479),
+# webhook DoS (CVE-2026-28478), TAR traversal (CVE-2026-28453),
+# fetchWithGuard memory DoS (CVE-2026-29609), Google Chat webhook bypass
+# (CVE-2026-28469), gateway WebSocket identity skip (CVE-2026-28472),
+# Cross-Site WebSocket Hijacking (CVE-2026-32302), device pairing credential
+# exposure (GHSA-7h7g), operator privilege escalation (GHSA-vmhq),
+# MCP tool poisoning via schema injection (OWASP MCP03/MCP06),
+# SANDWORM_MODE MCP worm detection, rules file backdoor / Unicode injection,
+# DM/tool/sandbox policy violations, persistence mechanisms, plugin
+# threats, and more.
 #
-# IOC database updated: 2026-03-02
-# Threat coverage: 13+ CVEs, 20+ GHSAs, 1,184 malicious packages
+# IOC database updated: 2026-03-15
+# Threat coverage: 35+ CVEs, 40+ GHSAs, 1,200+ malicious packages
 #
 # Exit codes: 0=SECURE, 1=WARNINGS, 2=COMPROMISED
 set -uo pipefail
@@ -95,7 +107,7 @@ PY
 }
 
 # Count total checks
-TOTAL_CHECKS=40
+TOTAL_CHECKS=59
 
 log "========================================"
 log "OPENCLAW SECURITY SCAN - $TIMESTAMP"
@@ -282,7 +294,7 @@ MEMORY_POISON=0
 for memfile in "$WORKSPACE_DIR/SOUL.md" "$WORKSPACE_DIR/MEMORY.md" "$WORKSPACE_DIR/IDENTITY.md"; do
     if [ -f "$memfile" ]; then
         # Check for suspicious content
-        POISON_HITS=$(grep -iE "ignore previous|disregard|override.*instruction|system prompt|new instruction|forget.*previous|you are now|act as if|pretend to be|from now on.*ignore" "$memfile" 2>/dev/null || true)
+        POISON_HITS=$(grep -iE "ignore[[:space:]]+previous|disregard|override.*instruction|system[[:space:]]+prompt|new[[:space:]]+instruction|forget.*previous|you[[:space:]]+are[[:space:]]+now|act[[:space:]]+as[[:space:]]+if|pretend[[:space:]]+to[[:space:]]+be|from[[:space:]]+now[[:space:]]+on.*ignore" "$memfile" 2>/dev/null || true)
         if [ -n "$POISON_HITS" ]; then
             result_critical "Memory poisoning detected in $memfile:"
             log "$POISON_HITS"
@@ -944,7 +956,7 @@ fi
 # Scan MCP config for suspicious tool descriptions (prompt injection in tool docstrings)
 MCP_CONFIG="$OPENCLAW_DIR/mcp.json"
 if [ -f "$MCP_CONFIG" ]; then
-    MCP_INJECT=$(grep -iE "ignore previous|system prompt|override instruction|execute command|run this" "$MCP_CONFIG" 2>/dev/null || true)
+    MCP_INJECT=$(grep -iE "ignore[[:space:]]+previous|system[[:space:]]+prompt|override[[:space:]]+instruction|execute[[:space:]]+command|run[[:space:]]+this" "$MCP_CONFIG" 2>/dev/null || true)
     if [ -n "$MCP_INJECT" ]; then
         result_critical "Prompt injection patterns in MCP server config:"
         log "  $MCP_INJECT"
@@ -1307,6 +1319,748 @@ fi
 
 if [ "$LOG_POISON_ISSUES" -eq 0 ]; then
     result_clean "No log poisoning indicators found"
+fi
+
+# ============================================================
+# CHECK 41: Browser Relay CDP Unauthenticated Access (CVE-2026-28458)
+# ============================================================
+header 41 "Checking Browser Relay CDP auth (CVE-2026-28458)..."
+
+CDP_ISSUES=0
+# CVE-2026-28458 (CVSS 7.5): Browser Relay /cdp WebSocket endpoint does not
+# require auth tokens. Websites can connect via ws://127.0.0.1:18792/cdp to
+# steal session cookies and execute JS in other tabs. Fixed in v2026.2.1.
+
+# Check if Browser Relay port is listening
+if command -v lsof &>/dev/null; then
+    CDP_LISTEN=$(lsof -iTCP:18792 -sTCP:LISTEN -nP 2>/dev/null | grep -v COMMAND)
+    if [ -n "$CDP_LISTEN" ]; then
+        log "  Browser Relay is listening on port 18792"
+        if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+            CDP_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+            CDP_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+            CDP_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+            CDP_VULN=false
+            if [ "$CDP_MAJOR" -eq 2026 ] 2>/dev/null; then
+                if [ "$CDP_MINOR" -lt 2 ] 2>/dev/null; then
+                    CDP_VULN=true
+                elif [ "$CDP_MINOR" -eq 2 ] && [ "$CDP_PATCH" -lt 1 ] 2>/dev/null; then
+                    CDP_VULN=true
+                fi
+            fi
+            if [ "$CDP_VULN" = true ]; then
+                result_critical "Browser Relay /cdp endpoint unauthenticated (CVE-2026-28458). Update to v2026.2.1+"
+                CDP_ISSUES=$((CDP_ISSUES + 1))
+            fi
+        fi
+    fi
+fi
+if [ "$CDP_ISSUES" -eq 0 ]; then
+    result_clean "Browser Relay CDP auth acceptable"
+fi
+
+# ============================================================
+# CHECK 42: Browser Control API Path Traversal (CVE-2026-28462)
+# ============================================================
+header 42 "Checking browser control path traversal (CVE-2026-28462)..."
+
+BCTRL_ISSUES=0
+# CVE-2026-28462 (CVSS 7.5): Browser control API accepts user-supplied output
+# paths for trace/download without constraining to temp dirs. Path traversal
+# via /trace/stop, /wait/download, /download. Fixed in v2026.2.13.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    BC_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    BC_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    BC_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    BC_VULN=false
+    if [ "$BC_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$BC_MINOR" -lt 2 ] 2>/dev/null; then
+            BC_VULN=true
+        elif [ "$BC_MINOR" -eq 2 ] && [ "$BC_PATCH" -lt 13 ] 2>/dev/null; then
+            BC_VULN=true
+        fi
+    fi
+    if [ "$BC_VULN" = true ]; then
+        result_critical "Browser control API path traversal (CVE-2026-28462). Update to v2026.2.13+"
+        BCTRL_ISSUES=$((BCTRL_ISSUES + 1))
+    fi
+fi
+if [ "$BCTRL_ISSUES" -eq 0 ]; then
+    result_clean "Browser control path handling acceptable"
+fi
+
+# ============================================================
+# CHECK 43: Exec-Approvals Shell Expansion Bypass (CVE-2026-28463)
+# ============================================================
+header 43 "Checking exec-approvals shell expansion bypass (CVE-2026-28463)..."
+
+SHEXP_ISSUES=0
+# CVE-2026-28463: exec-approvals allowlist validates pre-expansion argv tokens
+# but execution uses real shell expansion. head/tail/grep in safeBins can read
+# arbitrary files via glob patterns or env vars. Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    SE_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    SE_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    SE_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    SE_VULN=false
+    if [ "$SE_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$SE_MINOR" -lt 2 ] 2>/dev/null; then
+            SE_VULN=true
+        elif [ "$SE_MINOR" -eq 2 ] && [ "$SE_PATCH" -lt 14 ] 2>/dev/null; then
+            SE_VULN=true
+        fi
+    fi
+    if [ "$SE_VULN" = true ]; then
+        result_critical "Exec-approvals shell expansion bypass (CVE-2026-28463). Update to v2026.2.14+"
+        SHEXP_ISSUES=$((SHEXP_ISSUES + 1))
+    fi
+
+    # Audit safeBins for commands vulnerable to glob-based file reads
+    SAFE_BINS=$(run_with_timeout 5 openclaw config get "tools.exec.safeBins" 2>/dev/null || echo "")
+    for RBIN in head tail grep cat; do
+        if echo "$SAFE_BINS" | grep -q "\"$RBIN\"" 2>/dev/null; then
+            log "  INFO: '$RBIN' in safeBins — ensure v2026.2.14+ for CVE-2026-28463 fix"
+        fi
+    done
+fi
+if [ "$SHEXP_ISSUES" -eq 0 ]; then
+    result_clean "Exec-approvals shell expansion handling acceptable"
+fi
+
+# ============================================================
+# CHECK 44: Approval Field Injection / Exec Gating Bypass (CVE-2026-28466)
+# ============================================================
+header 44 "Checking approval field injection bypass (CVE-2026-28466)..."
+
+AFI_ISSUES=0
+# CVE-2026-28466: Gateway fails to sanitize internal approval fields in
+# node.invoke params, letting authenticated clients bypass exec approval
+# gating for system.run commands. Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    AF_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    AF_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    AF_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    AF_VULN=false
+    if [ "$AF_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$AF_MINOR" -lt 2 ] 2>/dev/null; then
+            AF_VULN=true
+        elif [ "$AF_MINOR" -eq 2 ] && [ "$AF_PATCH" -lt 14 ] 2>/dev/null; then
+            AF_VULN=true
+        fi
+    fi
+    if [ "$AF_VULN" = true ]; then
+        result_critical "Approval field injection bypass (CVE-2026-28466). Update to v2026.2.14+"
+        AFI_ISSUES=$((AFI_ISSUES + 1))
+    fi
+fi
+if [ "$AFI_ISSUES" -eq 0 ]; then
+    result_clean "Approval field sanitization acceptable"
+fi
+
+# ============================================================
+# CHECK 45: Sandbox Browser Bridge Auth Bypass (CVE-2026-28468)
+# ============================================================
+header 45 "Checking sandbox browser bridge auth (CVE-2026-28468)..."
+
+SBB_ISSUES=0
+# CVE-2026-28468: Sandbox browser bridge server accepts requests without
+# gateway auth, allowing local attackers to access browser control endpoints.
+# Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    SB_MAJOR2=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    SB_MINOR2=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    SB_PATCH2=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    SB_VULN2=false
+    if [ "$SB_MAJOR2" -eq 2026 ] 2>/dev/null; then
+        if [ "$SB_MINOR2" -lt 2 ] 2>/dev/null; then
+            SB_VULN2=true
+        elif [ "$SB_MINOR2" -eq 2 ] && [ "$SB_PATCH2" -lt 14 ] 2>/dev/null; then
+            SB_VULN2=true
+        fi
+    fi
+    if [ "$SB_VULN2" = true ]; then
+        result_warn "Sandbox browser bridge unauthenticated (CVE-2026-28468). Update to v2026.2.14+"
+        SBB_ISSUES=$((SBB_ISSUES + 1))
+    fi
+fi
+if [ "$SBB_ISSUES" -eq 0 ]; then
+    result_clean "Sandbox browser bridge auth acceptable"
+fi
+
+# ============================================================
+# CHECK 46: Webhook DoS — Oversized Payloads (CVE-2026-28478)
+# ============================================================
+header 46 "Checking webhook DoS / oversized payloads (CVE-2026-28478)..."
+
+WDOS_ISSUES=0
+# CVE-2026-28478: Webhook handlers buffer request bodies without strict byte
+# or time limits. Remote unauthenticated attackers can send oversized JSON or
+# slow uploads to cause memory pressure and availability degradation.
+# Fixed in v2026.2.13.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    WD_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    WD_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    WD_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    WD_VULN=false
+    if [ "$WD_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$WD_MINOR" -lt 2 ] 2>/dev/null; then
+            WD_VULN=true
+        elif [ "$WD_MINOR" -eq 2 ] && [ "$WD_PATCH" -lt 13 ] 2>/dev/null; then
+            WD_VULN=true
+        fi
+    fi
+    if [ "$WD_VULN" = true ]; then
+        result_warn "Webhook handlers lack body size/time limits (CVE-2026-28478). Update to v2026.2.13+"
+        WDOS_ISSUES=$((WDOS_ISSUES + 1))
+    fi
+fi
+if [ "$WDOS_ISSUES" -eq 0 ]; then
+    result_clean "Webhook body limits acceptable"
+fi
+
+# ============================================================
+# CHECK 47: TAR Archive Path Traversal (CVE-2026-28453)
+# ============================================================
+header 47 "Checking TAR archive path traversal (CVE-2026-28453)..."
+
+TAR_ISSUES=0
+# CVE-2026-28453: TAR archive extraction does not validate entry paths,
+# allowing ../../ traversal to write files outside intended directories.
+# Can enable config tampering and code execution. Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    TA_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    TA_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    TA_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    TA_VULN=false
+    if [ "$TA_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$TA_MINOR" -lt 2 ] 2>/dev/null; then
+            TA_VULN=true
+        elif [ "$TA_MINOR" -eq 2 ] && [ "$TA_PATCH" -lt 14 ] 2>/dev/null; then
+            TA_VULN=true
+        fi
+    fi
+    if [ "$TA_VULN" = true ]; then
+        result_critical "TAR archive path traversal (CVE-2026-28453). Update to v2026.2.14+"
+        TAR_ISSUES=$((TAR_ISSUES + 1))
+    fi
+fi
+if [ "$TAR_ISSUES" -eq 0 ]; then
+    result_clean "TAR archive handling acceptable"
+fi
+
+# ============================================================
+# CHECK 48: fetchWithGuard Memory Exhaustion DoS (CVE-2026-29609)
+# ============================================================
+header 48 "Checking fetchWithGuard memory DoS (CVE-2026-29609)..."
+
+FWG_ISSUES=0
+# CVE-2026-29609 (CVSS 7.5): fetchWithGuard allocates entire response payloads
+# in memory before enforcing maxBytes limits. Oversized responses without
+# Content-Length cause memory exhaustion. Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    FW_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    FW_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    FW_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    FW_VULN=false
+    if [ "$FW_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$FW_MINOR" -lt 2 ] 2>/dev/null; then
+            FW_VULN=true
+        elif [ "$FW_MINOR" -eq 2 ] && [ "$FW_PATCH" -lt 14 ] 2>/dev/null; then
+            FW_VULN=true
+        fi
+    fi
+    if [ "$FW_VULN" = true ]; then
+        result_warn "fetchWithGuard memory exhaustion DoS (CVE-2026-29609). Update to v2026.2.14+"
+        FWG_ISSUES=$((FWG_ISSUES + 1))
+    fi
+fi
+if [ "$FWG_ISSUES" -eq 0 ]; then
+    result_clean "fetchWithGuard memory handling acceptable"
+fi
+
+# ============================================================
+# CHECK 49: /agent/act No Authentication (CVE-2026-28485)
+# ============================================================
+header 49 "Checking /agent/act auth requirement (CVE-2026-28485)..."
+
+ACT_ISSUES=0
+# CVE-2026-28485: The browser-control HTTP route /agent/act lacks mandatory
+# authentication, allowing any local process or LAN host to trigger browser
+# actions on behalf of the agent. Fixed in v2026.2.12.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    ACT_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    ACT_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    ACT_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    ACT_VULN=false
+    if [ "$ACT_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$ACT_MINOR" -lt 2 ] 2>/dev/null; then
+            ACT_VULN=true
+        elif [ "$ACT_MINOR" -eq 2 ] && [ "$ACT_PATCH" -lt 12 ] 2>/dev/null; then
+            ACT_VULN=true
+        fi
+    fi
+    if [ "$ACT_VULN" = true ]; then
+        result_critical "/agent/act HTTP route unauthenticated (CVE-2026-28485). Update to v2026.2.12+"
+        ACT_ISSUES=$((ACT_ISSUES + 1))
+    fi
+fi
+
+# Check if browser extension is enabled (required for the endpoint to be reachable)
+if command -v openclaw &>/dev/null; then
+    BROWSER_EXT=$(run_with_timeout 5 openclaw config get "browser.extension.enabled" 2>/dev/null || echo "")
+    if [ "$BROWSER_EXT" = "true" ] && [ "$ACT_ISSUES" -gt 0 ]; then
+        log "  Browser extension is enabled — /agent/act attack surface is active"
+    elif [ "$BROWSER_EXT" = "true" ]; then
+        log "  INFO: Browser extension enabled; verify v2026.2.12+ for CVE-2026-28485 fix"
+    fi
+fi
+
+if [ "$ACT_ISSUES" -eq 0 ]; then
+    result_clean "/agent/act authentication acceptable"
+fi
+
+# ============================================================
+# CHECK 50: Command Hijacking via PATH (CVE-2026-29610)
+# ============================================================
+header 50 "Checking PATH command hijacking (CVE-2026-29610)..."
+
+PATH610_ISSUES=0
+# CVE-2026-29610: OpenClaw resolves command names against the user PATH without
+# normalising or pinning to absolute paths before version 2026.2.14. A writable
+# directory appearing before system directories in PATH allows a planted binary
+# to intercept openclaw exec calls. Fixed in v2026.2.14.
+# (Distinct from GHSA-jqpq which tracked a related but different code path.)
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    P610_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    P610_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    P610_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    P610_VULN=false
+    if [ "$P610_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$P610_MINOR" -lt 2 ] 2>/dev/null; then
+            P610_VULN=true
+        elif [ "$P610_MINOR" -eq 2 ] && [ "$P610_PATCH" -lt 14 ] 2>/dev/null; then
+            P610_VULN=true
+        fi
+    fi
+    if [ "$P610_VULN" = true ]; then
+        result_warn "OpenClaw v$OC_VERSION vulnerable to PATH command hijacking (CVE-2026-29610). Update to v2026.2.14+"
+        PATH610_ISSUES=$((PATH610_ISSUES + 1))
+    fi
+fi
+
+# Detect writable PATH directories that appear before standard system dirs
+SYSTEM_DIRS="/usr/bin /bin /usr/sbin /sbin"
+IFS=':' read -ra P610_DIRS <<< "$PATH"
+FOUND_SYSTEM=false
+for PDIR610 in "${P610_DIRS[@]}"; do
+    # Check if this is a system directory
+    for SDIR in $SYSTEM_DIRS; do
+        if [ "$PDIR610" = "$SDIR" ]; then
+            FOUND_SYSTEM=true
+            break
+        fi
+    done
+    # If we haven't hit a system dir yet and this dir is writable by non-owners
+    if [ "$FOUND_SYSTEM" = false ] && [ -d "$PDIR610" ]; then
+        DIR_PERMS=$(stat -f "%Lp" "$PDIR610" 2>/dev/null || stat -c "%a" "$PDIR610" 2>/dev/null || echo "")
+        if [ -n "$DIR_PERMS" ]; then
+            # World-writable or group-writable directory before system paths
+            case "$DIR_PERMS" in
+                *7|*6|*3|*2)
+                    result_warn "Writable dir '$PDIR610' precedes system dirs in PATH (CVE-2026-29610 hijack vector)"
+                    PATH610_ISSUES=$((PATH610_ISSUES + 1))
+                    ;;
+            esac
+        fi
+    fi
+done
+
+if [ "$PATH610_ISSUES" -eq 0 ]; then
+    result_clean "PATH command hijacking risk acceptable"
+fi
+
+# ============================================================
+# CHECK 51: SHA-1 Cache Poisoning (CVE-2026-28479, CVSS 8.7)
+# ============================================================
+header 51 "Checking SHA-1 sandbox cache poisoning (CVE-2026-28479)..."
+
+SHA1_ISSUES=0
+# CVE-2026-28479 (CVSS 8.7): OpenClaw uses SHA-1 to generate sandbox identifier
+# cache keys. SHA-1 collision attacks can cause one sandbox's cached state to
+# be served to a different sandbox, potentially leaking secrets or bypassing
+# isolation. Fixed in v2026.2.15.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    SHA1_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    SHA1_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    SHA1_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    SHA1_VULN=false
+    if [ "$SHA1_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$SHA1_MINOR" -lt 2 ] 2>/dev/null; then
+            SHA1_VULN=true
+        elif [ "$SHA1_MINOR" -eq 2 ] && [ "$SHA1_PATCH" -lt 15 ] 2>/dev/null; then
+            SHA1_VULN=true
+        fi
+    fi
+    if [ "$SHA1_VULN" = true ]; then
+        result_critical "OpenClaw v$OC_VERSION uses SHA-1 for sandbox cache keys (CVE-2026-28479, CVSS 8.7). Update to v2026.2.15+"
+        SHA1_ISSUES=$((SHA1_ISSUES + 1))
+    fi
+fi
+
+# Check if sandbox caching is enabled (increases exposure if vulnerable)
+if command -v openclaw &>/dev/null; then
+    SANDBOX_CACHE=$(run_with_timeout 5 openclaw config get "sandbox.cache.enabled" 2>/dev/null || echo "")
+    if [ "$SANDBOX_CACHE" = "true" ] && [ "$SHA1_ISSUES" -gt 0 ]; then
+        log "  Sandbox caching is enabled — SHA-1 collision attack surface is active"
+    elif [ "$SANDBOX_CACHE" = "true" ]; then
+        log "  INFO: Sandbox caching enabled; verify v2026.2.15+ for CVE-2026-28479 fix"
+    fi
+fi
+
+if [ "$SHA1_ISSUES" -eq 0 ]; then
+    result_clean "Sandbox cache key algorithm acceptable"
+fi
+
+# ============================================================
+# CHECK 52: Google Chat Webhook Cross-Account Bypass (CVE-2026-28469, CVSS 9.8)
+# ============================================================
+header 52 "Checking Google Chat webhook authorization (CVE-2026-28469)..."
+
+GCW_ISSUES=0
+# CVE-2026-28469 (CVSS 9.8, Critical): Google Chat webhook handler uses first-match
+# semantics when multiple webhook targets share the same HTTP path. A cross-account
+# attacker can register a matching path to intercept or inject messages.
+# Fixed in v2026.2.14.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    GCW_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    GCW_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    GCW_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    GCW_VULN=false
+    if [ "$GCW_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$GCW_MINOR" -lt 2 ] 2>/dev/null; then
+            GCW_VULN=true
+        elif [ "$GCW_MINOR" -eq 2 ] && [ "$GCW_PATCH" -lt 14 ] 2>/dev/null; then
+            GCW_VULN=true
+        fi
+    fi
+    if [ "$GCW_VULN" = true ]; then
+        result_critical "Google Chat webhook cross-account bypass (CVE-2026-28469, CVSS 9.8). Update to v2026.2.14+"
+        GCW_ISSUES=$((GCW_ISSUES + 1))
+    fi
+fi
+
+# Check if Google Chat integration is configured
+if command -v openclaw &>/dev/null; then
+    GCHAT_ENABLED=$(run_with_timeout 5 openclaw config get "integrations.googlechat.enabled" 2>/dev/null || echo "")
+    if [ "$GCHAT_ENABLED" = "true" ] && [ "$GCW_ISSUES" -gt 0 ]; then
+        log "  Google Chat integration is active — CVE-2026-28469 attack surface is live"
+    fi
+fi
+
+if [ "$GCW_ISSUES" -eq 0 ]; then
+    result_clean "Google Chat webhook authorization acceptable"
+fi
+
+# ============================================================
+# CHECK 53: Gateway WebSocket Device Identity Skip (CVE-2026-28472)
+# ============================================================
+header 53 "Checking gateway WebSocket device identity (CVE-2026-28472)..."
+
+WSDI_ISSUES=0
+# CVE-2026-28472: Gateway WebSocket connect handshake skips device identity checks,
+# granting operator access without device verification. Allows unauthorized
+# WebSocket connections to escalate to operator-level sessions. Fixed in v2026.3.11.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    WSDI_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    WSDI_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    WSDI_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    WSDI_VULN=false
+    if [ "$WSDI_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$WSDI_MINOR" -lt 3 ] 2>/dev/null; then
+            WSDI_VULN=true
+        elif [ "$WSDI_MINOR" -eq 3 ] && [ "$WSDI_PATCH" -lt 11 ] 2>/dev/null; then
+            WSDI_VULN=true
+        fi
+    fi
+    if [ "$WSDI_VULN" = true ]; then
+        result_critical "Gateway WebSocket skips device identity check (CVE-2026-28472). Update to v2026.3.11+"
+        WSDI_ISSUES=$((WSDI_ISSUES + 1))
+    fi
+fi
+
+if [ "$WSDI_ISSUES" -eq 0 ]; then
+    result_clean "Gateway WebSocket device identity acceptable"
+fi
+
+# ============================================================
+# CHECK 54: Cross-Site WebSocket Hijacking in Trusted-Proxy (CVE-2026-32302)
+# ============================================================
+header 54 "Checking Cross-Site WebSocket Hijacking (CVE-2026-32302)..."
+
+CSWSH_ISSUES=0
+# CVE-2026-32302: Origin validation bypass in trusted-proxy mode allows attacker-origin
+# pages to establish privileged operator sessions via WebSocket. Fixed in v2026.3.11.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    CSW_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    CSW_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    CSW_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    CSW_VULN=false
+    if [ "$CSW_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$CSW_MINOR" -lt 3 ] 2>/dev/null; then
+            CSW_VULN=true
+        elif [ "$CSW_MINOR" -eq 3 ] && [ "$CSW_PATCH" -lt 11 ] 2>/dev/null; then
+            CSW_VULN=true
+        fi
+    fi
+    if [ "$CSW_VULN" = true ]; then
+        result_critical "Cross-Site WebSocket Hijacking via Origin bypass (CVE-2026-32302). Update to v2026.3.11+"
+        CSWSH_ISSUES=$((CSWSH_ISSUES + 1))
+    fi
+fi
+
+# Extra risk if trusted-proxy mode is active
+if command -v openclaw &>/dev/null; then
+    TRUSTED_PROXY_MODE=$(run_with_timeout 5 openclaw config get "gateway.trustedProxy" 2>/dev/null || echo "")
+    if [ "$TRUSTED_PROXY_MODE" = "true" ] && [ "$CSWSH_ISSUES" -gt 0 ]; then
+        log "  Trusted-proxy mode is ACTIVE — CVE-2026-32302 exploitation is trivial"
+    elif [ "$TRUSTED_PROXY_MODE" = "true" ]; then
+        log "  INFO: Trusted-proxy mode enabled; verify v2026.3.11+ for CVE-2026-32302 fix"
+    fi
+fi
+
+if [ "$CSWSH_ISSUES" -eq 0 ]; then
+    result_clean "Cross-Site WebSocket Hijacking protection acceptable"
+fi
+
+# ============================================================
+# CHECK 55: Device Pairing Credential Exposure (GHSA-7h7g-x2px-94hj)
+# ============================================================
+header 55 "Checking device pairing credential exposure (GHSA-7h7g)..."
+
+DPCE_ISSUES=0
+# GHSA-7h7g-x2px-94hj: Device pairing setup codes expose long-lived gateway
+# credentials instead of short-lived bootstrap tokens. Compromised setup codes
+# grant persistent access. Fixed in v2026.3.12.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    DP_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    DP_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    DP_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    DP_VULN=false
+    if [ "$DP_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$DP_MINOR" -lt 3 ] 2>/dev/null; then
+            DP_VULN=true
+        elif [ "$DP_MINOR" -eq 3 ] && [ "$DP_PATCH" -lt 12 ] 2>/dev/null; then
+            DP_VULN=true
+        fi
+    fi
+    if [ "$DP_VULN" = true ]; then
+        result_warn "Device pairing exposes long-lived credentials (GHSA-7h7g). Update to v2026.3.12+"
+        DPCE_ISSUES=$((DPCE_ISSUES + 1))
+    fi
+fi
+
+# Check if pairing has been used (device.json exists)
+DEVICE_JSON="$OPENCLAW_DIR/device.json"
+if [ -f "$DEVICE_JSON" ] && [ "$DPCE_ISSUES" -gt 0 ]; then
+    log "  device.json exists — rotate credentials after upgrading"
+fi
+
+if [ "$DPCE_ISSUES" -eq 0 ]; then
+    result_clean "Device pairing credential handling acceptable"
+fi
+
+# ============================================================
+# CHECK 56: Operator Privilege Escalation (GHSA-vmhq-cqm9-6p7q)
+# ============================================================
+header 56 "Checking operator privilege escalation (GHSA-vmhq)..."
+
+OPE_ISSUES=0
+# GHSA-vmhq-cqm9-6p7q (High): Accounts with operator.write permissions can access
+# admin-only endpoints to create/delete browser profiles, escalating privileges.
+# Fixed in v2026.3.12.
+
+if command -v openclaw &>/dev/null && [ -n "$OC_VERSION" ] && [ "$OC_VERSION" != "unknown" ]; then
+    OP_MAJOR=$(echo "$OC_VERSION" | cut -d'.' -f1)
+    OP_MINOR=$(echo "$OC_VERSION" | cut -d'.' -f2)
+    OP_PATCH=$(echo "$OC_VERSION" | cut -d'.' -f3 | cut -d'-' -f1)
+    OP_VULN=false
+    if [ "$OP_MAJOR" -eq 2026 ] 2>/dev/null; then
+        if [ "$OP_MINOR" -lt 3 ] 2>/dev/null; then
+            OP_VULN=true
+        elif [ "$OP_MINOR" -eq 3 ] && [ "$OP_PATCH" -lt 12 ] 2>/dev/null; then
+            OP_VULN=true
+        fi
+    fi
+    if [ "$OP_VULN" = true ]; then
+        result_warn "Operator accounts can escalate to admin (GHSA-vmhq). Update to v2026.3.12+"
+        OPE_ISSUES=$((OPE_ISSUES + 1))
+    fi
+fi
+
+if [ "$OPE_ISSUES" -eq 0 ]; then
+    result_clean "Operator privilege boundaries acceptable"
+fi
+
+# ============================================================
+# CHECK 57: MCP Server Tool Poisoning via Schema Injection
+# ============================================================
+header 57 "Checking MCP server configs for tool poisoning..."
+
+MCP_POISON_ISSUES=0
+# OWASP MCP03 / MCP06: Malicious MCP servers can embed prompt injection in tool
+# descriptions, parameter names, default values, and required-field arrays. Also
+# checks for "rug pull" patterns (postmark-mcp style BCC exfiltration).
+
+MCP_CONFIG_DIRS=(
+    "$OPENCLAW_DIR/mcp-servers"
+    "$HOME/.config/openclaw/mcp"
+    "$HOME/.claude/mcp"
+)
+
+for MCP_DIR in "${MCP_CONFIG_DIRS[@]}"; do
+    if [ -d "$MCP_DIR" ]; then
+        while IFS= read -r mcpfile; do
+            [ -z "$mcpfile" ] && continue
+            # Check for hidden Unicode characters used for prompt injection
+            if grep -Pq '[\x{200B}\x{200C}\x{200D}\x{2060}\x{FEFF}\x{00AD}]' "$mcpfile" 2>/dev/null; then
+                result_critical "Hidden Unicode in MCP config: $mcpfile (tool poisoning/prompt injection)"
+                MCP_POISON_ISSUES=$((MCP_POISON_ISSUES + 1))
+            fi
+            # Check for BCC/forwarding injection patterns (rug pull)
+            if grep -iE '(bcc|forward_to|redirect|exfiltrate|steal|siphon)' "$mcpfile" 2>/dev/null | grep -vq '^#'; then
+                result_warn "Suspicious BCC/forwarding pattern in MCP config: $mcpfile"
+                MCP_POISON_ISSUES=$((MCP_POISON_ISSUES + 1))
+            fi
+            # Check for prompt injection in tool descriptions
+            if grep -iE '(ignore previous|disregard|you are now|act as|system prompt|<\|im_sep\|>|<\|endoftext\|>)' "$mcpfile" 2>/dev/null | grep -vq '^#'; then
+                result_critical "Prompt injection detected in MCP config: $mcpfile"
+                MCP_POISON_ISSUES=$((MCP_POISON_ISSUES + 1))
+            fi
+        done < <(find "$MCP_DIR" -type f \( -name "*.json" -o -name "*.yaml" -o -name "*.yml" -o -name "*.toml" \) 2>/dev/null)
+    fi
+done
+
+if [ "$MCP_POISON_ISSUES" -eq 0 ]; then
+    result_clean "MCP server configs clean of tool poisoning patterns"
+fi
+
+# ============================================================
+# CHECK 58: SANDWORM_MODE MCP Worm Detection
+# ============================================================
+header 58 "Checking for SANDWORM_MODE MCP worm artifacts..."
+
+SANDWORM_ISSUES=0
+# Socket (Feb 20, 2026): 19 typosquatted npm packages carry worm-like malware that
+# injects rogue MCP servers into AI tool configs (Claude Code, Cursor, VS Code Continue,
+# Windsurf). The worm harvests SSH keys, AWS creds, and LLM API keys, then self-propagates.
+# 48-hour delayed activation with per-machine jitter.
+
+SANDWORM_PKGS="@anthropic/sdk-extra|@anthropic/cli-tools|claude-code-utils|claude-mcp-helper|claudecode-ext|claude-dev-tools|cursor-mcp-bridge|cursor-tools-ext|mcp-server-utils|mcp-tool-runner|mcp-proxy-server|windsurf-mcp-bridge|continue-mcp-ext|vscode-ai-helper|ai-code-review|copilot-mcp-bridge|openai-mcp-tools|llm-gateway-utils|agent-tool-sdk"
+
+# Check for rogue MCP entries injected by the worm
+WORM_CONFIG_FILES=(
+    "$HOME/.claude.json"
+    "$HOME/.claude/config.json"
+    "$HOME/.cursor/mcp.json"
+    "$HOME/.continue/config.json"
+    "$HOME/.windsurf/mcp.json"
+    "$HOME/.vscode/mcp.json"
+)
+
+for WCONF in "${WORM_CONFIG_FILES[@]}"; do
+    if [ -f "$WCONF" ]; then
+        # Check for known SANDWORM_MODE package names
+        for SPKG in $(echo "$SANDWORM_PKGS" | tr '|' ' '); do
+            if grep -q "$SPKG" "$WCONF" 2>/dev/null; then
+                result_critical "SANDWORM_MODE worm artifact: '$SPKG' found in $WCONF"
+                SANDWORM_ISSUES=$((SANDWORM_ISSUES + 1))
+            fi
+        done
+        # Check for suspicious MCP server entries with exfiltration patterns
+        if grep -iE '(ssh_key|aws_secret|npm_token|anthropic_api_key|openai_api_key|GROQ_API_KEY)' "$WCONF" 2>/dev/null | grep -vq '^#'; then
+            result_critical "Credential harvesting pattern in MCP config: $WCONF"
+            SANDWORM_ISSUES=$((SANDWORM_ISSUES + 1))
+        fi
+    fi
+done
+
+# Check if any SANDWORM_MODE npm packages are installed locally
+if command -v npm &>/dev/null; then
+    NPM_LIST=$(npm list -g --depth=0 2>/dev/null || true)
+    for SPKG in $(echo "$SANDWORM_PKGS" | tr '|' ' '); do
+        if echo "$NPM_LIST" | grep -q "$SPKG" 2>/dev/null; then
+            result_critical "SANDWORM_MODE malicious npm package installed: $SPKG"
+            SANDWORM_ISSUES=$((SANDWORM_ISSUES + 1))
+        fi
+    done
+fi
+
+if [ "$SANDWORM_ISSUES" -eq 0 ]; then
+    result_clean "No SANDWORM_MODE worm artifacts detected"
+fi
+
+# ============================================================
+# CHECK 59: Rules File Backdoor / Hidden Unicode Injection
+# ============================================================
+header 59 "Checking for rules file backdoor / hidden Unicode injection..."
+
+RULES_ISSUES=0
+# Pillar Security: Hidden Unicode characters in AI agent rules files
+# (.cursorrules, .github/copilot-instructions.md, CLAUDE.md, .clawrules)
+# inject invisible malicious instructions that cause the AI to silently
+# insert backdoors, skip security checks, or exfiltrate data.
+
+RULES_FILES=(
+    ".cursorrules"
+    ".cursor/rules"
+    ".github/copilot-instructions.md"
+    "CLAUDE.md"
+    ".claude/settings.json"
+    ".clawrules"
+    ".openclaw/rules.md"
+    "SOUL.md"
+)
+
+# Scan current working directory and home directory
+SCAN_ROOTS=("$(pwd)" "$HOME")
+for SROOT in "${SCAN_ROOTS[@]}"; do
+    for RFILE in "${RULES_FILES[@]}"; do
+        TARGET="$SROOT/$RFILE"
+        if [ -f "$TARGET" ]; then
+            # Check for zero-width and invisible Unicode characters
+            if grep -Pq '[\x{200B}\x{200C}\x{200D}\x{2060}\x{FEFF}\x{00AD}\x{2028}\x{2029}\x{202A}-\x{202E}\x{2066}-\x{2069}]' "$TARGET" 2>/dev/null; then
+                result_critical "Hidden Unicode injection in rules file: $TARGET (Pillar Security attack)"
+                RULES_ISSUES=$((RULES_ISSUES + 1))
+            fi
+            # Check for base64-encoded instruction blocks (obfuscated injection)
+            if grep -qE '[A-Za-z0-9+/]{40,}={0,2}' "$TARGET" 2>/dev/null; then
+                # Verify it's not just a hash or normal base64 content
+                B64_LINES=$(grep -cE '[A-Za-z0-9+/]{100,}={0,2}' "$TARGET" 2>/dev/null || echo "0")
+                if [ "$B64_LINES" -gt 2 ]; then
+                    result_warn "Large base64 blocks in rules file: $TARGET (potential obfuscated injection)"
+                    RULES_ISSUES=$((RULES_ISSUES + 1))
+                fi
+            fi
+        fi
+    done
+done
+
+if [ "$RULES_ISSUES" -eq 0 ]; then
+    result_clean "Rules files clean of hidden Unicode injection"
 fi
 
 # ============================================================

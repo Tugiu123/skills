@@ -3,11 +3,16 @@
   "slug": "openclaw-security-monitor",
   "displayName": "Openclaw Security Monitor",
   "latest": {
-    "version": "3.4.0",
-    "publishedAt": 1772464992309,
-    "commit": "https://github.com/openclaw/skills/commit/0eae54b5db5d9b048eed45f2526f3e02eb4835e2"
+    "version": "4.2.1",
+    "publishedAt": 1773604101001,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.4.0",
+      "publishedAt": 1772464992309,
+      "commit": "https://github.com/openclaw/skills/commit/0eae54b5db5d9b048eed45f2526f3e02eb4835e2"
+    },
     {
       "version": "3.2.0",
       "publishedAt": 1771480013632,
