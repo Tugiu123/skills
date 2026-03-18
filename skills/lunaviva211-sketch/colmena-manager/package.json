@@ -1,0 +1,24 @@
+{
+  "name": "colmena-manager",
+  "version": "1.0.0",
+  "description": "Gestiona todos los agentes de la Colmena OpenClaw (monitorización, broadcast, logs, control)",
+  "main": "src/index.js",
+  "author": "Anubis",
+  "license": "MIT",
+  "keywords": ["openclaw", "skill", "colmena", "agents", "manager"],
+  "bin": {
+    "colmena-manager": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "openclaw": ">=2026.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lunaviva211-sketch/colmena-manager"
+  }
+}

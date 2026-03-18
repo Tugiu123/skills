@@ -1,0 +1,30 @@
+{
+  "skill": {
+    "name": "colmena-manager",
+    "version": "1.0.0",
+    "description": "Gestiona todos los agentes de la Colmena OpenClaw desde una única interfaz. Monitoriza estado, envía broadcasts, revisa logs, pausa/reanuda agentes y realiza health checks cruzados.",
+    "author": "Anubis",
+    "license": "MIT",
+    "homepage": "https://clawhub.com/skills/colmena-manager",
+    "repository": "https://github.com/lunaviva211-sketch/colmena-manager",
+    "keywords": ["openclaw", "skill", "hive", "agents", "manager", "monitor"],
+    "main": "src/index.js",
+    "bin": {
+      "colmena-manager": "./src/index.js"
+    },
+    "openclaw": {
+      "minVersion": "2026.3.0",
+      "compatibility": ">=2026.3.0"
+    },
+    "install": {
+      "postInstall": []
+    }
+  },
+  "clawhub": {
+    "publishName": "colmena-manager",
+    "category": "management",
+    "tags": ["monitoring", "broadcast", "hive", "agents"],
+    "screenshots": [],
+    "documentation": "SKILL.md"
+  }
+}
