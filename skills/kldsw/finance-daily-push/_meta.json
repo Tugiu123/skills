@@ -1,0 +1,11 @@
+{
+  "owner": "kldsw",
+  "slug": "finance-daily-push",
+  "displayName": "金融日报推送技能",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1773744763376,
+    "commit": null
+  },
+  "history": []
+}
