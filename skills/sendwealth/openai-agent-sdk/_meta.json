@@ -1,0 +1,11 @@
+{
+  "owner": "sendwealth",
+  "slug": "openai-agent-sdk",
+  "displayName": "OpenAI Agent SDK",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773822982141,
+    "commit": null
+  },
+  "history": []
+}
