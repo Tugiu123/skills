@@ -3,9 +3,15 @@
   "slug": "discord-cross-gateway-delegation",
   "displayName": "Discord Cross-Gateway Delegation",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773784883710,
-    "commit": "https://github.com/openclaw/skills/commit/01dcf91eb2d1fba31c34f0b0c42600093919d566"
+    "version": "2.1.0",
+    "publishedAt": 1773895454021,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773784883710,
+      "commit": "https://github.com/openclaw/skills/commit/01dcf91eb2d1fba31c34f0b0c42600093919d566"
+    }
+  ]
 }

@@ -1,42 +1,62 @@
 ---
 name: discord-cross-gateway-delegation
-description: "Set up cross-gateway task delegation between two OpenClaw Discord bots using either a private server channel or a DM fallback. Use when: another OpenClaw bot lives on a different PC or a different Gateway and you want one bot to delegate tasks to the other. Triggers: 'delegate work to another OpenClaw bot', 'cross-gateway delegation', 'connect another gateway bot', 'Discord worker bot setup'. NOT for: same-gateway session routing, normal DM chat, or non-Discord automation."
+description: "Set up and operate full cross-gateway task delegation between two OpenClaw Discord bots across different PCs/gateways. Use when: another OpenClaw bot lives on a different machine and you want private-lane delegation, structured worker protocols, DM natural-language triggers, worker-side intake, and result relay-back into the original DM. Triggers: 'delegate work to another OpenClaw bot', 'cross-gateway delegation', 'connect another gateway bot', 'Discord worker bot setup', 'maekjini', 'kaijini', 'worker lane', 'DM auto delegation'. NOT for: same-gateway session routing, normal DM chat without delegation, or non-Discord automation."
 ---
 
 # Discord Cross-Gateway Delegation
 
-Set up delegation between two OpenClaw bots that run on different PCs and different gateways.
+Run a full Discord-based delegation loop between two OpenClaw bots on different PCs/gateways.
 
 ## Core rule
 
 Treat the second bot as an **external worker**, not as an internal session.
-Do **not** use same-gateway assumptions like `sessions_send` or local subagent routing.
+Do **not** use same-gateway assumptions like `sessions_send`, local subagents, or same-process routing.
 
-## Default rollout
+## Supported operating model
 
-1. Create a **private Discord delegation lane**.
-2. Invite the delegating bot into the target server.
-3. Add the bot to the private channel and **save the permission change**.
-4. Send a structured handshake task.
-5. Test DM behavior and channel behavior separately.
-6. If channel automation fails but DM works, switch to **DM fallback** until gateway config can be fixed.
+A complete delegation flow should include all of these stages:
 
-## Required protocol
+1. private delegation lane setup
+2. structured task envelope protocol
+3. optional DM natural-language trigger on the controller side
+4. worker-side intake in the delegation lane
+5. worker started/final replies in the lane
+6. relay-back of the final worker result into the original DM
 
-Use these message blocks:
-- `[KAI_TASK]`
-- `[KAI_STATUS]`
-- `[KAI_DONE]`
+If only steps 1-2 are working, the setup is incomplete.
 
-Keep one task per message id / task id.
+## Protocol rule
 
-## What to do first
+Use a protocol namespace that matches the worker lane.
 
-Read `references/setup-checklist.md` and follow it in order.
-If the target bot is a secondary worker bot on another device, also read `references/macjini-rollout.md` for role split guidance.
+Examples:
+
+- MACJINI lane: `[MAC_TASK]`, `[MAC_STATUS]`, `[MAC_DONE]`
+- KAIJINI lane: `[KAI_TASK]`, `[KAI_STATUS]`, `[KAI_DONE]`
+
+Do not mix worker identity and protocol prefix unless you are intentionally keeping a legacy compatibility layer.
+
+## What to read first
+
+1. `references/setup-checklist.md`
+2. `references/operating-modes.md`
+3. `references/full-process.md`
+4. If the worker is a secondary execution bot, `references/macjini-rollout.md`
+5. If anything fails, `references/diagnosis.md`
+
+## Operating guidance
+
+- Prefer a **private server delegation lane** over public channels.
+- Support both **quick handoff** and **orchestrated handoff**.
+- For real work, prefer **orchestrated handoff**: the controller bot should understand the task first, generate the worker-facing envelope itself, then delegate.
+- Keep quick handoff as a shortcut for simple tests and short tasks.
+- Test **DM trigger**, **lane intake**, and **DM relay-back** as separate checkpoints.
+- Consider the setup successful only when the final worker result appears back in the original DM.
+- A lane message alone is not success.
+- A worker reply in the lane alone is not success.
 
 ## If channel messages fail
 
 Read `references/diagnosis.md`.
 If the worker bot responds in DM but not in server channels, first assume a guild-channel inbound policy issue.
-For `groupPolicy: allowlist`, explicitly add the target guild/channel under `guilds`, then re-test channel-based `[KAI_STATUS]` before falling back.
+For `groupPolicy: allowlist`, explicitly add the target guild/channel under `guilds`, then re-test channel-based worker intake before falling back.
