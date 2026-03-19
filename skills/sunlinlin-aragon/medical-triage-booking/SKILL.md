@@ -118,41 +118,18 @@ python3 {baseDir}/scripts/appointment_reminders.py --appointment "2026-03-20 14:
 
 #### 7.1 先拿到起终点坐标
 
-- 如果用户提供了起点/终点经纬度，直接进入 7.2。
-- 如果只有医院名称/地址，先用地理编码脚本查医院坐标：
+- 先通用户的IP判断出用户的位置
+- 如果IP没有判断出来， 则提示用户， 让用户自己提交输入位置
 
-```bash
-python3 {baseDir}/scripts/baidu_geocode.py --address "中日友好医院" --city "北京"
-```
+#### 7.2 再做路线规划并生成路径跳转链接
 
-- 如果用户起点也是地址或地名，也可以先地理编码。
+- 将用户输出的位置和医院的位置转换成地图的坐标
 
-#### 7.2 再做路线规划并生成百度地图跳转链接
+#### 7.3 再做路线规划并生成路径跳转链接
 
-```bash
-python3 {baseDir}/scripts/baidu_route_link.py \
-  --origin-lat 39.908823 \
-  --origin-lng 116.397470 \
-  --dest-lat 39.983424 \
-  --dest-lng 116.420706 \
-  --origin-name "我的位置" \
-  --dest-name "中日友好医院" \
-  --mode driving \
-  --coord-type gcj02 \
-  --region "北京"
-```
+- 根据用户的位置坐标，和医院的位置坐标，用amap-jsapi-skill技能生成推荐路线， 并给出线路链接， 点击能跳到web, 查看线路。
 
-返回字段包括：
-- `distance_text`
-- `duration_text`
-- `baidu_link`
 
-把结果直接告诉用户，并附上可点击的百度地图链接。
-
-## 环境变量
-
-如果要使用百度地理编码和路线规划，需要配置：
-- `BAIDU_MAP_AK`
 
 如果缺少该环境变量，仍可完成：
 - 症状分诊
@@ -160,7 +137,6 @@ python3 {baseDir}/scripts/baidu_route_link.py \
 - 挂号提示
 - 提醒时间计算
 
-但无法生成百度地图路线。
 
 ## 结果质量要求
 
