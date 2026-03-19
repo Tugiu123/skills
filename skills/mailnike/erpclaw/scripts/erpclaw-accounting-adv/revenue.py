@@ -15,6 +15,7 @@ try:
     from erpclaw_lib.naming import get_next_name, ENTITY_PREFIXES
     from erpclaw_lib.response import ok, err, row_to_dict
     from erpclaw_lib.audit import audit
+    from erpclaw_lib.query import dynamic_update
 
     ENTITY_PREFIXES.setdefault("revenue_contract", "RCON-")
 except ImportError:
@@ -107,7 +108,7 @@ def update_revenue_contract(conn, args):
     if not conn.execute("SELECT id FROM advacct_revenue_contract WHERE id = ?", (contract_id,)).fetchone():
         err(f"Revenue contract {contract_id} not found")
 
-    updates, params, changed = [], [], []
+    data, changed = {}, []
     for arg_name, col_name in {
         "customer_name": "customer_name",
         "contract_number": "contract_number",
@@ -117,25 +118,22 @@ def update_revenue_contract(conn, args):
     }.items():
         val = getattr(args, arg_name, None)
         if val is not None:
-            updates.append(f"{col_name} = ?")
-            params.append(val)
+            data[col_name] = val
             changed.append(col_name)
 
     contract_status = getattr(args, "contract_status", None)
     if contract_status:
         if contract_status not in VALID_CONTRACT_STATUSES:
             err(f"Invalid contract-status: {contract_status}. Must be one of: {', '.join(VALID_CONTRACT_STATUSES)}")
-        updates.append("contract_status = ?")
-        params.append(contract_status)
+        data["contract_status"] = contract_status
         changed.append("contract_status")
 
-    if not updates:
+    if not data:
         err("No fields to update")
 
-    updates.append("updated_at = ?")
-    params.append(_now_iso())
-    params.append(contract_id)
-    conn.execute(f"UPDATE advacct_revenue_contract SET {', '.join(updates)} WHERE id = ?", params)
+    data["updated_at"] = _now_iso()
+    sql, params = dynamic_update("advacct_revenue_contract", data, where={"id": contract_id})
+    conn.execute(sql, params)
     audit(conn, SKILL, "update-revenue-contract", "advacct_revenue_contract", contract_id,
           new_values={"updated_fields": changed})
     conn.commit()
@@ -184,7 +182,7 @@ def list_revenue_contracts(conn, args):
         where.append("contract_status = ?")
         params.append(args.contract_status)
     if getattr(args, "search", None):
-        where.append("(customer_name LIKE ? OR contract_number LIKE ?)")
+        where.append("(LOWER(customer_name) LIKE LOWER(?) OR LOWER(contract_number) LIKE LOWER(?))")
         params.extend([f"%{args.search}%", f"%{args.search}%"])
 
     where_sql = " AND ".join(where)
@@ -244,7 +242,7 @@ def add_performance_obligation(conn, args):
 
     # Update contract allocated_value
     total_allocated = conn.execute(
-        "SELECT COALESCE(SUM(CAST(allocated_price AS REAL)), 0) FROM advacct_performance_obligation WHERE contract_id = ?",
+        "SELECT COALESCE(SUM(CAST(allocated_price AS NUMERIC)), 0) FROM advacct_performance_obligation WHERE contract_id = ?",
         (contract_id,)
     ).fetchone()[0]
     conn.execute(
@@ -599,9 +597,9 @@ def revenue_recognition_summary(conn, args):
     where_sql = " AND ".join(where)
     rows = conn.execute(f"""
         SELECT rs.period_date,
-               SUM(CAST(rs.amount AS REAL)) as total_amount,
-               SUM(CASE WHEN rs.recognized = 1 THEN CAST(rs.amount AS REAL) ELSE 0 END) as recognized_amount,
-               SUM(CASE WHEN rs.recognized = 0 THEN CAST(rs.amount AS REAL) ELSE 0 END) as unrecognized_amount,
+               SUM(CAST(rs.amount AS NUMERIC)) as total_amount,
+               SUM(CASE WHEN rs.recognized = 1 THEN CAST(rs.amount AS NUMERIC) ELSE 0 END) as recognized_amount,
+               SUM(CASE WHEN rs.recognized = 0 THEN CAST(rs.amount AS NUMERIC) ELSE 0 END) as unrecognized_amount,
                COUNT(*) as entry_count
         FROM advacct_revenue_schedule rs
         WHERE {where_sql}

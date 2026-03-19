@@ -14,6 +14,7 @@ try:
     from erpclaw_lib.naming import get_next_name, ENTITY_PREFIXES
     from erpclaw_lib.response import ok, err, row_to_dict
     from erpclaw_lib.audit import audit
+    from erpclaw_lib.query import dynamic_update
 
     ENTITY_PREFIXES.setdefault("lease", "LEAS-")
 except ImportError:
@@ -122,7 +123,7 @@ def update_lease(conn, args):
     if not conn.execute("SELECT id FROM advacct_lease WHERE id = ?", (lease_id,)).fetchone():
         err(f"Lease {lease_id} not found")
 
-    updates, params, changed = [], [], []
+    data, changed = {}, []
     for arg_name, col_name in {
         "lessee_name": "lessee_name",
         "lessor_name": "lessor_name",
@@ -136,31 +137,27 @@ def update_lease(conn, args):
     }.items():
         val = getattr(args, arg_name, None)
         if val is not None:
-            updates.append(f"{col_name} = ?")
-            params.append(val)
+            data[col_name] = val
             changed.append(col_name)
 
     lease_type = getattr(args, "lease_type", None)
     if lease_type:
         if lease_type not in VALID_LEASE_TYPES:
             err(f"Invalid lease-type: {lease_type}. Must be one of: {', '.join(VALID_LEASE_TYPES)}")
-        updates.append("lease_type = ?")
-        params.append(lease_type)
+        data["lease_type"] = lease_type
         changed.append("lease_type")
 
     term_months = getattr(args, "term_months", None)
     if term_months is not None:
-        updates.append("term_months = ?")
-        params.append(int(term_months))
+        data["term_months"] = int(term_months)
         changed.append("term_months")
 
-    if not updates:
+    if not data:
         err("No fields to update")
 
-    updates.append("updated_at = ?")
-    params.append(_now_iso())
-    params.append(lease_id)
-    conn.execute(f"UPDATE advacct_lease SET {', '.join(updates)} WHERE id = ?", params)
+    data["updated_at"] = _now_iso()
+    sql, params = dynamic_update("advacct_lease", data, where={"id": lease_id})
+    conn.execute(sql, params)
     audit(conn, SKILL, "update-lease", "advacct_lease", lease_id,
           new_values={"updated_fields": changed})
     conn.commit()
@@ -212,7 +209,7 @@ def list_leases(conn, args):
         where.append("lease_status = ?")
         params.append(args.lease_status)
     if getattr(args, "search", None):
-        where.append("(lessee_name LIKE ? OR lessor_name LIKE ? OR asset_description LIKE ?)")
+        where.append("(LOWER(lessee_name) LIKE LOWER(?) OR LOWER(lessor_name) LIKE LOWER(?) OR LOWER(asset_description) LIKE LOWER(?))")
         params.extend([f"%{args.search}%"] * 3)
 
     where_sql = " AND ".join(where)
@@ -524,9 +521,9 @@ def lease_disclosure_report(conn, args):
     rows = conn.execute(f"""
         SELECT l.lease_type,
                COUNT(*) as lease_count,
-               SUM(CAST(l.monthly_payment AS REAL)) as total_monthly_payments,
-               SUM(CAST(COALESCE(l.rou_asset_value, '0') AS REAL)) as total_rou_assets,
-               SUM(CAST(COALESCE(l.lease_liability, '0') AS REAL)) as total_lease_liabilities
+               SUM(CAST(l.monthly_payment AS NUMERIC)) as total_monthly_payments,
+               SUM(CAST(COALESCE(l.rou_asset_value, '0') AS NUMERIC)) as total_rou_assets,
+               SUM(CAST(COALESCE(l.lease_liability, '0') AS NUMERIC)) as total_lease_liabilities
         FROM advacct_lease l
         WHERE {where_sql}
         GROUP BY l.lease_type

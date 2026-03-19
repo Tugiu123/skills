@@ -14,6 +14,7 @@ try:
     from erpclaw_lib.naming import get_next_name, ENTITY_PREFIXES
     from erpclaw_lib.response import ok, err, row_to_dict
     from erpclaw_lib.audit import audit
+    from erpclaw_lib.query import dynamic_update
 
     ENTITY_PREFIXES.setdefault("ic_transaction", "ICT-")
 except ImportError:
@@ -117,7 +118,7 @@ def update_ic_transaction(conn, args):
     if data["ic_status"] not in ("draft", "pending_approval"):
         err(f"Cannot update IC transaction in status '{data['ic_status']}'. Must be draft or pending_approval.")
 
-    updates, params, changed = [], [], []
+    data, changed = {}, []
     for arg_name, col_name in {
         "description": "description",
         "amount": "amount",
@@ -125,33 +126,29 @@ def update_ic_transaction(conn, args):
     }.items():
         val = getattr(args, arg_name, None)
         if val is not None:
-            updates.append(f"{col_name} = ?")
-            params.append(val)
+            data[col_name] = val
             changed.append(col_name)
 
     transaction_type = getattr(args, "transaction_type", None)
     if transaction_type:
         if transaction_type not in VALID_TRANSACTION_TYPES:
             err(f"Invalid transaction-type: {transaction_type}")
-        updates.append("transaction_type = ?")
-        params.append(transaction_type)
+        data["transaction_type"] = transaction_type
         changed.append("transaction_type")
 
     transfer_price_method = getattr(args, "transfer_price_method", None)
     if transfer_price_method:
         if transfer_price_method not in VALID_TP_METHODS:
             err(f"Invalid transfer-price-method: {transfer_price_method}")
-        updates.append("transfer_price_method = ?")
-        params.append(transfer_price_method)
+        data["transfer_price_method"] = transfer_price_method
         changed.append("transfer_price_method")
 
-    if not updates:
+    if not data:
         err("No fields to update")
 
-    updates.append("updated_at = ?")
-    params.append(_now_iso())
-    params.append(ic_id)
-    conn.execute(f"UPDATE advacct_ic_transaction SET {', '.join(updates)} WHERE id = ?", params)
+    data["updated_at"] = _now_iso()
+    sql, params = dynamic_update("advacct_ic_transaction", data, where={"id": ic_id})
+    conn.execute(sql, params)
     audit(conn, SKILL, "update-ic-transaction", "advacct_ic_transaction", ic_id,
           new_values={"updated_fields": changed})
     conn.commit()
@@ -192,7 +189,7 @@ def list_ic_transactions(conn, args):
         where.append("ic_status = ?")
         params.append(args.ic_status)
     if getattr(args, "search", None):
-        where.append("(description LIKE ?)")
+        where.append("(LOWER(description) LIKE LOWER(?))")
         params.append(f"%{args.search}%")
 
     where_sql = " AND ".join(where)
@@ -354,7 +351,7 @@ def ic_reconciliation_report(conn, args):
     rows = conn.execute(f"""
         SELECT from_company_id, to_company_id, transaction_type,
                COUNT(*) as transaction_count,
-               SUM(CAST(amount AS REAL)) as total_amount,
+               SUM(CAST(amount AS NUMERIC)) as total_amount,
                ic_status
         FROM advacct_ic_transaction
         WHERE {where_sql}
