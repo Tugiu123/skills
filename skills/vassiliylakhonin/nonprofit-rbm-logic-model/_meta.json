@@ -1,13 +1,18 @@
 {
   "owner": "vassiliylakhonin",
   "slug": "nonprofit-rbm-logic-model",
-  "displayName": "Nonprofit Grant Orchestrator",
+  "displayName": "Nonprofit Impact Orchestra",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1773806046291,
-    "commit": "https://github.com/openclaw/skills/commit/4edc9f51a48c00e3b3df562d8fe47aef98f68993"
+    "version": "1.0.13",
+    "publishedAt": 1773919195462,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1773806046291,
+      "commit": "https://github.com/openclaw/skills/commit/4edc9f51a48c00e3b3df562d8fe47aef98f68993"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1773377040869,
