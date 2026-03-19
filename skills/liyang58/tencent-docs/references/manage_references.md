@@ -1,12 +1,16 @@
 # 腾讯文档 MCP 工具完整参考
 
-本文件包含腾讯文档 MCP 中 文件管理类 相关工具的完整 API 说明、支持文件的增删改查、文件搜索、文件夹列表、文件夹信息查询。
+本文件包含腾讯文档 MCP 中 文件管理类 相关工具的完整 API 说明、支持文件的增删改查、文件搜索、文件夹列表、文件夹信息查询、文档权限设置。
 
 ---
 ## 目录
+- [文档创建操作](#文档创建操作)
+  - [manage.create_file](#managecreate_file)
 - [文档搜索操作](#文档搜索操作)
 - [文档重命名](#文档重命名)
 - [云文档最近浏览列表页查询](#云文档最近浏览列表页查询)
+- [文档权限设置](#文档权限设置)
+  - [manage.set_privilege](#manageset_privilege)
 - [文档导入操作](#文档导入操作)
   - [manage.import_file](#manageimport_file)
   - [manage.import_progress](#manageimport_progress)
@@ -14,6 +18,68 @@
   - [manage.export_file](#manageexport_file)
   - [manage.export_progress](#manageexport_progress)
 - [典型工作流示例](#典型工作流示例)
+
+---
+
+## 文档创建操作
+
+### manage.create_file
+
+**功能**：创建腾讯云文档，支持创建多种类型的文档。
+
+**使用场景**：
+- 在指定文件夹下创建新的在线文档（如文档、表格、幻灯片等）
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|-----|------|
+| `title` | string | ✅ | 文档标题 |
+| `doc_type` | string | ✅ | 文档类型，可选值：`smartcanvas`、`doc`、`sheet`、`form`、`slide`、`mind`、`flowchart`、`smartsheet` |
+| `folder_id` | string |  | 文档所在文件夹唯一标识 |
+
+**doc_type 取值说明**：
+
+| 值              | 含义   |
+|-----------------|--------|
+| `smartcanvas`   | 文档   |
+| `doc`           | Word   |
+| `sheet`         | 表格   |
+| `form`          | 收集表 |
+| `slide`         | 幻灯片 |
+| `mind`          | 思维导图 |
+| `flowchart`     | 流程图 |
+| `smartsheet`    | 智能表 |
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `file_id` | string | 文档ID |
+| `title` | string | 文档名称 |
+| `url` | string | 文档链接 |
+| `type` | string | 文档类型 |
+
+**调用示例**：
+
+```json
+{
+  "title": "项目计划",
+  "doc_type": "doc"
+}
+```
+
+**返回示例**：
+
+```json
+{
+  "file_id": "doc_1234567890",
+  "title": "项目计划",
+  "url": "https://docs.qq.com/doc/DV2h5cWJ0R1lQb0lH",
+  "type": "doc",
+  "trace_id": "trace_xyz"
+}
+```
 
 ---
 
@@ -25,36 +91,26 @@
 
 **使用场景**：
 - 搜索文档标题包含"MCP"关键字的文档
-- 搜索文档创建者名称中包含"张三"关键字的文档
 
 **请求参数**：
 
 | 参数 | 类型 | 必填 | 说明                                                   |
 |------|------|-----|------------------------------------------------------|
 | `search_key` | string | ✅ | 搜索关键字                                                |
-| `search_type` | string | ✅ | 按指定类型来匹配关键字，默认按照title搜索，title-按文档标题搜索，owner-按拥有者昵称搜索 |
-| `offset` | int64 |  | 查询的起始条目偏移量，默认为0 |
-| `size` | int64 |  | 单次查询返回的条目数量，默认为20，上限是50 |
 
 **返回字段**：
 
 | 字段             | 类型     | 说明       |
 |----------------|--------|----------|
-| `next`         | int64  | 下次搜索起始位置 |
-| `total`        | int64  | 总共搜索条目数  |
-| `has_more`     | bool   | 搜索条目是否结束 |
-| `list[].id`    | string | 文档id     |
+| `list[].file_id`    | string | 文档id     |
 | `list[].title` | string | 文档标题     |
 | `list[].url`   | string | 文档链接     |
-| `list[].type`  | string | 文档类型     |
-| `list[].highlight`  | string | 匹配到的关键词高亮块  |
 
 **调用示例**：
 
 ```json
 {
-  "search_key": "MCP",
-  "search_type": "title"
+  "search_key": "MCP"
 }
 ```
 
@@ -62,26 +118,18 @@
 
 ```json
 {
-  "has_more":true,
   "list":[
     {
-      "highlight": "highlight1",
-      "id": "sheet_1",
+      "file_id": "sheet_1",
       "title": "sheet_name_1",
-      "type": "sheet",
       "url": "https://docs.qq.com/sheet/sheet_file_id_1"
     },
     {
-      "highlight": "highlight2",
-      "id": "sheet_2",
+      "file_id": "sheet_2",
       "title": "sheet_name_2",
-      "type": "sheet",
       "url": "https://docs.qq.com/sheet/sheet_file_id_2"
     }
   ],
-  "next": "20",
-  "total": "40",
-  "error": "",
   "trace_id": "trace_xyz"
 }
 ```
@@ -182,6 +230,118 @@
     }
   ],
   "trace_id":"trace_abc"
+}
+```
+
+---
+
+## 文档权限管理
+
+### manage.get_privilege
+
+**功能**：根据文档ID查询文档权限策略。返回当前文档的权限设置，仅支持返回 0（私密文档）、1（部分成员可见）、2（所有人可读）、3（所有人可编辑）四种权限场景，其他权限类型暂不支持。
+
+**使用场景**：
+- 查看文档当前的权限状态，决定是否需要调整
+- 在设置权限前先查询当前状态，避免重复设置
+- 确认文档分享权限是否符合预期
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|-----|------|
+| `file_id` | string | ✅ | 文档ID |
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `file_id` | string | 文档ID |
+| `policy` | uint32 | 权限策略，0-私密文档，1-部分成员可见，2-所有人可读，3-所有人可编辑 |
+
+**policy 返回值说明**：
+
+| 值 | 含义 | 说明 |
+|----|------|------|
+| 0 | 私密文档 | 仅文档所有者可访问 |
+| 1 | 部分成员可见 | 仅指定的协作者可访问 |
+| 2 | 所有人可读 | 任何获得链接的人都可以查看文档 |
+| 3 | 所有人可编辑 | 任何获得链接的人都可以编辑文档 |
+
+> ⚠️ **注意**：当前仅支持返回上述四种权限场景（0/1/2/3），如果文档设置了其他权限类型（如所有人可执行、所有人可标注等），将返回错误。
+
+**调用示例**：
+
+```json
+{
+  "file_id": "DtDywXFgYFru"
+}
+```
+
+**返回示例**：
+
+```json
+{
+  "file_id": "DtDywXFgYFru",
+  "policy": 2
+}
+```
+
+---
+
+### manage.set_privilege
+
+**功能**：根据文档ID设置文档权限。当前仅支持设置文档为所有人可读或所有人可编辑。
+
+**使用场景**：
+- 创建文档后设置为所有人可查看，方便团队成员浏览
+- 设置文档为所有人可编辑，支持多人协作编辑
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|-----|------|
+| `file_id` | string | ✅ | 文档ID |
+| `policy` | uint32 | ✅ | 权限策略，2-所有人可读，3-所有人可编辑 |
+
+**policy 取值说明**：
+
+| 值 | 含义 | 说明 |
+|----|------|------|
+| 2 | 所有人可读 | 任何获得链接的人都可以查看文档 |
+| 3 | 所有人可编辑 | 任何获得链接的人都可以编辑文档 |
+
+> ⚠️ **注意**：目前仅支持 policy=2（所有人可读）和 policy=3（所有人可编辑）两种权限设置，其他权限值暂不支持。
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `trace_id` | string | 请求追踪ID |
+
+**调用示例（设置所有人可读）**：
+
+```json
+{
+  "file_id": "DtDywXFgYFru",
+  "policy": 2
+}
+```
+
+**调用示例（设置所有人可编辑）**：
+
+```json
+{
+  "file_id": "DtDywXFgYFru",
+  "policy": 3
+}
+```
+
+**返回示例**：
+
+```json
+{
+  "trace_id": "trace_xyz"
 }
 ```
 
@@ -406,15 +566,11 @@
 ### 工作流二：按照关键字搜索文件列表
 
 ```
-步骤 1：按照文档标题搜索
- → manage.search_file（传入用户指定的关键词和search_type=title）
+步骤 1：搜索文档
+ → manage.search_file（传入用户指定的关键词）
 
-步骤 2：按照文档owner搜索
- → manage.search_file（传入用户指定的关键词和search_type=owner）
-
-步骤 3：处理数据
- → 将前面3部获取的数据列表组合起来
- 
+步骤 2：处理数据
+ → 从返回的文档列表中获取所需的文档信息
  
 ```
 
@@ -433,13 +589,10 @@
 ### 工作流四：根据关键词搜索后删除文档
 
 ```
-步骤 1：按照文档标题搜索
- → manage.search_file（传入用户指定的关键词和search_type=title,获取文档id）
+步骤 1：搜索文档
+ → manage.search_file（传入用户指定的关键词，获取文档id）
 
-步骤 2：按照文档owner搜索
- → manage.search_file（传入用户指定的关键词和search_type=owner,获取文档id）
-
-步骤 3：删除文档
+步骤 2：删除文档
   → manage.delete_file（传入指定的file_id）
  
 ```
@@ -509,4 +662,31 @@
 步骤 4：验证文件完整性
  → 对比原文件与导出文件的大小（可能有微小差异，属正常现象）
  → 导入导出过程中腾讯文档会对文件内部 XML 结构做标准化处理
+```
+
+### 工作流八：创建文档并设置分享权限
+
+```
+步骤 1：创建文档
+ → create_smartcanvas_by_markdown（传入标题和Markdown内容）
+ → 返回 file_id 和 url
+
+步骤 2：设置文档权限
+ → manage.set_privilege（传入 file_id 和 policy）
+ → policy=2 设置所有人可读，policy=3 设置所有人可编辑
+
+步骤 3：分享文档链接
+ → 将步骤 1 返回的 url 分享给相关人员
+```
+
+### 工作流九：查询文档权限后按需调整
+
+```
+步骤 1：查询文档当前权限
+ → manage.get_privilege（传入 file_id）
+ → 返回 policy：0-私密文档、1-部分成员可见、2-所有人可读、3-所有人可编辑
+
+步骤 2：根据需要调整权限
+ → 如果 policy 不符合预期，调用 manage.set_privilege（传入 file_id 和目标 policy）
+ → policy=2 设置所有人可读，policy=3 设置所有人可编辑
 ```

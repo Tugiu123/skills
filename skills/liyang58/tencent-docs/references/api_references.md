@@ -67,7 +67,7 @@
 ### 分页说明
 
 - `query_space_node`：每页 20 条
-- `space_list`：每页 100 条
+- `query_space_list`：每页 100 条
 - 使用 `has_next` 判断是否有更多数据
 - 页码从 0 开始
 
@@ -75,23 +75,23 @@
 
 ## 工具调用示例
 
-## 1. create_smartcanvas_by_markdown
+## 1. create_smartcanvas_by_mdx
 
 ### 功能说明
-通过 Markdown 格式创建智能文档，排版美观，支持所有 Markdown 基本结构。
+ 通过 MDX 格式创建排版丰富的在线智能文档。MDX 是一种比 Markdown 更强大的文档描述格式，支持分栏布局（ColumnList）、高亮块（Callout）、待办列表（Todo）、表格（Table）、带样式文本（Mark）等高级组件。MDX 内容必须严格遵循 `mdx_references.md` 规范生成。
 
 ### 调用示例
 ```json
 {
   "title": "项目需求文档",
-  "markdown": "# 项目需求\n\n## 项目背景\n\n本项目旨在开发一套智能文档管理系统...\n\n## 功能需求\n\n- 文档创建功能\n- 文档编辑功能\n- 协作功能\n\n## 技术架构\n\n| 组件 | 技术选型 |\n|------|----------|\n| 前端 | React |\n| 后端 | Go |\n| 数据库 | MySQL |",
+  "mdx": "---\ntitle: 项目需求文档\nicon: 📋\n---\n\n# 项目需求\n\n<Callout icon=\"📌\" blockColor=\"light_blue\" borderColor=\"blue\">\n    本项目旨在开发一套智能文档管理系统。\n</Callout>\n\n## 功能需求\n\n<BulletedList>\n    <ListItem>\n        文档创建功能\n    </ListItem>\n    <ListItem>\n        文档编辑功能\n    </ListItem>\n    <ListItem>\n        协作功能\n    </ListItem>\n</BulletedList>\n\n## 技术架构\n\n<Table>\n    <Row>\n        <Cell>\n            组件\n        </Cell>\n        <Cell>\n            技术选型\n        </Cell>\n    </Row>\n    <Row>\n        <Cell>\n            前端\n        </Cell>\n        <Cell>\n            React\n        </Cell>\n    </Row>\n    <Row>\n        <Cell>\n            后端\n        </Cell>\n        <Cell>\n            Go\n        </Cell>\n    </Row>\n    <Row>\n        <Cell>\n            数据库\n        </Cell>\n        <Cell>\n            MySQL\n        </Cell>\n    </Row>\n</Table>",
   "parent_id": "folder_1234567890"
 }
 ```
 
 ### 参数说明
-- `title` (string, 必填): 文档标题
-- `markdown` (string, 必填): UTF-8 格式的 Markdown 文本
+- `title` (string, 必填): 文档标题，不超过36个字符
+- `mdx` (string, 必填): 严格符合 mdx_references 规范的 MDX 格式文本
 - `parent_id` (string, 可选): 父节点ID，为空时在空间根目录创建，不为空时在指定节点下创建
 
 ### 返回值说明
@@ -231,7 +231,7 @@
 }
 ```
 
-## 5. create_flowchart_by_mermaid
+## 6. create_flowchart_by_mermaid
 
 ### 功能说明
 通过 Mermaid 语法创建流程图。
@@ -260,36 +260,7 @@
 }
 ```
 
-## 6. create_word_by_markdown
-
-### 功能说明
-通过 Markdown 创建 Word 文档。
-
-### 调用示例
-```json
-{
-  "title": "技术文档",
-  "markdown": "# 技术文档\n\n## 系统架构\n\n本文档描述系统的技术架构设计...\n\n## 数据库设计\n\n| 表名 | 说明 |\n|------|------|\n| users | 用户表 |\n| documents | 文档表 |",
-  "parent_id": "folder_1234567890"
-}
-```
-
-### 参数说明
-- `title` (string, 必填): Word 文档标题
-- `markdown` (string, 必填): UTF-8 格式的 Markdown 文本
-- `parent_id` (string, 可选): 父节点ID，为空时在空间根目录创建，不为空时在指定节点下创建
-
-### 返回值说明
-```json
-{
-  "file_id": "word_1234567890",
-  "url": "https://docs.qq.com/doc/DV2h5cWJ0R1lQb0lH",
-  "error": "",
-  "trace_id": "trace_1234567890"
-}
-```
-
-## 7. space_list
+## 7. query_space_list
 
 ### 功能说明
 获取知识库空间列表，支持按不同方式排序和分页查询。
@@ -580,40 +551,40 @@
 ```
 ## ⚠️ Agent 执行指引（重要）
 
-### 异步轮询任务：exec 超时风险
+### 异步轮询任务：推荐使用 spawn 子会话
 
 部分工具（如 `create_slide` + `slide_progress`）是异步任务，需要持续轮询等待结果。
 
-在 Agent 环境中使用 `exec` 工具执行轮询循环时，必须注意超时问题：
+- `create_slide` 的 AI 生成时间通常需要 **10~15 分钟**
+- 推荐使用 **spawn 子会话**专职轮询，主会话保持响应，避免阻塞用户交互
 
-- `exec` 工具存在 `yieldMs` 上限（通常不超过 180 秒），超时后进程会被终止（SIGTERM），导致轮询中断、结果丢失
-- `create_slide` 的 AI 生成时间通常需要 **10~15 分钟**，单次 `exec` 循环极易超时
+### ✅ 推荐做法：spawn 子会话轮询 + 主会话实时播报
 
-### ✅ 推荐做法：逐次轮询 + 实时向用户播报
+**标准工作流：**
 
-不要用后台进程静默等待，用户看不到进度会以为系统宕机。正确做法是：每轮询一次，立即向用户输出一条状态消息。
-
-**标准轮询节奏（每次一个 exec，轮询后立即回复用户）：**
-
-```
-Step 1. exec: mcporter call tencent-docs slide_progress '{"session_id": "XXX"}'
-Step 2. 立即向用户输出："⏳ 正在生成中，第 N 次轮询，请稍候..."
-Step 3. 若 status != completed，等待 20s 后重复 Step 1
-Step 4. 若 status == completed，输出："✅ 生成完成！PPT 链接：<file_url>"
-```
-
-> ⚠️ **关键原则**：每次 `slide_progress` 调用后，必须立即向用户输出当前状态，不得连续多次轮询后才统一汇报。让用户始终知道系统在工作。
+1. **主会话**：提交 `create_slide` 任务 → 立即告诉用户"已开始"
+2. **spawn 子会话**：专职轮询
+   - 每 20 秒检查一次
+   - 每次检查生成状态给主会话
+   - 超时自动清理，输出超时状态给主会话
+3. **主会话**：接收子会话状态并格式化输出给用户
+   - 进行中：`⏳ 正在生成中，第 N 次轮询，请稍候...`
+   - 完成：`✅ 生成完成！PPT 链接：<file_url>`
+   - 失败：`❌ 生成失败：<原因>`
+   - 超时：`⚠️ 生成超时（已等待 20 分钟），请稍后重试`
 
 ### ❌ 避免的做法
 
 ```bash
-# ❌ 错误1：单次 exec 中 sleep 循环，超时会被 SIGTERM 强制终止
+# ❌ 错误1：主会话直接 sleep 循环阻塞，用户无法交互
 for i in 1..15; do
   mcporter call tencent-docs slide_progress ...
-  sleep 20  # 20s × 15 = 300s，超过 exec yieldMs 上限
+  sleep 20  # 阻塞主会话，用户体验差
 done
 
-# ❌ 错误2：后台进程 + process(poll) 静默等待
+# ❌ 错误2：后台进程静默等待，不向用户播报进度
 # 用户看不到任何进度，体验如同宕机
-# exec(background=true) → process(poll, timeout=60000) → 等结果
+
+# ❌ 错误3：子会话轮询完成后不通知主会话
+# 用户在主会话中无法得知结果
 ```

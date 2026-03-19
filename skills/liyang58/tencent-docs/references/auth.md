@@ -1,6 +1,8 @@
 # 腾讯文档鉴权检查
 
-在执行调用腾讯文档MCP服务操作之前，**必须按以下两步执行**：
+腾讯文档授权流程，**必须按以下步骤执行**：
+
+> 💡 **说明**：授权成功后，Token 会同时配置到 `tencent-docs` 和 `tencent-docengine` 两个服务，无需为 tencent-docengine 单独授权。
 
 ## 第一步：检查状态（立即返回）
 
@@ -29,6 +31,23 @@ bash ./setup.sh tdoc_wait_auth
 | `ERROR:expired` | 告知用户：「授权码已过期，请重新发起请求。」 |
 | `ERROR:token_invalid` | 告知用户：「Token 已失效，请重新发起请求。」 |
 | `ERROR:*` | 告知用户对应错误，请重新发起请求 |
+
+## 第三步：人工兜底（前两步都失败的情况）
+
+🔑 **检查 Token 配置**：可访问 [https://docs.qq.com/scenario/open-claw.html](https://docs.qq.com/scenario/open-claw.html) 获取 Token，再执行以下命令来设置mcporter:
+```bash
+# 使用传入的 Token 写入 mcporter 配置（tencent-docs）
+mcporter config add tencent-docs "https://docs.qq.com/openapi/mcp" \
+    --header "Authorization=$Token" \
+    --transport http \
+    --scope home
+
+# 同时配置 tencent-docengine（复用相同 Token）
+mcporter config add tencent-docengine "https://docs.qq.com/api/v6/doc/mcp" \
+    --header "Authorization=$Token" \
+    --transport http \
+    --scope home
+```
 
 ## 授权链接展示模板
 

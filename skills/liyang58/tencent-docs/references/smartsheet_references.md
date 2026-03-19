@@ -1041,7 +1041,7 @@
 ---
 
 > 📌 **提示**：所有操作都需要先获取 `file_id`（智能表格文档 ID）和 `sheet_id`（工作表 ID）。
-> 可通过 `search_space_file` 搜索文档获取 `file_id`，再通过 `smartsheet.list_tables` 获取 `sheet_id`。
+> 可通过 `manage.search_file` 搜索文档获取 `file_id`，再通过 `smartsheet.list_tables` 获取 `sheet_id`。
 
 
 ## 注意事项

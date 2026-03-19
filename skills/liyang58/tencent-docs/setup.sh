@@ -46,74 +46,9 @@ _TDOC_ERR_FILE="${TMPDIR:-/tmp}/.tdoc_auth_token.err"
 _TDOC_PID_FILE="${TMPDIR:-/tmp}/.tdoc_auth_pid"
 _TDOC_URL_FILE="${TMPDIR:-/tmp}/.tdoc_auth_url"
 
-# mcporter 配置文件路径（动态获取，见 _tdoc_get_mcporter_cfg_path）
-_TDOC_MCPORTER_CFG=""
-
 # ── 清理函数 ──────────────────────────────────────────────────────────────────
 _tdoc_cleanup() {
     rm -f "$_TDOC_CODE_FILE" "$_TDOC_TOKEN_FILE" "$_TDOC_ERR_FILE" "$_TDOC_PID_FILE" "$_TDOC_URL_FILE"
-}
-
-# ── 动态获取 mcporter 配置文件路径 ────────────────────────────────────────────
-# 策略：
-#   1. 先注册一个无 token 的临时占位服务（幂等，不影响已有配置）
-#   2. 执行 mcporter config list，从输出中解析该服务的 Source 路径
-#   3. 提取配置文件路径并缓存到 _TDOC_MCPORTER_CFG
-# 输出：配置文件绝对路径（失败时输出空字符串）
-_tdoc_get_mcporter_cfg_path() {
-    # 若已缓存则直接返回
-    if [[ -n "$_TDOC_MCPORTER_CFG" && -f "$_TDOC_MCPORTER_CFG" ]]; then
-        echo "$_TDOC_MCPORTER_CFG"
-        return 0
-    fi
-
-    # 1. 注册一个无 token 的占位服务（--scope home 写入 home 级配置）
-    #    若服务已存在，config add 会更新；此处仅用于触发配置文件创建
-    mcporter config add "$_TDOC_SERVICE_NAME" "$_TDOC_MCP_URL" \
-        --transport http \
-        --scope home \
-        >/dev/null 2>&1 || true
-
-    # 2. 从 mcporter config list 输出中解析配置路径
-    #    优先匹配该服务的 Source 行，例如：
-    #      Source: local (/root/.mcporter/mcporter.json)
-    #    其次匹配 "System config:" 行作为兜底
-    local cfg_path=""
-
-    # 尝试从 Source 行提取
-    cfg_path=$(mcporter config list 2>/dev/null \
-        | grep -A 3 "^${_TDOC_SERVICE_NAME}" \
-        | grep "Source:" \
-        | sed 's/.*(\(.*\))/\1/' \
-        | head -1)
-
-    # 兜底：从 "System config:" 行提取
-    if [[ -z "$cfg_path" ]]; then
-        cfg_path=$(mcporter config list 2>/dev/null \
-            | grep "^System config:" \
-            | sed 's/System config:[[:space:]]*//' \
-            | sed 's/[[:space:]]*(missing).*//' \
-            | head -1)
-    fi
-
-    # 再兜底：从 "Project config:" 行提取（排除 missing）
-    if [[ -z "$cfg_path" ]]; then
-        cfg_path=$(mcporter config list 2>/dev/null \
-            | grep "^Project config:" \
-            | grep -v "(missing)" \
-            | sed 's/Project config:[[:space:]]*//' \
-            | head -1)
-    fi
-
-    if [[ -n "$cfg_path" ]]; then
-        _TDOC_MCPORTER_CFG="$cfg_path"
-        echo "$cfg_path"
-        return 0
-    fi
-
-    # 最后兜底
-    echo "${HOME}/.mcporter/mcporter.json"
-    return 0
 }
 
 # ── 检查 mcporter 是否已安装 ──────────────────────────────────────────────────
@@ -131,24 +66,16 @@ _tdoc_check_mcporter() {
     return 0
 }
 
-# 从 mcporter 配置文件读取当前 Authorization Token
-# 输出：token 字符串（空则表示未配置）
-_tdoc_get_token_from_config() {
-    # 动态获取配置路径
-    local cfg
-    cfg=$(_tdoc_get_mcporter_cfg_path)
-    if [[ -z "$cfg" || ! -f "$cfg" ]]; then
-        echo ""
-        return
-    fi
-    # 纯 Shell 实现：从 JSON 中提取 Authorization 字段
-    # 匹配 "tencent-docs" 服务块内的 "Authorization": "..." 值
+# 从 mcporter config get 读取当前 Authorization Token
+# 输出：token 字符串（空则表示服务未注册或 Token 未配置）
+_tdoc_get_token() {
+    local output
+    output=$(mcporter config get "$_TDOC_SERVICE_NAME" 2>/dev/null) || return 1
+
+    # 从输出中提取 Authorization 头的值
     local token
-    token=$(grep -A 20 "\"$_TDOC_SERVICE_NAME\"" "$cfg" \
-        | grep '"Authorization"' \
-        | head -1 \
-        | sed 's/.*"Authorization"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-    echo "${token:-}"
+    token=$(echo "$output" | grep -i '^\s*Authorization:' | sed 's/.*Authorization:[[:space:]]*//' | tr -d '[:space:]')
+    echo "$token"
 }
 
 # ── 将 Token 写入 mcporter 配置 ───────────────────────────────────────────────
@@ -160,8 +87,14 @@ _tdoc_save_token() {
     local token="$1"
     [[ -z "$token" ]] && return 1
 
-    # 使用传入的 token 写入 mcporter 配置
+    # 使用传入的 token 写入 mcporter 配置（tencent-docs）
     mcporter config add "$_TDOC_SERVICE_NAME" "$_TDOC_MCP_URL" \
+        --header "Authorization=$token" \
+        --transport http \
+        --scope home
+
+    # 同时配置 tencent-docengine（DOC 编辑引擎，独立 API 端点，复用同一 Token）
+    mcporter config add tencent-docengine "https://docs.qq.com/api/v6/doc/mcp" \
         --header "Authorization=$token" \
         --transport http \
         --scope home
@@ -172,21 +105,32 @@ _tdoc_save_token() {
 
     echo "🧪 验证配置..."
     if mcporter list 2>&1 | grep -q "$_TDOC_SERVICE_NAME"; then
-        echo "✅ 配置验证成功！"
+        echo "✅ tencent-docs 配置验证成功！"
         echo ""
         mcporter list | grep -A 1 "$_TDOC_SERVICE_NAME" || true
     else
-        echo "⚠️  配置验证失败，请检查网络或 Token 是否有效"
-        echo ""
-        echo "如有问题，请访问 ${_TDOC_API_BASE}/scenario/open-claw.html?nlc=1 获取 Token"
+        echo "⚠️  tencent-docs 配置验证失败，请检查网络或 Token 是否有效"
     fi
+
+    if mcporter list 2>&1 | grep -q "tencent-docengine"; then
+        echo "✅ tencent-docengine 配置验证成功！"
+        echo ""
+        mcporter list | grep -A 1 "tencent-docengine" || true
+    else
+        echo "⚠️  tencent-docengine 配置验证失败，请检查网络或 Token 是否有效"
+    fi
+
+    echo ""
+    echo "如有问题，请访问 ${_TDOC_API_BASE}/scenario/open-claw.html?nlc=1 获取 Token"
 
     echo ""
     echo "─────────────────────────────────────"
     echo "🎉 设置完成！"
     echo ""
     echo "📖 使用方法："
-    echo "   mcporter call${_TDOC_SERVICE_NAME}.create_smartcanvas_by_markdown"
+    echo "   mcporter call ${_TDOC_SERVICE_NAME}.create_smartcanvas_by_markdown"
+    echo "   mcporter call tencent-docengine.find"
+    echo "   mcporter call tencent-docengine.insert_text"
     echo ""
     echo "🏠 腾讯文档主页：${_TDOC_API_BASE}/home"
     echo ""
@@ -197,22 +141,28 @@ _tdoc_save_token() {
 
 # ── 检查 tencent-docs 服务状态 ────────────────────────────────────────────────
 # 返回值：
-#   0 = 服务正常可用（有 Token，list 成功）
-#   1 = 服务未注册
+#   0 = 服务正常可用（有 Token）
+#   1 = 服务未注册（mcporter config get 失败）
 #   2 = Token 为空或未配置
 _tdoc_check_service() {
-    # 检查 mcporter 配置中是否有 tencent-docs
     if ! mcporter list 2>/dev/null | grep -q "$_TDOC_SERVICE_NAME"; then
         return 1
     fi
 
-    # 检查 Token 是否配置
     local token
-    token=$(_tdoc_get_token_from_config)
+    token=$(_tdoc_get_token)
+    local rc=$?
+
+    # mcporter config get 返回非 0 表示服务未注册
+    if [[ $rc -ne 0 ]]; then
+        return 1
+    fi
+
+    # Token 为空表示服务已注册但未配置 Authorization
     if [[ -z "$token" ]]; then
         return 2
     fi
-    
+
     return 0
 }
 
