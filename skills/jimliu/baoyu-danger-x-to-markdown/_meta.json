@@ -3,11 +3,16 @@
   "slug": "baoyu-danger-x-to-markdown",
   "displayName": "Baoyu Danger X To Markdown",
   "latest": {
-    "version": "1.69.1",
-    "publishedAt": 1773684045430,
-    "commit": "https://github.com/openclaw/skills/commit/a3adf2bb877a10ead0baf477ff1a4458dc221373"
+    "version": "1.73.0",
+    "publishedAt": 1773889006297,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.69.1",
+      "publishedAt": 1773684045430,
+      "commit": "https://github.com/openclaw/skills/commit/a3adf2bb877a10ead0baf477ff1a4458dc221373"
+    },
     {
       "version": "1.60.0",
       "publishedAt": 1773287107162,

@@ -271,6 +271,9 @@ export function getDefaultChromeUserDataDirs(channels: ChromeChannel[] = ["stabl
   return dirs;
 }
 
+// Best-effort reuse of an already-running local CDP session discovered from
+// known Chrome user-data dirs. This is distinct from Chrome DevTools MCP's
+// prompt-based --autoConnect flow.
 export async function discoverRunningChromeDebugPort(options: DiscoverRunningChromeOptions = {}): Promise<DiscoveredChrome | null> {
   const channels = options.channels ?? ["stable", "beta", "canary", "dev"];
   const timeoutMs = options.timeoutMs ?? 3_000;
