@@ -1,13 +1,18 @@
 {
   "owner": "dai-shuo",
   "slug": "ima-knowledge-ai",
-  "displayName": "IMA Knowledge AI",
+  "displayName": "Knowledge Base for AI Video, Image & Audio Generation",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773161498730,
-    "commit": "https://github.com/openclaw/skills/commit/43b7105d38735951b21fd836e3c5a8574b237610"
+    "version": "1.0.6",
+    "publishedAt": 1773890964833,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773161498730,
+      "commit": "https://github.com/openclaw/skills/commit/43b7105d38735951b21fd836e3c5a8574b237610"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1772701441691,

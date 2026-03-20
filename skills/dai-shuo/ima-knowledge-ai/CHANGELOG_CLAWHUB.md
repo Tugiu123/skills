@@ -1,6 +1,14 @@
-# Changelog — ima-knowledge-ai
+# Changelog — Knowledge Base for AI Video, Image & Audio Generation
 
-All notable changes to the **IMA Knowledge AI** skill will be documented in this file.
+All notable changes to this skill will be documented in this file.
+
+---
+
+## [1.0.6] - 2026-03-19
+
+### Changed
+- Renamed display name to "Knowledge Base for AI Video, Image & Audio Generation" for better ClawHub search discoverability
+- SDO optimization: name now contains key search terms (video, image, audio, generation) for lexical boost
 
 ---
 

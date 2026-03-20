@@ -1,6 +1,6 @@
 ---
-name: ima-knowledge-ai
-version: 1.0.4
+name: "Knowledge Base for AI Video, Image & Audio Generation"
+version: 1.0.6
 category: knowledge
 author: IMA Studio (imastudio.com)
 keywords: imastudio, knowledge, workflow, model selection, visual consistency, video modes, parameter guide, 知识库, 工作流, 模型选择, IMA, 图像视频音乐, SeeDream, Midjourney, Suno, Kling, Veo, Sora
