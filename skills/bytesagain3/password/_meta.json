@@ -3,11 +3,16 @@
   "slug": "password",
   "displayName": "Password",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773663996220,
-    "commit": "https://github.com/openclaw/skills/commit/6770d514fbf971c2710f6c402e3c917507037241"
+    "version": "3.0.1",
+    "publishedAt": 1773914042704,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773663996220,
+      "commit": "https://github.com/openclaw/skills/commit/6770d514fbf971c2710f6c402e3c917507037241"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773572465704,
