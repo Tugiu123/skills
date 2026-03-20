@@ -3,11 +3,16 @@
   "slug": "fortune-teller",
   "displayName": "Fortune Teller",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447583517,
-    "commit": "https://github.com/openclaw/skills/commit/763434a204d1bda915df73c5526736478729dfb0"
+    "version": "2.0.0",
+    "publishedAt": 1773773326763,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447583517,
+      "commit": "https://github.com/openclaw/skills/commit/763434a204d1bda915df73c5526736478729dfb0"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773360555169,
