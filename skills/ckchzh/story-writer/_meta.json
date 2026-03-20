@@ -3,11 +3,16 @@
   "slug": "story-writer",
   "displayName": "Story Writer",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773673918729,
-    "commit": "https://github.com/openclaw/skills/commit/5077f691f8803f6e75f82b166ffdc441b5be4dbc"
+    "version": "2.0.1",
+    "publishedAt": 1773773673864,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773673918729,
+      "commit": "https://github.com/openclaw/skills/commit/5077f691f8803f6e75f82b166ffdc441b5be4dbc"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421847299,
