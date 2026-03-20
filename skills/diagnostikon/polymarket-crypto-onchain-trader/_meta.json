@@ -3,9 +3,15 @@
   "slug": "polymarket-crypto-onchain-trader",
   "displayName": "Crypto & On-Chain Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773475469295,
-    "commit": "https://github.com/openclaw/skills/commit/9929507c80c5977fb0385ee841ee5a0b8f5473b8"
+    "version": "1.0.1",
+    "publishedAt": 1773855655972,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773475469295,
+      "commit": "https://github.com/openclaw/skills/commit/9929507c80c5977fb0385ee841ee5a0b8f5473b8"
+    }
+  ]
 }
