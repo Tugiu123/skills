@@ -1,6 +1,6 @@
 ---
 name: garmin-connect-pro
-version: 1.3.0
+version: 1.4.0
 description: |
   Want to be fit like @steipete? Well, now you can track every step of your journey—literally. This skill pulls your complete Garmin Connect data into OpenClaw: activities, sleep, heart rate, stress, body battery, training readiness, VO2 max, and those race predictions you keep ignoring. Works with Fenix, Forerunner, Index scales, and anything else Garmin throws at you. Includes natural language queries ("how did I sleep?"), ASCII charts, week-over-week comparisons, and FIT/GPX downloads.
 metadata:
@@ -12,30 +12,31 @@ metadata:
     config:
       environment:
         GARMIN_EMAIL:
-          description: Garmin Connect email (alternative to credentials file)
+          description: Garmin Connect email (RECOMMENDED - more secure than file)
           required: false
           secret: true
         GARMIN_PASSWORD:
-          description: Garmin Connect password (alternative to credentials file)
+          description: Garmin Connect password (RECOMMENDED - more secure than file)
           required: false
           secret: true
       files:
         - path: ~/.config/garmin-connect/credentials.json
-          description: Garmin Connect login credentials (email + password). Used if env vars not set.
+          description: "Fallback: Credentials file if env vars not set. WARNING: Plaintext - use env vars instead."
           required: false
           permissions: "600"
           containsSecrets: true
         - path: ~/.config/garmin-connect/tokens/
-          description: OAuth tokens (auto-generated after login)
+          description: OAuth tokens (auto-generated after login, 600 permissions)
           required: false
           containsSecrets: true
     security:
-      - Credentials can be provided via GARMIN_EMAIL/GARMIN_PASSWORD environment variables OR credentials file
-      - If using credentials file: stored in plaintext at ~/.config/garmin-connect/credentials.json with 600 permissions
-      - OAuth tokens cached at ~/.config/garmin-connect/tokens/
-      - Third-party library 'garminconnect' handles all Garmin API communication - audit at https://github.com/cyberjunkie/garminconnect
-      - No direct external transmission except via garminconnect library to Garmin servers
-      - Cron jobs with stored credentials increase exposure - consider using environment variables or secure credential storage
+      - "CREDENTIAL PRIORITY: Environment variables > Credentials file > macOS Keychain (if configured)"
+      - "RECOMMENDED: Use GARMIN_EMAIL/GARMIN_PASSWORD env vars - not stored on disk, survives reboots with launchd/keychain"
+      - "FALLBACK: Credentials file at ~/.config/garmin-connect/credentials.json (plaintext, 600 permissions)"
+      - "OAuth tokens are cached locally after first login - subsequent logins use tokens, not password"
+      - "Third-party library: garminconnect (https://github.com/cyberjunkie/garminconnect) - open source, auditable"
+      - "NO data transmission except to Garmin API servers via official garminconnect library"
+      - "For cron jobs: Pass env vars in crontab or use launchd with EnvironmentVariables key"
 ---
 
 # Garmin Connect Pro

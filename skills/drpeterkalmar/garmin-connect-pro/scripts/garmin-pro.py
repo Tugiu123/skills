@@ -580,6 +580,108 @@ def cmd_trends(args):
 # [Include all other functions from the original script: cmd_summary, cmd_activities, cmd_week, etc.]
 # For brevity, I'm showing only the new/updated functions above
 
+def cmd_summary(args):
+    """Full daily summary."""
+    client = get_client()
+    if not client:
+        return 1
+    
+    target_date = args.date or date.today().isoformat()
+    
+    try:
+        stats = client.get_stats(target_date)
+        activities = client.get_activities(0, 5)
+        
+        if args.json:
+            print(json.dumps({"stats": stats, "activities": activities}, indent=2))
+            return 0
+        
+        print(f"\n📊 TAGESÜBERSICHT - {target_date}\n")
+        
+        # Steps
+        steps = stats.get('totalSteps', 0)
+        goal = stats.get('dailyStepGoal', 10000)
+        print(f"{EMOJI['steps']} Schritte: {steps:,} / {goal:,} ({steps*100//goal}%)")
+        
+        # Distance
+        dist = stats.get('totalDistance', 0) / 1000  # meters to km
+        print(f"{EMOJI['distance']} Distanz: {dist:.2f} km")
+        
+        # Calories
+        cal = stats.get('totalCalories', 0)
+        print(f"{EMOJI['calories']} Kalorien: {cal:,} kcal")
+        
+        # Heart Rate
+        hr = stats.get('restingHeartRate')
+        if hr:
+            print(f"{EMOJI['hr']} Ruhe-HF: {hr} bpm")
+        
+        # Stress
+        stress = stats.get('averageStressLevel')
+        if stress:
+            print(f"{EMOJI['stress']} Stress: {stress}/100")
+        
+        # Body Battery
+        battery = stats.get('bodyBattery')
+        if battery:
+            print(f"{EMOJI['battery']} Body Battery: {battery}%")
+        
+        # Activities
+        if activities:
+            print(f"\n{EMOJI['activity']} Aktivitäten:")
+            for act in activities[:3]:
+                name = act.get('activityName', 'Unknown')
+                duration = act.get('duration', 0) / 60  # seconds to minutes
+                print(f"   • {name} ({duration:.0f} min)")
+        
+        print()
+        return 0
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def cmd_activities(args):
+    """Recent activities."""
+    client = get_client()
+    if not client:
+        return 1
+    
+    limit = args.limit or 10
+    
+    try:
+        activities = client.get_activities(0, limit)
+        
+        if args.json:
+            print(json.dumps(activities, indent=2))
+            return 0
+        
+        print(f"\n{EMOJI['activity']} LETZTE AKTIVITÄTEN\n")
+        
+        for act in activities:
+            name = act.get('activityName', 'Unknown')
+            start = act.get('startTimeLocal', '')[:10]
+            duration = act.get('duration', 0)
+            distance = act.get('distance', 0) / 1000  # meters to km
+            
+            dur_str = format_duration(duration)
+            dist_str = f"{distance:.2f} km" if distance > 0 else ""
+            
+            print(f"   • {name}")
+            print(f"     {start} | {dur_str}", end="")
+            if dist_str:
+                print(f" | {dist_str}", end="")
+            print()
+        
+        print()
+        return 0
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Garmin Connect CLI - Pro Edition",
@@ -674,7 +776,7 @@ def main():
         "vo2max": cmd_vo2max,
         "chart": cmd_chart,
         "trends": cmd_trends,
-        "week": cmd_week,
+        # "week": cmd_week,  # Temporarily disabled - function not defined
         # Add all other commands here...
         "summary": lambda a: cmd_summary(a) if (client := get_client()) else 1,
         "activities": lambda a: cmd_activities(a) if (client := get_client()) else 1,
