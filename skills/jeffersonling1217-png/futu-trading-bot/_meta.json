@@ -3,11 +3,16 @@
   "slug": "futu-trading-bot",
   "displayName": "Futu Trading Bot",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773641656979,
-    "commit": "https://github.com/openclaw/skills/commit/f160e12be8be5eba88e80de19b3d0f8bb56ff6a4"
+    "version": "1.0.5",
+    "publishedAt": 1773905021501,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773641656979,
+      "commit": "https://github.com/openclaw/skills/commit/f160e12be8be5eba88e80de19b3d0f8bb56ff6a4"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773047262926,

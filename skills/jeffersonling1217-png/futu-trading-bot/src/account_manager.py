@@ -5,14 +5,21 @@
 为LLM提供封装好的账户查询、解锁与锁定交易功能
 """
 
-import futu as ft
-from futu import TrdMarket, SecurityFirm
 from typing import Dict, Any, Optional, List
 import logging
 import json
 import os
 import hashlib
 from datetime import datetime
+
+try:
+    import futu as ft
+    from futu import TrdMarket, SecurityFirm
+except Exception as e:
+    raise RuntimeError(
+        "加载 futu SDK 失败。若你在 OpenClaw/Codex 或其他受限沙箱中运行，请改用 host/elevated 模式。"
+        "Futu SDK 在导入阶段可能需要访问本机 OpenD 资源并写入 ~/.com.futunn.FutuOpenD/Log。"
+    ) from e
 
 # 导入配置管理模块
 from config_manager import (
@@ -54,6 +61,10 @@ class AccountManager:
         
     def __del__(self):
         """析构函数，关闭连接"""
+        self.close()
+
+    def close(self):
+        """显式关闭账户相关上下文连接"""
         try:
             if hasattr(self, 'quote_ctx'):
                 self.quote_ctx.close()
@@ -250,7 +261,10 @@ def get_account_info() -> Dict[str, Any]:
         Dict[str, Any]: 账户信息
     """
     manager = AccountManager()
-    return manager.get_account_info()
+    try:
+        return manager.get_account_info()
+    finally:
+        manager.close()
 
 
 def unlock_trade(password: Optional[str] = None, password_md5: Optional[str] = None) -> Dict[str, Any]:
@@ -277,7 +291,10 @@ def unlock_trade(password: Optional[str] = None, password_md5: Optional[str] = N
                 }
 
         manager = AccountManager()
-        return manager.unlock_trade(password=password, password_md5=password_md5)
+        try:
+            return manager.unlock_trade(password=password, password_md5=password_md5)
+        finally:
+            manager.close()
     except Exception as e:
         return {
             'success': False,
@@ -308,7 +325,10 @@ def lock_trade(password: Optional[str] = None, password_md5: Optional[str] = Non
             }
 
         manager = AccountManager()
-        return manager.lock_trade(password=password, password_md5=password_md5)
+        try:
+            return manager.lock_trade(password=password, password_md5=password_md5)
+        finally:
+            manager.close()
     except Exception as e:
         return {
             'success': False,
@@ -328,7 +348,10 @@ def unlock_trade_interactive() -> Dict[str, Any]:
         password = input("请输入交易密码: ")
         
         manager = AccountManager()
-        return manager.unlock_trade(password)
+        try:
+            return manager.unlock_trade(password)
+        finally:
+            manager.close()
     except Exception as e:
         return {
             'success': False,

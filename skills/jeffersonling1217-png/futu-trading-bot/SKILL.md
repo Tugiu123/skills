@@ -47,6 +47,10 @@ Use this skill when the user asks in natural language, for example:
 **Prerequisites / 前提条件:**
 - Ensure Futu OpenD is running and HK quote entitlement is available.
 - 确保富途OpenD正在运行且拥有港股行情权限。
+- When running inside a restricted agent sandbox (for example OpenClaw/Codex exec), prefer `host` / `elevated` mode.
+- The Futu Python SDK may access local OpenD resources during import, including the user log directory under `~/.com.futunn.FutuOpenD/Log`, so restricted sandboxes may fail before business functions are called.
+- 如果在受限的 agent 沙箱中运行（例如 OpenClaw/Codex exec），优先使用 `host` / `elevated` 模式。
+- 富途 Python SDK 在导入阶段就可能访问本机 OpenD 相关资源，包括 `~/.com.futunn.FutuOpenD/Log` 下的日志目录；因此受限沙箱可能会在业务函数执行前就失败。
 
 **Setup Steps / 安装步骤:**
 1. Install this skill via ClawHub (if not installed yet):
@@ -101,16 +105,25 @@ Use this skill when the user asks in natural language, for example:
 
 ## Standard Workflow
 
-1. Call `get_account_info()` and select target account (get `acc_id`).
-2. Pull quote/snapshot for the target symbol (default HK use case: `HK.00700`).
-3. For real trading, call `unlock_trade(...)` (password from config or input).
-4. Submit or manage orders with explicit `acc_id` and `trd_env`.
-5. After real operation, call `lock_trade()` if needed.
+1. Run `preflight_check` first to verify config, OpenD connectivity, and sandbox/runtime readiness.
+2. Call `get_account_info()` and select target account (get `acc_id`).
+3. Pull quote/snapshot for the target symbol (default HK use case: `HK.00700`).
+4. For real trading, call `unlock_trade(...)` (password from config or input).
+5. Submit or manage orders with explicit `acc_id` and `trd_env`.
+6. After real operation, call `lock_trade()` if needed.
+
+## Connection Lifecycle
+
+- Pull-style quote functions such as `get_market_snapshot`, `get_stock_basicinfo`, `get_market_state`, `get_cur_kline`, `request_history_kline`, and `get_rt_ticker` now close their quote context automatically after returning.
+- Trade functions such as `submit_order`, `modify_order`, and `cancel_all_orders` now close their trade/quote contexts automatically after returning.
+- Account functions such as `get_account_info`, `unlock_trade`, and `lock_trade` now close their contexts automatically after returning.
+- Subscription/callback flows keep the quote context open on purpose. For `subscribe`, `unsubscribe`, `unsubscribe_all`, `query_subscription`, `set_quote_callback`, and `set_orderbook_callback`, call `close_quote_service()` explicitly when you are done with the session.
 
 ## Canonical Imports
 
 ```python
 # Always use these import paths – do not import from futu directly
+from preflight_check import run_preflight
 from account_manager import get_account_info, unlock_trade, lock_trade
 from quote_service import (
     get_stock_basicinfo, get_market_state, get_market_snapshot,
@@ -122,6 +135,14 @@ from trade_service import submit_order, modify_order, cancel_order, cancel_all_o
 ```
 
 ## Account Usage
+
+### Preflight
+```python
+preflight = run_preflight()
+if not preflight["success"]:
+    print(preflight)
+    raise SystemExit("Preflight failed")
+```
 
 ```python
 # Get list of accounts
@@ -183,6 +204,7 @@ subscribe(["HK.00700"], ["QUOTE"], is_first_push=True, subscribe_push=True)
 query_subscription()
 unsubscribe(["HK.00700"], ["QUOTE"])
 unsubscribe_all()
+close_quote_service()
 ```
 
 ## Trade Usage
@@ -222,11 +244,13 @@ This skill does not manage long-running processes internally. Instead, you (the 
 
 ### 4.1 Workflow for Background Strategies
 
-1. **Generate a Python script** based on user's natural language request, using the encapsulated functions from this skill (e.g., `get_market_snapshot`, `submit_order`).
-2. **Save the script** to a temporary file (using the `write` tool or similar).
-3. **Launch the script as a background process** using the `exec` tool, redirecting output to a log file.
-4. **Record the process ID (PID)** and log file path for future monitoring.
-5. **Monitor/stop** using system tools (`ps`, `kill`, `cat`).
+1. **Run preflight first** with `PYTHONPATH=src python -m preflight_check`.
+2. If preflight reports sandbox/log-directory restrictions, rerun in `host` / `elevated` mode before using quote/trade functions.
+3. **Generate a Python script** based on user's natural language request, using the encapsulated functions from this skill (e.g., `get_market_snapshot`, `submit_order`).
+4. **Save the script** to a temporary file (using the `write` tool or similar).
+5. **Launch the script as a background process** using the `exec` tool, redirecting output to a log file.
+6. **Record the process ID (PID)** and log file path for future monitoring.
+7. **Monitor/stop** using system tools (`ps`, `kill`, `cat`).
 
 ### 4.2 Natural Language Triggers
 
@@ -363,6 +387,12 @@ If OpenD connection fails, recheck:
 - OpenD is running (check port 11111 with `lsof -i :11111`)
 - Host/port in `config.json` matches OpenD
 - Account has necessary permissions
+
+If the skill fails before quote/trade functions are even called, recheck:
+- Whether the current agent/tool is running in a restricted sandbox
+- Whether you should rerun in `host` / `elevated` mode
+- Whether the runtime can access the local Futu OpenD log directory under `~/.com.futunn.FutuOpenD/Log`
+- Run `PYTHONPATH=src python -m preflight_check` first and follow its suggestions
 
 ## Configuration
 

@@ -13,19 +13,25 @@ from enum import Enum
 from pydantic import BaseModel, Field, model_validator
 
 # 导入富途 SDK
-from futu import (
-    OpenSecTradeContext,
-    OpenQuoteContext,
-    TrdMarket,
-    SecurityFirm,
-    RET_OK,
-    TrdEnv as FutuTrdEnv,
-    OrderType as FutuOrderType,
-    TimeInForce as FutuTimeInForce,
-    TrdSide as FutuTrdSide,
-    ModifyOrderOp as FutuModifyOrderOp,
-    Session
-)
+try:
+    from futu import (
+        OpenSecTradeContext,
+        OpenQuoteContext,
+        TrdMarket,
+        SecurityFirm,
+        RET_OK,
+        TrdEnv as FutuTrdEnv,
+        OrderType as FutuOrderType,
+        TimeInForce as FutuTimeInForce,
+        TrdSide as FutuTrdSide,
+        ModifyOrderOp as FutuModifyOrderOp,
+        Session
+    )
+except Exception as e:
+    raise RuntimeError(
+        "加载 futu SDK 失败。若你在 OpenClaw/Codex 或其他受限沙箱中运行，请改用 host/elevated 模式。"
+        "Futu SDK 在导入阶段可能需要访问本机 OpenD 资源并写入 ~/.com.futunn.FutuOpenD/Log。"
+    ) from e
 
 # 导入配置管理模块
 from config_manager import get_host, get_port, get_security_firm
@@ -204,18 +210,16 @@ class _HKTradeService:
         # 延迟初始化上下文，避免在__init__中立即创建连接
         self._ctx = None
         self._quote_ctx = None
-        
-        # 注册析构函数，确保程序退出时关闭连接
-        import atexit
-        atexit.register(self.close)
 
     def _ensure_contexts_initialized(self):
         """确保上下文已初始化（延迟初始化）"""
+        print(f"[DEBUG] _ensure_contexts_initialized start: trade_ctx_ready={self._ctx is not None}, quote_ctx_ready={self._quote_ctx is not None}")
         if self._ctx is None or self._quote_ctx is None:
             # 从配置文件获取连接参数
             host = get_host()
             port = get_port()
             security_firm = get_security_firm()
+            print(f"[DEBUG] Creating trade/quote contexts with host={host}, port={port}, security_firm={security_firm}")
             
             # 创建真实的富途交易上下文
             self._ctx = OpenSecTradeContext(
@@ -229,6 +233,7 @@ class _HKTradeService:
             self._quote_ctx = OpenQuoteContext(host=host, port=port)
             
             print(f"[初始化] 交易上下文和行情上下文已创建")
+        print(f"[DEBUG] _ensure_contexts_initialized end: trade_ctx_ready={self._ctx is not None}, quote_ctx_ready={self._quote_ctx is not None}")
 
     def close(self):
         """关闭所有上下文连接"""
@@ -263,6 +268,10 @@ class _HKTradeService:
         每次增加校验逻辑后都会调用真实API进行验证
         :return: 统一格式的结果字典
         """
+        print(
+            f"[DEBUG] place_order start: code={order.code}, side={order.trd_side.value}, qty={order.qty}, "
+            f"price={order.price}, trd_env={order.trd_env.value}, order_type={order.order_type.value}, acc_id={order.acc_id}"
+        )
         # 1. 基础参数校验（使用Pydantic模型已自动完成）
         # Order模型已经通过Pydantic验证器完成了基础校验
         
@@ -321,6 +330,7 @@ class _HKTradeService:
         
         # 9. 执行下单前最后校验 - 调用真实API获取市场快照验证股票存在
         try:
+            print(f"[DEBUG] place_order validating market snapshot for {order.code}")
             ret, snapshot = self._quote_ctx.get_market_snapshot([order.code])
             if ret != RET_OK:
                 return {
@@ -338,6 +348,7 @@ class _HKTradeService:
         try:
             print(f"[执行] 开始执行下单，订单类型: {order.order_type.value}, 环境: {order.trd_env.value}")
             order_id = self._execute_order(order)
+            print(f"[DEBUG] place_order finished: order_id={order_id}")
             return {
                 "success": True,
                 "order_id": order_id,
@@ -353,6 +364,7 @@ class _HKTradeService:
 
     def _get_lot_size(self, code: str) -> int:
         """获取股票每手股数（带缓存）"""
+        print(f"[DEBUG] _get_lot_size start: code={code}, cache_hit={code in self._lot_size_cache}")
         # 确保上下文已初始化
         self._ensure_contexts_initialized()
         
@@ -360,6 +372,7 @@ class _HKTradeService:
             # 调用富途行情API获取股票基本信息
             try:
                 # 使用quote context的get_market_snapshot方法获取股票信息
+                print(f"[DEBUG] _get_lot_size fetching snapshot for {code}")
                 ret, data = self._quote_ctx.get_market_snapshot([code])
                 if ret != RET_OK:
                     raise Exception(f"获取股票市场快照失败: {data}")
@@ -370,10 +383,12 @@ class _HKTradeService:
                 # 提取每手股数
                 lot_size = data.iloc[0]['lot_size']
                 self._lot_size_cache[code] = lot_size
+                print(f"[DEBUG] _get_lot_size fetched: code={code}, lot_size={lot_size}")
                 
             except Exception as e:
                 raise Exception(f"无法获取股票 {code} 的每手股数: {str(e)}")
         
+        print(f"[DEBUG] _get_lot_size end: code={code}, lot_size={self._lot_size_cache[code]}")
         return self._lot_size_cache[code]
 
     def _execute_order(self, order: Order) -> str:
@@ -449,7 +464,9 @@ class _HKTradeService:
             print(f"  {key}: {value} ({type(value).__name__})")
         
         # 调用真实的富途API
+        print("[DEBUG] calling self._ctx.place_order(...)")
         ret, data = self._ctx.place_order(**params)
+        print(f"[DEBUG] self._ctx.place_order returned: ret={ret}, data_type={type(data).__name__}")
         
         # 检查返回结果
         if ret != RET_OK:
@@ -638,8 +655,10 @@ def submit_order(
             "message": f"订单参数错误: {str(e)}"
         }
 
-    # 调用内部服务下单
-    return _trade_service.place_order(order)
+    try:
+        return _trade_service.place_order(order)
+    finally:
+        _trade_service.close()
 
 def modify_order(
     op: str,
@@ -679,16 +698,18 @@ def modify_order(
     except ValueError:
         return {"success": False, "message": f"无效的交易环境: {trd_env}"}
 
-    # 调用内部服务
-    return _trade_service.modify_order(
-        modify_op=op_enum,
-        order_id=order_id,
-        qty=qty,
-        price=price,
-        acc_id=acc_id,
-        trd_env=trd_env_enum,
-        **kwargs
-    )
+    try:
+        return _trade_service.modify_order(
+            modify_op=op_enum,
+            order_id=order_id,
+            qty=qty,
+            price=price,
+            acc_id=acc_id,
+            trd_env=trd_env_enum,
+            **kwargs
+        )
+    finally:
+        _trade_service.close()
 
 def cancel_order(order_id: str, trd_env: str, acc_id: int = 0) -> Dict[str, Any]:
     """简化撤单函数"""
@@ -700,7 +721,14 @@ def cancel_all_orders(trd_env: str, acc_id: int = 0, trdmarket: Optional[str] = 
         trd_env_enum = TrdEnv(trd_env.upper())
     except ValueError:
         return {"success": False, "message": f"无效的交易环境: {trd_env}"}
-    return _trade_service.cancel_all_orders(acc_id=acc_id, trd_env=trd_env_enum, trdmarket=trdmarket)
+    try:
+        return _trade_service.cancel_all_orders(acc_id=acc_id, trd_env=trd_env_enum, trdmarket=trdmarket)
+    finally:
+        _trade_service.close()
+
+
+def close_trade_service() -> None:
+    _trade_service.close()
 
 # 可选：如果希望命令行直接调用，可以添加以下代码
 if __name__ == "__main__":

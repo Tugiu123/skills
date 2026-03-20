@@ -12,19 +12,25 @@
 
 from typing import Any, Callable, Dict, List, Optional
 
-from futu import (
-    AuType,
-    KLType,
-    Market,
-    OpenQuoteContext,
-    OrderBookHandlerBase,
-    RET_ERROR,
-    RET_OK,
-    SecurityType,
-    Session,
-    StockQuoteHandlerBase,
-    SubType,
-)
+try:
+    from futu import (
+        AuType,
+        KLType,
+        Market,
+        OpenQuoteContext,
+        OrderBookHandlerBase,
+        RET_ERROR,
+        RET_OK,
+        SecurityType,
+        Session,
+        StockQuoteHandlerBase,
+        SubType,
+    )
+except Exception as e:
+    raise RuntimeError(
+        "加载 futu SDK 失败。若你在 OpenClaw/Codex 或其他受限沙箱中运行，请改用 host/elevated 模式。"
+        "Futu SDK 在导入阶段可能需要访问本机 OpenD 资源并写入 ~/.com.futunn.FutuOpenD/Log。"
+    ) from e
 
 from config_manager import get_host, get_port
 
@@ -65,10 +71,6 @@ class _HKQuoteService:
         self._ctx: Optional[OpenQuoteContext] = None
         self._quote_handler: Optional[_StockQuotePushHandler] = None
         self._orderbook_handler: Optional[_OrderBookPushHandler] = None
-
-        import atexit
-
-        atexit.register(self.close)
 
     def _ensure_context_initialized(self):
         if self._ctx is None:
@@ -349,10 +351,15 @@ def get_stock_basicinfo(
         )
     except Exception as e:
         return {"success": False, "message": f"参数错误: {str(e)}", "data": None}
+    finally:
+        _quote_service.close()
 
 
 def get_market_state(code_list: List[str]) -> Dict[str, Any]:
-    return _quote_service.get_market_state(code_list)
+    try:
+        return _quote_service.get_market_state(code_list)
+    finally:
+        _quote_service.close()
 
 
 def query_subscription() -> Dict[str, Any]:
@@ -404,7 +411,10 @@ def set_orderbook_callback(callback: Callable[[Dict[str, Any]], None]) -> Dict[s
 
 
 def get_market_snapshot(code_list: List[str]) -> Dict[str, Any]:
-    return _quote_service.get_market_snapshot(code_list)
+    try:
+        return _quote_service.get_market_snapshot(code_list)
+    finally:
+        _quote_service.close()
 
 
 def get_cur_kline(code: str, num: int = 100, ktype: str = "K_DAY", autype: str = "QFQ") -> Dict[str, Any]:
@@ -412,6 +422,8 @@ def get_cur_kline(code: str, num: int = 100, ktype: str = "K_DAY", autype: str =
         return _quote_service.get_cur_kline(code=code, num=num, ktype=_to_ktype(ktype), autype=_to_autype(autype))
     except Exception as e:
         return {"success": False, "message": f"参数错误: {str(e)}", "data": None}
+    finally:
+        _quote_service.close()
 
 
 def request_history_kline(
@@ -428,10 +440,15 @@ def request_history_kline(
         )
     except Exception as e:
         return {"success": False, "message": f"参数错误: {str(e)}", "data": None}
+    finally:
+        _quote_service.close()
 
 
 def get_rt_ticker(code: str, num: int = 100) -> Dict[str, Any]:
-    return _quote_service.get_rt_ticker(code=code, num=num)
+    try:
+        return _quote_service.get_rt_ticker(code=code, num=num)
+    finally:
+        _quote_service.close()
 
 
 def close_quote_service():

@@ -9,7 +9,14 @@ import json
 import os
 import logging
 from typing import Dict, Any
-from futu import SecurityFirm, TrdEnv as FutuTrdEnv
+
+try:
+    from futu import SecurityFirm, TrdEnv as FutuTrdEnv
+except Exception as e:
+    raise RuntimeError(
+        "加载 futu SDK 失败。若你在 OpenClaw/Codex 或其他受限沙箱中运行，请改用 host/elevated 模式。"
+        "Futu SDK 在导入阶段可能需要访问本机 OpenD 资源并写入 ~/.com.futunn.FutuOpenD/Log。"
+    ) from e
 
 # 配置类
 class ConfigManager:
@@ -32,12 +39,19 @@ class ConfigManager:
         # 如果配置文件不存在，使用示例配置
         if not os.path.exists(config_path):
             logging.warning(f"配置文件 {config_path} 不存在，请创建配置文件")
-            example_path = os.path.join(base_dir, 'json', 'config.example.json')
-            if os.path.exists(example_path):
-                config_path = example_path
-                logging.warning(f"使用示例配置文件: {example_path}")
+            example_paths = [
+                os.path.join(base_dir, 'json', 'config_example.json'),
+                os.path.join(base_dir, 'json', 'config.example.json'),
+            ]
+            for example_path in example_paths:
+                if os.path.exists(example_path):
+                    config_path = example_path
+                    logging.warning(f"使用示例配置文件: {example_path}")
+                    break
             else:
-                raise FileNotFoundError(f"配置文件不存在，请创建 json/config.json 或 json/config.example.json")
+                raise FileNotFoundError(
+                    "配置文件不存在，请创建 json/config.json 或提供 json/config_example.json / json/config.example.json"
+                )
         
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
