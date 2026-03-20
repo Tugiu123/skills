@@ -109,20 +109,14 @@ Use the short template for quick chat answers and the deep-dive template for set
 - Uses auth profiles at `~/.openclaw/agents/main/agent/auth-profiles.json` by default.
 - Current source of truth is `auth-profiles.json`; `auth.json` is legacy compatibility and should not be used as primary state.
 - If profile routing behaves unexpectedly, check for mixed state (missing/stale `auth-profiles.json`, leftover legacy files, or stale runtime cooldown) before assuming model fallback bugs.
+- Same `accountId` across two profile labels is not automatically a defect. In this environment, multiple labels can map to the same workspace/account identity while still operating correctly. Treat it as healthy when both profiles are auth-valid and usable in `/codex_usage`; investigate only when auth failures or routing failures appear.
 - Codex usage endpoint: `https://chatgpt.com/backend-api/wham/usage`.
 - Usage script now surfaces `401` as `auth_not_accepted_by_usage_endpoint` with a clear hint, while still returning local profile health.
 - Usage output now includes top-level `summary`, `formatted_profiles`, and `suggested_user_message` for cleaner slash-command formatting.
-- Preferred strict output block format (newline-based, no `|` separators):
-  - `Profile: %name%`
-  - `Usable: ✅/❌`
-  - `Limited: ✅/❌`
-  - `5h Left: %remaining left`
-  - `5h Reset: dd/mm/yyyy, hh:mm`
-  - `5h Time left: x Days, y Hours, z Minutes`
-  - `Week Left: %remaining left`
-  - `Week Reset: dd/mm/yyyy, hh:mm`
-  - `Week Time left: x Days, y Hours, z Minutes`
-  - Separate profile blocks with a blank line.
+- Preferred strict output format for `/codex_usage` (single line per profile):
+  - `🟢 \`%profile%\` — 5h **%5h_left%** | week **%week_left%** | r5 **%5h_reset%** | rw **%week_reset%**`
+  - Use `🟠` when limited and `🔴` when unusable/auth-invalid.
+  - No preface, no table, no trailing summary unless explicitly requested.
 - OAuth flow: OpenAI auth endpoints + localhost callback on port 1455.
 - Preferred mutation path is gateway-native (`openclaw models auth ...` / `openclaw models auth order ...`) with mandatory preflight + verify.
 - `codex_auth.py status --profile <profile>` remains useful for per-profile helper status checks.

@@ -3,11 +3,16 @@
   "slug": "codex-profiler",
   "displayName": "Codex Profiler",
   "latest": {
-    "version": "1.0.25",
-    "publishedAt": 1773577558789,
-    "commit": "https://github.com/openclaw/skills/commit/d9e3b6f18b27e5e6e3696a54f7f52d8316f3a7c0"
+    "version": "1.0.27",
+    "publishedAt": 1773846348941,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.25",
+      "publishedAt": 1773577558789,
+      "commit": "https://github.com/openclaw/skills/commit/d9e3b6f18b27e5e6e3696a54f7f52d8316f3a7c0"
+    },
     {
       "version": "1.0.19",
       "publishedAt": 1773331052893,

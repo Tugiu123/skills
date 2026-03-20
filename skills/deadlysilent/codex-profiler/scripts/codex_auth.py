@@ -302,7 +302,19 @@ def start_gateway_process():
     os.makedirs("/tmp/openclaw", exist_ok=True)
     log_path = "/tmp/openclaw/codex-auth-gateway-start.log"
     lf = open(log_path, "a", encoding="utf-8")
-    subprocess.Popen(["openclaw-gateway"], stdout=lf, stderr=lf, stdin=subprocess.DEVNULL, start_new_session=True)
+
+    # Prefer direct gateway binary when present.
+    gw_bin = shutil.which("openclaw-gateway")
+    if gw_bin:
+        subprocess.Popen([gw_bin], stdout=lf, stderr=lf, stdin=subprocess.DEVNULL, start_new_session=True)
+        return log_path
+
+    # Fallback for installs where only the CLI is on PATH.
+    oc_bin = shutil.which("openclaw")
+    if not oc_bin:
+        raise FileNotFoundError("Neither 'openclaw-gateway' nor 'openclaw' found on PATH")
+
+    subprocess.run([oc_bin, "gateway", "start"], stdout=lf, stderr=lf, stdin=subprocess.DEVNULL, check=False)
     return log_path
 
 

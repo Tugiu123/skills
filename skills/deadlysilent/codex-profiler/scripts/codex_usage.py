@@ -414,6 +414,22 @@ def format_bool_icon(flag):
     return "✅" if bool(flag) else "❌"
 
 
+def short_profile_name(profile_id):
+    if not isinstance(profile_id, str):
+        return str(profile_id)
+    return profile_id.split(":", 1)[1] if ":" in profile_id else profile_id
+
+
+def short_reset_display(reset_at):
+    if not isinstance(reset_at, str) or reset_at in {"n/a", "not reported"}:
+        return "n/a"
+    # Input format from format_reset_at: "dd/mm/yyyy, HH:MM"
+    parts = [p.strip() for p in reset_at.split(",", 1)]
+    if len(parts) == 2:
+        return f"{parts[0]} {parts[1]}"
+    return reset_at
+
+
 def parse_codex_usage(payload):
     rl = (payload or {}).get("rate_limit") or {}
     pw = rl.get("primary_window") or {}
@@ -482,6 +498,14 @@ def parse_codex_usage(payload):
 
 
 def build_template_line(profile_report):
+    # Friendly auth-failure rendering (401 from usage endpoint)
+    if int(profile_report.get("remote_status") or 0) == 401:
+        pid = profile_report.get("profile") or "unknown"
+        suffix = pid.split(":", 1)[1] if ":" in pid else pid
+        return (
+            f"🔴 `{short_profile_name(pid)}` — auth invalid (401) | run `/codex_auth {suffix}`"
+        )
+
     remote = profile_report.get("remote_usage") or {}
     windows = remote.get("windows") or []
 
@@ -544,40 +568,35 @@ def build_template_line(profile_report):
 
     usable, limited = derive_usage_state(remote, rows, profile_report.get("remote_usage_ok"))
 
+    if limited:
+        status = "🟠"
+    else:
+        status = "🟢" if usable else "🔴"
+
+    pid = short_profile_name(profile_report.get('profile'))
+    short_label = (short.get('label') or '5h').lower()
+    long_label = (longw.get('label') or 'week').lower()
+    short_reset_tag = 'r5' if short_label.startswith('5') else f"r{short_label}"
+    long_reset_tag = 'rw' if long_label.startswith('week') else f"r{long_label}"
+
     return (
-        f"Profile: {profile_report.get('profile')}\n"
-        f"  Usable: {format_bool_icon(usable)}\n"
-        f"  Limited: {format_bool_icon(limited)}\n"
-        f"  {short['label']} Left: {short['remaining']}\n"
-        f"  {short['label']} Reset: {short['reset_at']}\n"
-        f"  {short['label']} Time left: {short['time_left']}\n"
-        f"  {longw['label']} Left: {longw['remaining']}\n"
-        f"  {longw['label']} Reset: {longw['reset_at']}\n"
-        f"  {longw['label']} Time left: {longw['time_left']}"
+        f"{status} `{pid}` — {short_label} **{short['remaining']}** | {long_label} **{longw['remaining']}** | "
+        f"{short_reset_tag} **{short_reset_display(short['reset_at'])}** | {long_reset_tag} **{short_reset_display(longw['reset_at'])}**"
     )
 
 
 def render_text_output(out):
+    # Strict default text format for slash usage:
+    # - one compact line per profile
+    # - no preface/progress text
+    # - no summary footer
     lines = []
-    lines.append(out.get("progress_message") or "Running Codex usage checks now…")
-    lines.append("")
-
     for line in out.get("formatted_profiles") or []:
         lines.append(line)
-        lines.append("")
 
-    summary = out.get("summary") or {}
-    if summary:
-        lines.append("")
-        lines.append(
-            "Summary: "
-            f"checked={summary.get('profiles_checked', 0)}, "
-            f"remote_ok={summary.get('remote_ok_count', 0)}, "
-            f"remote_failed={summary.get('remote_failed_count', 0)}"
-        )
-
+    # Keep actionable auth hints if present.
     msg = out.get("suggested_user_message")
-    if msg:
+    if msg and "Auth invalid" in msg:
         lines.append(msg)
 
     return "\n".join(lines).strip() + "\n"
@@ -842,7 +861,7 @@ def main():
         "remote_endpoint_enabled": include_remote,
         "profiles": reports,
         "progress_message": "Running Codex usage checks now…",
-        "response_template": "Profile: %name%\nUsable: ✅/❌\nLimited: ✅/❌\n<short window> Left: %remaining left\n<short window> Reset: dd/mm/yyyy, hh:mm\n<short window> Time left: x Days, y Hours, z Minutes\n<long window> Left: %remaining left\n<long window> Reset: dd/mm/yyyy, hh:mm\n<long window> Time left: x Days, y Hours, z Minutes",
+        "response_template": "🟢 `%profile%` — 5h **%5h_left%** | wk **%week_left%** | r5 **%5h_reset%** | rw **%week_reset%**",
     }
     if endpoint_reason:
         out["remote_endpoint_note"] = endpoint_reason
@@ -862,9 +881,11 @@ def main():
     out["formatted_profiles"] = [build_template_line(r) for r in reports]
 
     if auth_rejects:
+        cmds = ", ".join([f"/codex_auth {p.split(':',1)[1] if ':' in p else p}" for p in auth_rejects])
         out["suggested_user_message"] = (
-            "Usage endpoint rejected current OAuth/session token format (401) for one or more profiles. "
-            "Local profile health is still available; rotate to a healthy fallback profile."
+            "Auth invalid for profile(s): " + ", ".join(auth_rejects) + ". "
+            "OAuth token was rejected by OpenAI usage endpoint (401). "
+            "Refresh with: " + cmds
         )
     elif failed_remote > 0 and ok_remote == 0:
         out["suggested_user_message"] = (
