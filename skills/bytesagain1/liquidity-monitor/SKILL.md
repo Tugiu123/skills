@@ -1,134 +1,95 @@
 ---
-version: "2.0.0"
+version: "3.0.0"
 name: Liquidity Monitor
-description: "Monitor DEX liquidity pool depth, track liquidity changes, calculate LP yield, and estimate impermanent loss. Use when you need liquidity monitor capabilities. Triggers on: liquidity monitor."
+description: "Monitor DEX pools in real time with impermanent loss and LP yield estimates. Use when tracking pool depth, estimating IL, comparing yields across DEXes."
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 
-# Liquidity Monitor 💧
+# Liquidity Monitor
 
-Real-time DEX liquidity pool monitoring with impermanent loss calculation and LP yield estimation.
-
-## Feature List
-
-### 🔍 Pool Discovery & Monitoring
-- Search liquidity pools by token pair across major DEXes
-- Monitor pool TVL (Total Value Locked) in real-time
-- Track liquidity depth changes over time
-- Alert when liquidity drops below threshold
-
-### 📊 Impermanent Loss Calculator
-- Calculate IL for any price movement scenario
-- Compare IL vs holding vs LP yield
-- Model IL across different price ranges (for concentrated liquidity)
-- Historical IL analysis for existing positions
-
-### 💰 LP Yield Calculator
-- Estimate APR/APY from trading fees
-- Include farming rewards in yield calculation
-- Project earnings over custom time periods
-- Compare yields across pools and DEXes
-
-### ⚠️ Alert System
-- Liquidity removal alerts (rug pull detection)
-- Large swap impact warnings
-- Pool ratio imbalance notifications
-- TVL drop percentage triggers
-
-### 📈 Analytics & Reports
-- Pool health score (0-100)
-- Volume-to-liquidity ratio analysis
-- Top liquidity providers tracking
-- HTML dashboard generation
-
-## Usage
-
-### Monitor a Pool
-
-```bash
-bash scripts/liquidity-monitor.sh monitor \
-  --dex uniswap-v2 \
-  --pair "ETH/USDC" \
-  --chain ethereum
-```
-
-### Calculate Impermanent Loss
-
-```bash
-bash scripts/liquidity-monitor.sh impermanent-loss \
-  --token-a ETH \
-  --token-b USDC \
-  --entry-price 3000 \
-  --current-price 4500
-```
-
-### Estimate LP Yield
-
-```bash
-bash scripts/liquidity-monitor.sh yield \
-  --pool-address "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc" \
-  --amount 10000 \
-  --period 30
-```
-
-### Pool Health Check
-
-```bash
-bash scripts/liquidity-monitor.sh health \
-  --dex raydium \
-  --pair "SOL/USDC" \
-  --chain solana
-```
-
-### Generate Dashboard
-
-```bash
-bash scripts/liquidity-monitor.sh dashboard \
-  --pools-file my-pools.json \
-  --output liquidity-dashboard.html
-```
-
-## Supported DEXes
-
-**EVM Chains:**
-- Uniswap V2 / V3 (Ethereum, Polygon, Arbitrum, Optimism, Base)
-- SushiSwap (Multi-chain)
-- PancakeSwap (BSC, Ethereum)
-- Curve Finance (Ethereum, Polygon, Arbitrum)
-
-**Solana:**
-- Raydium (AMM & CLMM)
-- Orca (Whirlpools)
-- Meteora
-
-## Impermanent Loss Reference Table
-
-| Price Change | IL (50/50 Pool) | Equivalent Loss |
-|-------------|-----------------|-----------------|
-| ±25% | 0.6% | $6 per $1,000 |
-| ±50% | 2.0% | $20 per $1,000 |
-| ±75% | 3.8% | $38 per $1,000 |
-| ±100% (2x) | 5.7% | $57 per $1,000 |
-| ±200% (3x) | 13.4% | $134 per $1,000 |
-| ±400% (5x) | 25.5% | $255 per $1,000 |
-
-## Pool Health Score Criteria
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| TVL Stability | 25% | How stable is the TVL over 7 days |
-| Volume/TVL Ratio | 20% | Higher ratio = better fee generation |
-| LP Count | 15% | More LPs = less concentration risk |
-| Age | 15% | Older pools are generally safer |
-| Top LP % | 15% | Lower concentration = better |
-| Smart Contract Audit | 10% | Known audited DEX protocols score higher |
----
-💬 Feedback & Feature Requests: https://bytesagain.com/feedback
-Powered by BytesAgain | bytesagain.com
+Liquidity Monitor is a data processing and analysis toolkit for querying, importing, exporting, transforming, validating, and visualizing datasets from the terminal. It provides 10 core commands for working with structured data, plus built-in history logging for full traceability. All operations are local — no external APIs or network connections required.
 
 ## Commands
 
-- `pools` — Pools
-- `il-calc` — Il Calc
-- `yield-compare` — Yield Compare
-- `lp-calc` — Lp Calc
+| Command | Description |
+|---------|-------------|
+| `liquidity-monitor query <args>` | Query data from the local data store. Logs the query to history for auditing. |
+| `liquidity-monitor import <file>` | Import a data file into the local store. Accepts any file path as input. |
+| `liquidity-monitor export <dest>` | Export processed results to a specified destination (defaults to stdout). |
+| `liquidity-monitor transform <src> <dst>` | Transform data from one format/structure to another. |
+| `liquidity-monitor validate <args>` | Validate data against the built-in schema. Reports schema compliance status. |
+| `liquidity-monitor stats <args>` | Display basic statistics — total record count from the data log. |
+| `liquidity-monitor schema <args>` | Show the current data schema. Default fields: `id, name, value, timestamp`. |
+| `liquidity-monitor sample <args>` | Preview the first 5 records from the data store, or "No data" if empty. |
+| `liquidity-monitor clean <args>` | Clean and deduplicate the data store. |
+| `liquidity-monitor dashboard <args>` | Quick dashboard showing total record count and summary metrics. |
+| `liquidity-monitor help` | Show help with all available commands. |
+| `liquidity-monitor version` | Print version string (`liquidity-monitor v2.0.0`). |
+
+## Data Storage
+
+All data is stored locally in `~/.local/share/liquidity-monitor/` (override with `LIQUIDITY_MONITOR_DIR` or `XDG_DATA_HOME` environment variables).
+
+**Directory structure:**
+```
+~/.local/share/liquidity-monitor/
+├── data.log         # Main data store (line-based records)
+└── history.log      # Unified activity log with timestamps
+```
+
+Every command logs its action to `history.log` with a timestamp (`MM-DD HH:MM`) for full traceability. The main data file `data.log` holds all imported and queried records.
+
+## Requirements
+
+- Bash (with `set -euo pipefail`)
+- Standard Unix utilities: `date`, `wc`, `head`, `du`, `echo`
+- No external dependencies, databases, or API keys required
+- Optional: Set `LIQUIDITY_MONITOR_DIR` to customize the data directory location
+
+## When to Use
+
+1. **Importing and querying datasets** — Pull in CSV, log, or structured data files and run quick queries against them from the terminal without spinning up a database.
+2. **Data validation workflows** — Validate incoming data against the built-in schema before processing to catch format issues early.
+3. **Data transformation pipelines** — Transform data between formats or structures as part of an ETL-like workflow, all within bash.
+4. **Quick dashboard views** — Get instant record counts and summary metrics via `dashboard` or `stats` without writing custom scripts.
+5. **Data cleanup and deduplication** — Use `clean` to remove duplicate records and normalize the data store before exporting or further analysis.
+
+## Examples
+
+```bash
+# Import a data file
+liquidity-monitor import sales_data.csv
+
+# Query the data store
+liquidity-monitor query "region=APAC"
+
+# View schema
+liquidity-monitor schema
+
+# Preview first 5 records
+liquidity-monitor sample
+
+# Get basic statistics
+liquidity-monitor stats
+
+# Transform data
+liquidity-monitor transform raw.csv cleaned.csv
+
+# Validate data integrity
+liquidity-monitor validate
+
+# Quick dashboard
+liquidity-monitor dashboard
+
+# Export results
+liquidity-monitor export results.json
+
+# Clean and deduplicate
+liquidity-monitor clean
+```
+
+---
+
+Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
