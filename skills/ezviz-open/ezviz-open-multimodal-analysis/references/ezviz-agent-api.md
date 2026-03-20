@@ -6,12 +6,12 @@
 
 ## 1. 获取 AccessToken 接口
 
-**文档 URL**: https://open.ys7.com/help/81
+**文档 URL**: https://openai.ys7.com/help/81
 
 ### 请求地址
 
 ```
-POST https://open.ys7.com/api/lapp/token/get
+POST https://openai.ys7.com/api/lapp/token/get
 ```
 
 ### 请求参数
@@ -38,12 +38,12 @@ POST https://open.ys7.com/api/lapp/token/get
 
 ## 2. 设备抓拍图片接口
 
-**文档 URL**: https://open.ys7.com/help/687
+**文档 URL**: https://openai.ys7.com/help/687
 
 ### 请求地址
 
 ```
-POST https://open.ys7.com/api/lapp/device/capture
+POST https://openai.ys7.com/api/lapp/device/capture
 ```
 
 ### 请求参数
@@ -70,7 +70,7 @@ POST https://open.ys7.com/api/lapp/device/capture
 
 ## 3. 智能体分析接口
 
-**文档 URL**: https://open.ys7.com/help/5006  
+**文档 URL**: https://openai.ys7.com/help/5006  
 **更新时间**: 2026.01.05
 
 ### 接口功能
@@ -171,7 +171,7 @@ curl --location --request POST 'https://aidialoggw.ys7.com/api/service/open/inte
 
 ## 智能体创建
 
-1. 访问：https://open.ys7.com/console/aiAgent/aiAgent.html
+1. 访问：https://openai.ys7.com/console/aiAgent/aiAgent.html
 2. 创建新智能体
 3. 配置提示词和分析逻辑
 4. 获取 agentId（appId）

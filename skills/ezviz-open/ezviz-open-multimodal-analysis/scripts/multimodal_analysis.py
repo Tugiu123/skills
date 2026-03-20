@@ -5,7 +5,7 @@ Ezviz Multimodal Analysis Skill (萤石多模态理解技能)
 通过萤石设备抓图 + 智能体分析接口，实现对摄像头画面的多模态理解分析。
 
 工作流程:
-1. 获取 AccessToken (appKey + appSecret)
+1. 获取 AccessToken (appKey + appSecret) - 使用全局 Token 缓存
 2. 对每个设备：抓取当前画面
 3. 调用智能体分析接口进行理解分析
 4. 输出分析结果
@@ -15,12 +15,19 @@ import sys
 import os
 import time
 import json
+import re
 import requests
 from datetime import datetime
 
+# Add lib directory to path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+lib_dir = os.path.join(os.path.dirname(script_dir), "lib")
+sys.path.insert(0, lib_dir)
+
+from token_manager import get_cached_token
+
 # Configuration
-TOKEN_GET_API_URL = "https://open.ys7.com/api/lapp/token/get"
-DEVICE_CAPTURE_API_URL = "https://open.ys7.com/api/lapp/device/capture"
+DEVICE_CAPTURE_API_URL = "https://openai.ys7.com/api/lapp/device/capture"
 AGENT_ANALYSIS_API_URL = "https://aidialoggw.ys7.com/api/service/open/intelligent/agent/engine/agent/anaylsis"
 
 # Environment variables
@@ -32,28 +39,78 @@ AGENT_ID = os.environ.get("EZVIZ_AGENT_ID", "")
 ANALYSIS_TEXT = os.environ.get("EZVIZ_ANALYSIS_TEXT", "请分析这张图片的内容")
 
 
-def get_access_token(app_key, app_secret):
-    """Get access token using appKey and appSecret."""
-    print(f"[INFO] Getting access token...")
+def validate_device_serial(device_str):
+    """
+    Validate device serial format.
     
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {"appKey": app_key, "appSecret": app_secret}
+    Args:
+        device_str: Device serial string (comma-separated)
     
-    try:
-        response = requests.post(TOKEN_GET_API_URL, headers=headers, data=data, timeout=30)
-        result = response.json()
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    if not device_str:
+        return False, "Device serial is empty"
+    
+    # Allow letters, numbers, colons, and commas
+    if not re.match(r'^[A-Za-z0-9_:,]+$', device_str):
+        return False, "Device serial contains invalid characters (only A-Z, a-z, 0-9, :, comma allowed)"
+    
+    return True, None
+
+
+def get_credentials_from_env_or_config():
+    """
+    Get credentials from environment variables or config files.
+    
+    Priority:
+    1. Environment variables (highest)
+    2. OpenClaw config files (~/.openclaw/*.json)
+    3. Command line arguments (lowest)
+    
+    Returns:
+        tuple: (app_key, app_secret, agent_id, source)
+    """
+    app_key = APP_KEY
+    app_secret = APP_SECRET
+    agent_id = AGENT_ID
+    source = "environment"
+    
+    # If env vars are set, use them
+    if app_key and app_secret:
+        return app_key, app_secret, agent_id, source
+    
+    # Try to load from config files
+    config_paths = [
+        os.path.expanduser("~/.openclaw/config.json"),
+        os.path.expanduser("~/.openclaw/gateway/config.json"),
+        os.path.expanduser("~/.openclaw/channels.json"),
+    ]
+    
+    for config_path in config_paths:
+        if not os.path.exists(config_path):
+            continue
         
-        if result.get("code") == "200":
-            data = result.get("data", {})
-            return {
-                "success": True,
-                "access_token": data.get("accessToken", ""),
-                "expire_time": data.get("expireTime", 0)
-            }
-        else:
-            return {"success": False, "error": result.get("msg", "Unknown error")}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            
+            ezviz_config = config.get("channels", {}).get("ezviz", {})
+            if ezviz_config.get("enabled", True):
+                config_app_key = ezviz_config.get("appId", "")
+                config_app_secret = ezviz_config.get("appSecret", "")
+                
+                if config_app_key and config_app_secret:
+                    print(f"[WARNING] Reading credentials from config file: {config_path}")
+                    print(f"[WARNING] Environment variables have higher priority")
+                    app_key = config_app_key
+                    app_secret = config_app_secret
+                    source = f"config:{config_path}"
+                    break
+        except Exception as e:
+            continue
+    
+    return app_key, app_secret, agent_id, source
 
 
 def parse_device_list(device_str, channel_str="1"):
@@ -181,10 +238,25 @@ def main():
     agent_id = AGENT_ID or sys.argv[5] if len(sys.argv) > 5 else ""
     analysis_text = ANALYSIS_TEXT or (sys.argv[6] if len(sys.argv) > 6 else "请分析这张图片的内容")
     
-    # Validate
+    # If env vars not set, try to load from config
     if not app_key or not app_secret:
-        print("[ERROR] appKey and appSecret required.")
+        app_key, app_secret, config_agent_id, source = get_credentials_from_env_or_config()
+        if config_agent_id and not agent_id:
+            agent_id = config_agent_id
+    
+    # Validate device serial
+    is_valid, error_msg = validate_device_serial(device_str)
+    if not is_valid:
+        print(f"[ERROR] Invalid device serial: {error_msg}")
         sys.exit(1)
+    
+    # Validate credentials source
+    if "config:" in (app_key + app_secret):
+        print(f"[WARNING] Credentials loaded from config file")
+    else:
+        print(f"[OK] Using credentials from environment variables")
+    
+    print(f"[OK] Device serial format validated")
     
     devices = parse_device_list(device_str, channel_str)
     if not devices:
@@ -192,7 +264,7 @@ def main():
         sys.exit(1)
     
     if not agent_id:
-        print("[ERROR] agentId required. Get from https://open.ys7.com/console/aiAgent/aiAgent.html")
+        print("[ERROR] agentId required. Get from https://openai.ys7.com/console/aiAgent/aiAgent.html")
         sys.exit(1)
     
     print(f"[INFO] Target devices: {len(devices)}")
@@ -201,10 +273,12 @@ def main():
     print(f"[INFO] Agent ID: {agent_id[:8]}...")
     print(f"[INFO] Analysis: {analysis_text}")
     
-    # Step 1: Get access token
+    # Step 1: Get access token (using global cache)
     print(f"\n{'='*70}")
     print("[Step 1] Getting access token...")
-    token_result = get_access_token(app_key, app_secret)
+    print(f"{'='*70}")
+    
+    token_result = get_cached_token(app_key, app_secret)
     
     if not token_result["success"]:
         print(f"[ERROR] Failed to get token: {token_result.get('error')}")
@@ -213,7 +287,6 @@ def main():
     access_token = token_result["access_token"]
     expire_time = token_result.get("expire_time", 0)
     expire_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(expire_time / 1000))
-    print(f"[SUCCESS] Token obtained, expires: {expire_str}")
     
     # Step 2: Process each device
     print(f"\n{'='*70}")
