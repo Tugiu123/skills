@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Save parsed WeChat article blocks to a Notion database.
-Usage: python3 save_to_notion.py <article_json_file> <notion_url> <article_url> [read_time] [keywords] [comment]
+Usage: python3 save_to_notion.py <article_json_file> <notion_url> <article_url> [read_time] [keywords] [comment] [rating]
 
 - article_json_file: output from fetch_wechat.py
 - notion_url: Notion database URL (https://www.notion.so/xxx?v=yyy)
@@ -9,11 +9,13 @@ Usage: python3 save_to_notion.py <article_json_file> <notion_url> <article_url> 
 - read_time: ISO datetime string (default: now, Asia/Shanghai)
 - keywords: comma-separated string (optional)
 - comment: short comment string (optional, posted as page comment)
+- rating: integer 1-5 star rating (optional; 3+ auto-adds "Featured" tag)
 
 Field mapping is auto-detected from the database schema by field type:
   title → article title
   url   → article URL
   date  → read time
+  select → star rating
   multi_select → keywords
 """
 
@@ -62,6 +64,8 @@ def notion_request(method, path, body=None, key=None):
     if body:
         cmd += ['-d', json.dumps(body)]
     result = subprocess.run(cmd, capture_output=True, text=True)
+    if not result.stdout.strip():
+        return {}
     return json.loads(result.stdout)
 
 
@@ -84,6 +88,8 @@ def detect_fields(db_id, key):
                 mapping['url'] = name
             elif t == 'date' and 'date' not in mapping:
                 mapping['date'] = name
+            elif t == 'select' and 'select' not in mapping:
+                mapping['select'] = name
             elif t == 'multi_select' and 'multi_select' not in mapping:
                 mapping['multi_select'] = name
         return mapping
@@ -115,6 +121,7 @@ def detect_fields(db_id, key):
         'title': 'Title',
         'url': 'URL',
         'date': 'Read Time',
+        'select': 'Rating',
         'multi_select': 'Tags',
     }
 
@@ -143,7 +150,10 @@ def make_notion_block(b):
     return {'object': 'block', 'type': 'paragraph', 'paragraph': {'rich_text': rt}}
 
 
-def save(article_path, notion_url, article_url, read_time=None, keywords=None, comment=None):
+STAR_MAP = {1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐', 4: '⭐⭐⭐⭐', 5: '⭐⭐⭐⭐⭐'}
+
+
+def save(article_path, notion_url, article_url, read_time=None, keywords=None, comment=None, rating=None):
     key = load_key()
     db_id = extract_db_id(notion_url)
     if not db_id:
@@ -169,8 +179,16 @@ def save(article_path, notion_url, article_url, read_time=None, keywords=None, c
         print('Please ensure your database has Title, URL, and Date fields.', file=sys.stderr)
         sys.exit(1)
 
+    # Auto-add "Featured" tag for rating >= 3
+    if rating and rating >= 3:
+        keywords = keywords or []
+        if 'Featured' not in keywords:
+            keywords.append('Featured')
+
     if keywords:
         print(f'  Keywords: {", ".join(keywords)}')
+    if rating:
+        print(f'  Rating: {STAR_MAP.get(rating, rating)}')
 
     # Build properties using detected field names
     properties = {
@@ -178,6 +196,8 @@ def save(article_path, notion_url, article_url, read_time=None, keywords=None, c
         fields['url']:   {'url': article_url},
         fields['date']:  {'date': {'start': read_time}},
     }
+    if rating and 'select' in fields:
+        properties[fields['select']] = {'select': {'name': STAR_MAP.get(rating, str(rating))}}
     if keywords and 'multi_select' in fields:
         properties[fields['multi_select']] = {'multi_select': [{'name': k} for k in keywords]}
 
@@ -224,7 +244,7 @@ def save(article_path, notion_url, article_url, read_time=None, keywords=None, c
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print('Usage: save_to_notion.py <article_json> <notion_url> <article_url> [read_time] [keywords] [comment]',
+        print('Usage: save_to_notion.py <article_json> <notion_url> <article_url> [read_time] [keywords] [comment] [rating]',
               file=sys.stderr)
         sys.exit(1)
     article_path = sys.argv[1]
@@ -233,4 +253,5 @@ if __name__ == '__main__':
     read_time = sys.argv[4] if len(sys.argv) > 4 else None
     keywords = [k.strip() for k in sys.argv[5].replace('，', ',').split(',') if k.strip()] if len(sys.argv) > 5 else None
     comment = sys.argv[6].strip() if len(sys.argv) > 6 else None
-    save(article_path, notion_url, article_url, read_time, keywords, comment)
+    rating = int(sys.argv[7]) if len(sys.argv) > 7 else None
+    save(article_path, notion_url, article_url, read_time, keywords, comment, rating)

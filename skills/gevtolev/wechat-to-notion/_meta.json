@@ -3,9 +3,15 @@
   "slug": "wechat-to-notion",
   "displayName": "WeChat to Notion",
   "latest": {
-    "version": "1.2.3",
-    "publishedAt": 1773309060492,
-    "commit": "https://github.com/openclaw/skills/commit/8a8cab1904a994fced7231f1aca28a830f33c435"
+    "version": "1.2.5",
+    "publishedAt": 1773802571793,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.3",
+      "publishedAt": 1773309060492,
+      "commit": "https://github.com/openclaw/skills/commit/8a8cab1904a994fced7231f1aca28a830f33c435"
+    }
+  ]
 }
