@@ -3,11 +3,16 @@
   "slug": "chart-generator",
   "displayName": "Chart Generator",
   "latest": {
-    "version": "2.3.4",
-    "publishedAt": 1773665082041,
-    "commit": "https://github.com/openclaw/skills/commit/1b787cb7c5eaf32e6155be41497dd4c9e9b11ed0"
+    "version": "2.0.0",
+    "publishedAt": 1773773213200,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.4",
+      "publishedAt": 1773665082041,
+      "commit": "https://github.com/openclaw/skills/commit/1b787cb7c5eaf32e6155be41497dd4c9e9b11ed0"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421000765,
