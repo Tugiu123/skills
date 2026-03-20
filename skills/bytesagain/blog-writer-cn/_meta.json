@@ -3,11 +3,16 @@
   "slug": "blog-writer-cn",
   "displayName": "Blog Writer Cn",
   "latest": {
-    "version": "2.3.5",
-    "publishedAt": 1773664820815,
-    "commit": "https://github.com/openclaw/skills/commit/ed1aa2de51453f6d1718e3c9b73a0b30988439b3"
+    "version": "2.3.6",
+    "publishedAt": 1773773090942,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.5",
+      "publishedAt": 1773664820815,
+      "commit": "https://github.com/openclaw/skills/commit/ed1aa2de51453f6d1718e3c9b73a0b30988439b3"
+    },
     {
       "version": "2.3.1",
       "publishedAt": 1773578391946,
