@@ -3,6 +3,8 @@ import type { Address, Hex } from "viem";
 export type EvmChainName = "ethereum" | "polygon" | "arbitrum" | "base";
 export type ChainName = EvmChainName;
 export type BalanceChainName = EvmChainName | "solana";
+export type BridgeSourceChainName = EvmChainName | "solana";
+export type BridgeDestinationChainName = EvmChainName;
 
 export type ToolName =
   | "get_balances"
@@ -84,8 +86,8 @@ export interface SwapInput extends ExecutionFlags {
 }
 
 export interface BridgeInput extends ExecutionFlags {
-  sourceChain: ChainName;
-  destinationChain: ChainName;
+  sourceChain: BridgeSourceChainName;
+  destinationChain: BridgeDestinationChainName;
   token: string;
   amount: string;
 }
@@ -156,8 +158,8 @@ export interface QuoteOperationInput extends ExecutionFlags {
   operationType: ToolName;
   walletAddress?: Address;
   chain?: ChainName;
-  sourceChain?: ChainName;
-  destinationChain?: ChainName;
+  sourceChain?: BridgeSourceChainName;
+  destinationChain?: BridgeDestinationChainName;
   token?: string;
   sellToken?: string;
   buyToken?: string;
@@ -210,8 +212,8 @@ export interface BridgeQuote {
   provider: string;
   routeId?: string;
   tool?: string;
-  sourceChain: ChainName;
-  destinationChain: ChainName;
+  sourceChain: BridgeSourceChainName;
+  destinationChain: BridgeDestinationChainName;
   sourceToken: TokenInfo;
   destinationToken: TokenInfo;
   fromAmountRaw: bigint;
@@ -235,9 +237,9 @@ export interface BridgeStatus {
   substatus?: string;
   substatusMessage?: string;
   tool?: string;
-  txHash: Hex;
+  txHash: string;
   explorerUrl?: string;
-  receivingTxHash?: Hex;
+  receivingTxHash?: string;
   receivedAmountRaw?: bigint;
   raw: Record<string, unknown>;
 }

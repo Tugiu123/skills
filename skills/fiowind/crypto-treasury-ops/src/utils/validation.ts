@@ -4,6 +4,7 @@ import type { ChainName } from "../types.js";
 
 const evmChainEnum = z.enum(["ethereum", "polygon", "arbitrum", "base"]);
 const balanceChainEnum = z.enum(["ethereum", "polygon", "arbitrum", "base", "solana"]);
+const bridgeSourceChainEnum = z.enum(["ethereum", "polygon", "arbitrum", "base", "solana"]);
 const hyperliquidOrderSideEnum = z.enum(["buy", "sell"]);
 const hyperliquidOrderTypeEnum = z.enum(["market", "limit"]);
 const hyperliquidTimeInForceEnum = z.enum(["gtc", "ioc", "alo"]);
@@ -66,7 +67,7 @@ export const swapTokenInputSchema = executionFlagsSchema.extend({
 });
 
 export const bridgeTokenInputSchema = executionFlagsSchema.extend({
-  sourceChain: evmChainEnum,
+  sourceChain: bridgeSourceChainEnum,
   destinationChain: evmChainEnum,
   token: z.string().trim().min(1, "Token is required."),
   amount: positiveDecimalSchema
@@ -164,7 +165,7 @@ export const quoteOperationInputSchema = executionFlagsSchema.extend({
   ]),
   walletAddress: addressSchema.optional(),
   chain: evmChainEnum.optional(),
-  sourceChain: evmChainEnum.optional(),
+  sourceChain: bridgeSourceChainEnum.optional(),
   destinationChain: evmChainEnum.optional(),
   token: z.string().optional(),
   sellToken: z.string().optional(),

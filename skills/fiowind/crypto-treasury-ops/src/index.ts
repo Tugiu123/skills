@@ -7,6 +7,8 @@ import { HyperliquidService } from "./services/hyperliquidService.js";
 import { HyperliquidTradingService } from "./services/hyperliquidTradingService.js";
 import { RiskService } from "./services/riskService.js";
 import { SolanaBalanceService } from "./services/solanaBalanceService.js";
+import { SolanaTokenService } from "./services/solanaTokenService.js";
+import { SolanaWalletService } from "./services/solanaWalletService.js";
 import { SwapService } from "./services/swapService.js";
 import { TokenService } from "./services/tokenService.js";
 import { WalletService } from "./services/walletService.js";
@@ -88,10 +90,12 @@ async function main(): Promise<void> {
   }
 
   const walletService = new WalletService();
+  const solanaWalletService = new SolanaWalletService();
+  const solanaTokenService = new SolanaTokenService(solanaWalletService);
   const tokenService = new TokenService(walletService);
   const solanaBalanceService = new SolanaBalanceService();
   const swapService = new SwapService(walletService, tokenService);
-  const bridgeService = new BridgeService(walletService, tokenService);
+  const bridgeService = new BridgeService(walletService, tokenService, solanaWalletService);
   const riskService = new RiskService(walletService);
   const hyperliquidService = new HyperliquidService(walletService, tokenService, bridgeService);
   const hyperliquidTradingService = new HyperliquidTradingService(walletService);
@@ -110,7 +114,15 @@ async function main(): Promise<void> {
       response = await swapTokenTool(input, walletService, tokenService, swapService, riskService);
       break;
     case "bridge_token":
-      response = await bridgeTokenTool(input, walletService, tokenService, bridgeService, riskService);
+      response = await bridgeTokenTool(
+        input,
+        walletService,
+        solanaWalletService,
+        tokenService,
+        solanaTokenService,
+        bridgeService,
+        riskService
+      );
       break;
     case "deposit_to_hyperliquid":
       response = await depositToHyperliquidTool(input, walletService, hyperliquidService, riskService);
@@ -138,6 +150,8 @@ async function main(): Promise<void> {
         input,
         walletService,
         tokenService,
+        solanaWalletService,
+        solanaTokenService,
         swapService,
         bridgeService,
         hyperliquidService,

@@ -3,9 +3,15 @@
   "slug": "crypto-treasury-ops",
   "displayName": "crypto-treasury-ops",
   "latest": {
-    "version": "0.1.6",
-    "publishedAt": 1773468126179,
-    "commit": "https://github.com/openclaw/skills/commit/49208d3d62430520aa78ca6576159643b80c2fdf"
+    "version": "0.1.7",
+    "publishedAt": 1773890964447,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.6",
+      "publishedAt": 1773468126179,
+      "commit": "https://github.com/openclaw/skills/commit/49208d3d62430520aa78ca6576159643b80c2fdf"
+    }
+  ]
 }

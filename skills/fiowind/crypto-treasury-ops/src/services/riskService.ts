@@ -1,11 +1,11 @@
 import { appConfig } from "../config.js";
 import { readLogEvents } from "../utils/logging.js";
-import type { ChainName, SafetyDecision, ToolName } from "../types.js";
+import type { BalanceChainName, SafetyDecision, ToolName } from "../types.js";
 import { WalletService } from "./walletService.js";
 
 interface SafetyEvaluationRequest {
   operationType: ToolName;
-  chain: ChainName;
+  chain: BalanceChainName;
   tokenSymbol: string;
   amount: string;
   destination?: string;
@@ -87,15 +87,21 @@ export class RiskService {
     if (request.requireGasReserve) {
       const requiredReserve = appConfig.safety.minGasReserveByChain[request.chain];
       if (requiredReserve !== undefined) {
-        const balance = Number(await this.walletService.getNativeBalanceFormatted(request.chain, this.walletService.getTreasuryAddress()));
-        if (balance < requiredReserve) {
-          reasons.push(
-            `Native gas balance ${balance} on ${request.chain} is below reserve requirement ${requiredReserve}.`
+        if (request.chain === "solana") {
+          warnings.push("Solana source gas reserve checks are not yet enforced by RiskService.");
+        } else {
+          const balance = Number(
+            await this.walletService.getNativeBalanceFormatted(request.chain, this.walletService.getTreasuryAddress())
           );
-        } else if (balance < requiredReserve * 2) {
-          warnings.push(
-            `Native gas balance on ${request.chain} is above reserve but still low relative to policy.`
-          );
+          if (balance < requiredReserve) {
+            reasons.push(
+              `Native gas balance ${balance} on ${request.chain} is below reserve requirement ${requiredReserve}.`
+            );
+          } else if (balance < requiredReserve * 2) {
+            warnings.push(
+              `Native gas balance on ${request.chain} is above reserve but still low relative to policy.`
+            );
+          }
         }
       }
     }

@@ -1,7 +1,7 @@
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
 import { getAddress, isAddress, type Address, type Hex } from "viem";
-import type { ChainName } from "./types.js";
+import type { BalanceChainName, ChainName } from "./types.js";
 import { DEFAULT_EVM_RPC_URLS, DEFAULT_SOLANA_RPC_URLS } from "./constants/rpcs.js";
 
 loadDotenv();
@@ -35,18 +35,18 @@ function parseSymbolAmountMap(value: string | undefined): Record<string, number>
   }, {});
 }
 
-function parseChainAmountMap(value: string | undefined): Partial<Record<ChainName, number>> {
+function parseChainAmountMap(value: string | undefined): Partial<Record<BalanceChainName, number>> {
   if (!value) {
     return {};
   }
 
-  return value.split(",").reduce<Partial<Record<ChainName, number>>>((accumulator, item) => {
+  return value.split(",").reduce<Partial<Record<BalanceChainName, number>>>((accumulator, item) => {
     const [rawKey, rawValue] = item.split(":");
     if (!rawKey || !rawValue) {
       return accumulator;
     }
 
-    const chain = rawKey.trim().toLowerCase() as ChainName;
+    const chain = rawKey.trim().toLowerCase() as BalanceChainName;
     const numericValue = Number(rawValue);
     if (!Number.isFinite(numericValue)) {
       return accumulator;
@@ -134,12 +134,15 @@ export const appConfig = {
   } satisfies Record<ChainName, string[]>,
   solana: {
     rpcUrls: parseRpcUrlList(process.env.SOLANA_RPC_URL, DEFAULT_SOLANA_RPC_URLS),
-    trackedTokens: parseSolanaTrackedTokens(process.env.SOLANA_TRACKED_TOKENS)
+    trackedTokens: parseSolanaTrackedTokens(process.env.SOLANA_TRACKED_TOKENS),
+    privateKey: process.env.SOLANA_TREASURY_PRIVATE_KEY,
+    treasuryAddressOverride: process.env.SOLANA_TREASURY_ADDRESS
   },
   bridge: {
     provider: (process.env.BRIDGE_PROVIDER ?? "lifi").toLowerCase(),
     lifiApiUrl: process.env.LIFI_API_URL ?? "https://li.quest/v1",
     lifiApiKey: process.env.LIFI_API_KEY,
+    mayanApiKey: process.env.MAYAN_API_KEY,
     integrator: process.env.BRIDGE_INTEGRATOR ?? "crypto-treasury-ops",
     statusTimeoutMs: Number(process.env.BRIDGE_STATUS_TIMEOUT_MS ?? 900_000),
     statusPollMs: Number(process.env.BRIDGE_STATUS_POLL_MS ?? 15_000)

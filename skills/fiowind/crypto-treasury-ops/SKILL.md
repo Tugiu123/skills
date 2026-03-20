@@ -5,14 +5,14 @@ description: Safely manage EVM treasury operations and native Hyperliquid tradin
 
 # crypto-treasury-ops
 
-Use this skill when an OpenClaw agent needs to inspect or operate a treasury wallet on Ethereum, Polygon, Arbitrum, or Base with explicit safety controls, or read Solana balances.
+Use this skill when an OpenClaw agent needs to inspect or operate a treasury wallet on Ethereum, Polygon, Arbitrum, or Base with explicit safety controls, or use Solana as a read path and bridge source chain.
 
 ## What this skill does
 
 - Checks native and configured stablecoin balances
 - Checks Solana native SOL and configured SPL token balances
 - Transfers native assets or ERC-20 tokens on one chain
-- Bridges tokens across chains through a pluggable provider layer
+- Bridges tokens across chains through a pluggable provider layer, including Solana -> EVM routes
 - Deposits USDC to Hyperliquid with guarded Arbitrum direct flow plus Polygon/Base routing
 - Reads Hyperliquid perpetual market state and account state
 - Places, protects, and cancels guarded Hyperliquid perpetual orders
@@ -27,6 +27,7 @@ Required variables:
 
 ```bash
 TREASURY_PRIVATE_KEY=0x...
+SOLANA_TREASURY_PRIVATE_KEY=
 ZEROX_API_KEY=...
 ```
 
@@ -41,8 +42,11 @@ npm run build
 
 Important:
 
-- `TREASURY_PRIVATE_KEY` is required for `transfer_token`, `bridge_token`, `deposit_to_hyperliquid`, `place_hyperliquid_order`, `protect_hyperliquid_position`, and `cancel_hyperliquid_order`
+- `TREASURY_PRIVATE_KEY` is required for EVM execution tools and as the default destination wallet for Solana -> EVM bridges
+- `SOLANA_TREASURY_PRIVATE_KEY` is required for executing Solana bridge transactions
+- `SOLANA_TREASURY_ADDRESS` can be used for read-only Solana quote context when no Solana signer is present
 - `ZEROX_API_KEY` is required for `swap_token` and swap quotes
+- `MAYAN_API_KEY` is optional but recommended for Solana bridge quote / execution rate limits
 - `HYPERLIQUID_TRADING_*` variables can further constrain market allowlists, order notional, leverage, and confirmation thresholds
 - The skill ships with built-in fallback RPC URL lists for Ethereum, Polygon, Arbitrum, Base, and Solana
 - RPC env vars such as `ETHEREUM_RPC_URL` and `SOLANA_RPC_URL` are optional overrides; comma-separated lists are supported
@@ -76,7 +80,7 @@ Returns:
 Notes:
 
 - `chain=solana` is supported for read-only balance queries
-- Solana execution flows are not implemented in this skill
+- Solana execution is limited to bridge source flows only
 
 ### `transfer_token`
 
@@ -136,10 +140,13 @@ Inputs:
 Behavior:
 
 - Uses the configured bridge provider abstraction
+- Supports `solana -> ethereum/arbitrum/base/polygon` through Mayan
 - Quotes route, fees, minimum received, and tx data
 - Checks treasury policy, fee threshold, and gas reserve
 - Executes only when approval and policy conditions pass
 - Returns route summary, tx status, and explorer links when available
+- The first Solana bridge implementation supports `SOL -> native destination gas token` and same-symbol stablecoin routes such as `USDC -> USDC`
+- Solana bridge execution currently returns a submitted / pending status after the signed Solana transaction is broadcast; completion should be re-checked from the destination balance or explorer link
 
 ### `deposit_to_hyperliquid`
 
@@ -346,6 +353,10 @@ node dist/index.js --action swap_token --input '{"chain":"arbitrum","sellToken":
 
 ```bash
 node dist/index.js --action bridge_token --input '{"sourceChain":"polygon","destinationChain":"arbitrum","token":"USDC","amount":"2500","approval":true,"dryRun":true}'
+```
+
+```bash
+node dist/index.js --action bridge_token --input '{"sourceChain":"solana","destinationChain":"ethereum","token":"SOL","amount":"0.02","approval":true,"dryRun":true}'
 ```
 
 ```bash

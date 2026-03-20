@@ -1,6 +1,6 @@
 {
   "name": "crypto-treasury-ops",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Production-oriented OpenClaw treasury and Hyperliquid trading skill for guarded crypto operations",
   "type": "module",
   "private": true,
@@ -16,8 +16,10 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@mayanfinance/swap-sdk": "^13.2.0",
     "@nktkas/hyperliquid": "^0.32.1",
     "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
     "dotenv": "^16.4.7",
     "viem": "^2.23.5",
     "zod": "^3.24.2"

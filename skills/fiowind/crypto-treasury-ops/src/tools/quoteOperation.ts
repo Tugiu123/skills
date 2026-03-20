@@ -1,3 +1,5 @@
+import { getNativeToken } from "../chains/index.js";
+import { parseUnits } from "viem";
 import { formatTokenAmount } from "../utils/formatting.js";
 import { buildFailure, buildSuccess } from "../utils/formatting.js";
 import { createRequestId, logEvent } from "../utils/logging.js";
@@ -6,6 +8,8 @@ import type { ToolResponse } from "../types.js";
 import { BridgeService } from "../services/bridgeService.js";
 import { HyperliquidService } from "../services/hyperliquidService.js";
 import { HyperliquidTradingService } from "../services/hyperliquidTradingService.js";
+import { SolanaTokenService } from "../services/solanaTokenService.js";
+import { SolanaWalletService } from "../services/solanaWalletService.js";
 import { SwapService } from "../services/swapService.js";
 import { TokenService } from "../services/tokenService.js";
 import { WalletService } from "../services/walletService.js";
@@ -14,6 +18,8 @@ export async function quoteOperationTool(
   input: unknown,
   walletService: WalletService,
   tokenService: TokenService,
+  solanaWalletService: SolanaWalletService,
+  solanaTokenService: SolanaTokenService,
   swapService: SwapService,
   bridgeService: BridgeService,
   hyperliquidService: HyperliquidService,
@@ -65,17 +71,28 @@ export async function quoteOperationTool(
       ]);
     }
 
-    const treasuryAddress = parsed.walletAddress ?? walletService.getTreasuryAddress();
-    const sourceToken = await tokenService.resolveToken(parsed.sourceChain, parsed.token);
-    const destinationToken = await tokenService.resolveToken(parsed.destinationChain, sourceToken.symbol);
+    const sourceToken = parsed.sourceChain === "solana"
+      ? solanaTokenService.resolveToken(parsed.token)
+      : await tokenService.resolveToken(parsed.sourceChain, parsed.token);
+    const destinationToken = parsed.sourceChain === "solana"
+      ? (sourceToken.symbol === "SOL"
+          ? getNativeToken(parsed.destinationChain)
+          : await tokenService.resolveToken(parsed.destinationChain, sourceToken.symbol))
+      : await tokenService.resolveToken(parsed.destinationChain, sourceToken.symbol);
+    const sourceAddress = parsed.sourceChain === "solana"
+      ? solanaWalletService.getTreasuryAddress()
+      : (parsed.walletAddress ?? walletService.getTreasuryAddress());
+    const destinationAddress = parsed.walletAddress ?? walletService.getTreasuryAddress();
     const quote = await bridgeService.quoteTransfer({
       sourceChain: parsed.sourceChain,
       destinationChain: parsed.destinationChain,
       sourceToken,
       destinationToken,
-      amount: tokenService.amountToRaw(parsed.amount, sourceToken),
-      fromAddress: treasuryAddress,
-      toAddress: treasuryAddress
+      amount: parsed.sourceChain === "solana"
+        ? parseUnits(parsed.amount, sourceToken.decimals)
+        : tokenService.amountToRaw(parsed.amount, sourceToken),
+      fromAddress: sourceAddress,
+      toAddress: destinationAddress
     });
 
     logEvent(requestId, "quote_operation", "success", {
@@ -147,6 +164,11 @@ export async function quoteOperationTool(
     if (!parsed.sourceChain || !parsed.token || !parsed.amount || !parsed.destination) {
       return buildFailure("quote_operation", requestId, "error", [
         "deposit_to_hyperliquid quote requires sourceChain, token, amount, and destination."
+      ]);
+    }
+    if (parsed.sourceChain === "solana") {
+      return buildFailure("quote_operation", requestId, "error", [
+        "deposit_to_hyperliquid does not support Solana source chains."
       ]);
     }
 

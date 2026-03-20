@@ -1,4 +1,4 @@
-import type { Address, Hash } from "viem";
+import type { Address } from "viem";
 import { appConfig } from "../config.js";
 import { getNativeToken } from "../chains/index.js";
 import type { BridgeQuote, BridgeStatus, ChainName } from "../types.js";
@@ -210,16 +210,16 @@ export class HyperliquidService {
   }): Promise<{
     routeType: "direct_arbitrum" | "bridge_then_deposit";
     gasTopUp?: {
-      sourceTxHash: Hash;
-      approvalTxHash?: Hash;
+      sourceTxHash: string;
+      approvalTxHash?: string;
       status: BridgeStatus;
     };
     bridge?: {
-      sourceTxHash: Hash;
-      approvalTxHash?: Hash;
+      sourceTxHash: string;
+      approvalTxHash?: string;
       status: BridgeStatus;
     };
-    depositTxHash: Hash;
+    depositTxHash: string;
     depositedAmount: string;
   }> {
     const quote = await this.quoteDeposit(input);
@@ -258,8 +258,8 @@ export class HyperliquidService {
 
     let gasTopUpExecution:
       | {
-          sourceTxHash: Hash;
-          approvalTxHash?: Hash;
+          sourceTxHash: string;
+          approvalTxHash?: string;
           status: BridgeStatus;
         }
       | undefined;
@@ -349,7 +349,7 @@ export class HyperliquidService {
 
   private async waitForArbitrumGasReadiness(
     quote: BridgeQuote,
-    sourceTxHash: Hash,
+    sourceTxHash: string,
     treasuryAddress: Address,
     requiredArbitrumGas: bigint
   ): Promise<BridgeStatus> {
@@ -380,7 +380,7 @@ export class HyperliquidService {
 
   private async waitForArbitrumUsdcArrival(
     quote: BridgeQuote,
-    sourceTxHash: Hash,
+    sourceTxHash: string,
     treasuryAddress: Address,
     arbitrumUsdc: Awaited<ReturnType<TokenService["resolveToken"]>>,
     balanceBeforeBridge: bigint
@@ -418,7 +418,7 @@ export class HyperliquidService {
     chain: ChainName,
     address: Address,
     minimumRaw: bigint,
-    sourceTxHash: Hash,
+    sourceTxHash: string,
     provider: string,
     recoveryError?: unknown
   ): Promise<BridgeStatus> {
@@ -464,7 +464,7 @@ export class HyperliquidService {
     token: Awaited<ReturnType<TokenService["resolveToken"]>>,
     balanceBefore: bigint,
     minimumDelta: bigint,
-    sourceTxHash: Hash,
+    sourceTxHash: string,
     provider: string,
     recoveryError?: unknown
   ): Promise<BridgeStatus> {

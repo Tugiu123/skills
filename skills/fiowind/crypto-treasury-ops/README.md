@@ -1,13 +1,13 @@
 # crypto-treasury-ops
 
-`crypto-treasury-ops` is a production-oriented OpenClaw / ClawHub skill package for guarded crypto treasury operations on EVM chains, read-only Solana balance support, and native Hyperliquid perpetual trading. It exposes a CLI entrypoint with structured JSON responses so an agent can quote, validate, and execute treasury actions with explicit safety checks.
+`crypto-treasury-ops` is a production-oriented OpenClaw / ClawHub skill package for guarded crypto treasury operations on EVM chains, Solana balance support, Solana-to-EVM bridging, and native Hyperliquid perpetual trading. It exposes a CLI entrypoint with structured JSON responses so an agent can quote, validate, and execute treasury actions with explicit safety checks.
 
 ## Features
 
 - `get_balances` for Ethereum, Polygon, Arbitrum, Base, and Solana
 - `transfer_token` for native assets and ERC-20 tokens
 - `swap_token` for guarded ERC-20 swaps on one chain
-- `bridge_token` through a pluggable bridge provider layer
+- `bridge_token` through a pluggable bridge provider layer, including Solana -> EVM routing
 - `deposit_to_hyperliquid` with guarded Arbitrum direct deposits and Polygon/Base USDC routing into Hyperliquid
 - `get_hyperliquid_market_state` and `get_hyperliquid_account_state` for native Hyperliquid read paths
 - `place_hyperliquid_order`, `protect_hyperliquid_position`, and `cancel_hyperliquid_order` for guarded Hyperliquid perpetual order flow
@@ -23,7 +23,7 @@ Initial chain support:
 - Polygon
 - Arbitrum
 - Base
-- Solana for balance checks only
+- Solana for balance checks and source-side bridging
 
 Initial treasury token support:
 
@@ -94,10 +94,14 @@ The first native Hyperliquid trading implementation is intentionally conservativ
 
 ## Solana note
 
-This skill supports Solana balance checks, but execution remains EVM-only.
+This skill now supports Solana balance checks and Solana -> EVM bridging, but general Solana execution is still intentionally narrow.
 
 - `get_balances` supports native `SOL` plus configured SPL stablecoin mints
-- It cannot sign Solana transactions.
+- `bridge_token` supports `solana -> ethereum/arbitrum/base/polygon`
+- The first Solana bridge implementation uses Mayan
+- Solana execution requires `SOLANA_TREASURY_PRIVATE_KEY` or `SOLANA_TREASURY_ADDRESS` for read-only quote context
+- `MAYAN_API_KEY` is optional but recommended for higher quote rate limits
+- Solana bridge routing currently supports `SOL -> native gas token` and same-symbol stablecoin routes such as `USDC -> USDC`
 - It cannot move `SOL` from Solana to Hyperliquid.
 - `deposit_to_hyperliquid` only supports EVM USDC flows from Base, Polygon, or Arbitrum.
 - Hyperliquid itself supports some Solana deposits through Unit-managed flows, but that path is not implemented in this skill.
@@ -109,8 +113,10 @@ If you need `SOL -> Hyperliquid`, that requires a separate Solana signer and a S
 1. Copy `.env.example` to `.env`.
 2. Fill in the private key and treasury safety policy values.
 3. Add `ZEROX_API_KEY` if you want to use `swap_token` or swap quotes.
-4. Optionally tune `HYPERLIQUID_TRADING_*` safety variables if you want to trade on Hyperliquid.
-5. Install dependencies:
+4. Add `SOLANA_TREASURY_PRIVATE_KEY` if you want to execute Solana bridge transactions.
+5. Optionally add `MAYAN_API_KEY` if you want higher Solana bridge quote limits.
+6. Optionally tune `HYPERLIQUID_TRADING_*` safety variables if you want to trade on Hyperliquid.
+7. Install dependencies:
 
 ```bash
 npm install
@@ -183,6 +189,19 @@ node dist/index.js --action bridge_token --input '{
   "destinationChain": "arbitrum",
   "token": "USDC",
   "amount": "1000",
+  "approval": true,
+  "dryRun": true
+}'
+```
+
+Solana example:
+
+```bash
+node dist/index.js --action bridge_token --input '{
+  "sourceChain": "solana",
+  "destinationChain": "ethereum",
+  "token": "SOL",
+  "amount": "0.02",
   "approval": true,
   "dryRun": true
 }'
