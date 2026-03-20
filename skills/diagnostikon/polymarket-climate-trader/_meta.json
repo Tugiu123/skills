@@ -3,9 +3,15 @@
   "slug": "polymarket-climate-trader",
   "displayName": "Climate & Weather Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773429346169,
-    "commit": "https://github.com/openclaw/skills/commit/d9f9ac39c61a5ed61b53359b32da3a2b18c426e6"
+    "version": "1.0.1",
+    "publishedAt": 1773779031698,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773429346169,
+      "commit": "https://github.com/openclaw/skills/commit/d9f9ac39c61a5ed61b53359b32da3a2b18c426e6"
+    }
+  ]
 }

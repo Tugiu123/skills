@@ -27,29 +27,45 @@ Climate markets are uniquely suited for quantitative trading: the data sources a
 
 ## Signal Logic
 
-### Default Signal: Model Ensemble Divergence
+### Default Signal: Conviction-Based Sizing with Seasonal Bias
 
 1. Discover active climate/weather markets on Polymarket
-2. Pull current forecast data from open weather APIs (NOAA, Open-Meteo)
-3. Compare model consensus probability vs. current market price
-4. If divergence >12%, check context (flip-flop, slippage, edge)
-5. Trade in direction of meteorological consensus
+2. Compute base conviction from distance to threshold (0% at boundary → 100% at p=0/p=1)
+3. Apply `season_bias()` multiplier based on current month and event type in the question
+4. Size = `max(MIN_TRADE, conviction × bias × MAX_POSITION)` — capped at MAX_POSITION
+5. Skip markets with spread > MAX_SPREAD or fewer than MIN_DAYS to resolution
+
+### Seasonal Bias (built-in, no API required)
+
+Climate events follow documented seasonal cycles. `season_bias()` boosts conviction when the current month aligns with peak season, and dampens it off-season:
+
+| Event type | Peak season | In-season multiplier | Off-season multiplier |
+|---|---|---|---|
+| Hurricane / cyclone | June–November | **1.4x** | 0.6x |
+| Sea ice / Arctic | July–September | **1.4x** | 0.7x |
+| El Niño / La Niña / ENSO | December–February | **1.3x** | 0.9x |
+| Wildfire / fire season | July–October | **1.3x** | 0.8x |
+| Heatwave / drought | June–September | **1.3x** | 0.8x |
+| Snowfall / blizzard | November–March | **1.3x** | 0.7x |
+
+Example: a hurricane market at 25% in October → conviction 34% × 1.4x bias = 48% → $12 position. Same market in January → 34% × 0.6x = 20% → $5 (floor).
 
 ### Remix Ideas
 
-- **ECMWF ensemble**: Use European Centre weather model for 15-day outlook as pricing signal
-- **ENSO index**: Trade El Niño/La Niña markets using NOAA's ONI index
-- **Insurance cat bond pricing**: Use ILS (insurance-linked securities) spreads as implied probability benchmarks
-- **Copernicus climate data**: Real-time European climate services for local/regional markets
+- **ECMWF ensemble**: Replace `market.current_probability` with model consensus probability — trade the divergence between forecast and market
+- **NOAA ENSO index**: Feed ONI values directly to boost/reduce `season_bias()` for El Niño markets
+- **Insurance cat bond pricing**: Use ILS spreads as implied probability benchmarks for hurricane markets
+- **Copernicus climate data**: Real-time European climate services for local/regional temperature markets
 
 ## Market Categories Tracked
 
 ```python
-CLIMATE_KEYWORDS = [
-    "temperature", "hurricane", "tornado", "flood", "drought",
-    "wildfire", "earthquake", "CO2", "sea ice", "Arctic",
-    "El Niño", "La Niña", "snowfall", "rainfall", "heatwave",
-    "crop yield", "wheat", "harvest", "water shortage"
+KEYWORDS = [
+    'hurricane', 'tropical storm', 'cyclone', 'tornado', 'flood',
+    'drought', 'wildfire', 'earthquake', 'CO2', 'sea ice', 'Arctic',
+    'El Niño', 'La Niña', 'ENSO', 'snowfall', 'heatwave', 'heat wave',
+    'temperature record', 'crop yield', 'wheat', 'harvest', 'glacier',
+    'rainfall', 'water shortage', 'climate', 'emissions', 'carbon',
 ]
 ```
 
@@ -106,11 +122,14 @@ All risk parameters are declared in `clawhub.json` as `tunables` and adjustable 
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SIMMER_CLIMATE_MAX_POSITION` | `20` | Max USDC per trade |
-| `SIMMER_CLIMATE_MIN_VOLUME` | `3000` | Min market volume filter (USD) |
-| `SIMMER_CLIMATE_MAX_SPREAD` | `0.12` | Max bid-ask spread (0.10 = 10%) |
-| `SIMMER_CLIMATE_MIN_DAYS` | `14` | Min days until market resolves |
-| `SIMMER_CLIMATE_MAX_POSITIONS` | `8` | Max concurrent open positions |
+| `SIMMER_MAX_POSITION` | `25` | Max USDC per trade (reached at 100% conviction) |
+| `SIMMER_MIN_VOLUME` | `3000` | Min market volume filter (USD) |
+| `SIMMER_MAX_SPREAD` | `0.12` | Max bid-ask spread (0.12 = 12%) |
+| `SIMMER_MIN_DAYS` | `14` | Min days until market resolves |
+| `SIMMER_MAX_POSITIONS` | `8` | Max concurrent open positions |
+| `SIMMER_YES_THRESHOLD` | `0.38` | Buy YES if market price ≤ this value |
+| `SIMMER_NO_THRESHOLD` | `0.62` | Sell NO if market price ≥ this value |
+| `SIMMER_MIN_TRADE` | `5` | Floor for any trade (min USDC regardless of conviction) |
 
 ## Dependency
 
