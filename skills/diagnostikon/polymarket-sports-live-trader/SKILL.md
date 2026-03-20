@@ -16,23 +16,51 @@ metadata:
 
 ## Strategy Overview
 
-Elo/power-ranking divergence from market price. Remix: SofaScore/FotMob API, Elo rating systems, injury report feeds, transfermarkt.com data, ESPN API.
+Sports prediction markets are dominated by passionate fans who bet emotionally. This creates two structural edges this skill exploits without any external API:
 
+1. **Fan loyalty dampening** — Popular clubs (Real Madrid, Man City, Lakers) are systematically overpriced by emotional retail traders
+2. **Sports calendar timing** — Each sport has a defined peak season; trading in-season means better signal density
 
-## Edge Thesis
+## Signal Logic
 
-Sports prediction markets are dominated by passionate fans who bet emotionally on their teams. This creates systematic pricing inefficiencies:
+### Default Signal: Conviction-Based Sizing with Fan Bias + Calendar
 
-- **Fan loyalty bias**: Supporters of popular clubs (Real Madrid, Liverpool, Man City, Lakers) consistently overpay YES, creating structural NO value
-- **Injury information lag**: Injury reports drop on official team websites 24–48h before markets fully reprice — medical staff confirms availability closer to match
-- **Elo vs market divergence**: Quantitative Elo/power rankings are well-calibrated; when they diverge >15% from Polymarket implied probability, edge exists
-- **DAZN-Polymarket partnership**: Live broadcast embeds mean high-frequency in-game markets are becoming available — volatility spikes at goals/red cards
+1. Discover active sports markets on Polymarket
+2. Compute base conviction from distance to threshold (0% at boundary → 100% at p=0/p=1)
+3. Apply `sport_bias()` — combines fan loyalty adjustment with sports calendar timing
+4. Size = `max(MIN_TRADE, conviction × bias × MAX_POSITION)` — capped at MAX_POSITION
+5. Skip markets with spread > MAX_SPREAD or fewer than MIN_DAYS to resolution
+
+### Sport Bias (built-in, no API required)
+
+**Factor 1 — Fan Loyalty Adjustment**
+
+| Market type | Multiplier | Why |
+|---|---|---|
+| Fan-favorite clubs (Real Madrid, Man City, Lakers) | **0.75x** | Fan loyalty inflates YES — high noise, trade cautiously |
+| Peak fan events (Super Bowl, UCL final, World Cup final) | **0.80x** | Maximum emotional retail attention = maximum mispricing |
+| Individual sports (tennis, F1, golf) | **1.15x** | Individual performance is more data-driven than team sports |
+| Transfer / contract markets | **1.20x** | Journalist sources trackable before market reprices |
+| Award markets (MVP, Ballon d'Or, Golden Boot) | **1.10x** | Stats-driven — quantifiable advantage |
+
+**Factor 2 — Sports Calendar Timing**
+
+| Sport / Event | Active season | In-season multiplier |
+|---|---|---|
+| Football title run-in (UCL, PL, Liga) | Mar–May | **1.15x** |
+| Transfer windows | Jan + Jun–Sep | **1.20x** |
+| NBA playoffs | Apr–Jun | **1.15x** |
+| NFL season | Sep–Feb | **1.10x** |
+| Tennis / Wimbledon | Jun–Sep | **1.15x** |
+
+Combined and capped at **1.35x**. Example: Transfer market in July → 1.20 × 1.20 = 1.35x (capped).
 
 ### Remix Signal Ideas
-- **Club Elo**: https://www.clubelo.com/API — football Elo ratings, free
-- **FiveThirtyEight NBA Elo**: https://projects.fivethirtyeight.com/nba-model/
-- **Transfermarkt API**: Player valuations and injury status
-- **ESPN hidden API**: `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard`
+
+- **Club Elo**: Replace `market.current_probability` with Elo-implied win probability — trade divergence vs market
+- **FiveThirtyEight NBA/NFL models**: Same divergence approach for American sports
+- **Transfermarkt API**: Player valuations and injury status as signal inputs
+- **ESPN hidden API**: `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard` for live scores/injury data
 
 
 ## Safety & Execution Mode
@@ -59,11 +87,14 @@ All declared as `tunables` in `clawhub.json` and adjustable from the Simmer UI.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SIMMER_MAX_POSITION` | See clawhub.json | Max USDC per trade |
-| `SIMMER_MIN_VOLUME` | See clawhub.json | Min market volume filter |
-| `SIMMER_MAX_SPREAD` | See clawhub.json | Max bid-ask spread |
-| `SIMMER_MIN_DAYS` | See clawhub.json | Min days until resolution |
-| `SIMMER_MAX_POSITIONS` | See clawhub.json | Max concurrent open positions |
+| `SIMMER_MAX_POSITION` | `25` | Max USDC per trade (reached at 100% conviction) |
+| `SIMMER_MIN_VOLUME` | `5000` | Min market volume filter (USD) |
+| `SIMMER_MAX_SPREAD` | `0.08` | Max bid-ask spread (8%) |
+| `SIMMER_MIN_DAYS` | `2` | Min days until resolution |
+| `SIMMER_MAX_POSITIONS` | `8` | Max concurrent open positions |
+| `SIMMER_YES_THRESHOLD` | `0.38` | Buy YES if market price ≤ this value |
+| `SIMMER_NO_THRESHOLD` | `0.62` | Sell NO if market price ≥ this value |
+| `SIMMER_MIN_TRADE` | `5` | Floor for any trade (min USDC regardless of conviction) |
 
 ## Dependency
 
