@@ -5,15 +5,31 @@ required_credentials:
   - name: "secret_id"
     description: "Tencent Cloud API Secret ID (starts with AKID)"
     required: true
+    warning: "Sensitive credential - use temporary/least-privileged keys only"
   - name: "secret_key"
     description: "Tencent Cloud API Secret Key"
     required: true
+    warning: "Sensitive credential - rotate regularly and never commit to version control"
 permissions:
   - name: "network_access"
     description: "Access to Tencent Cloud API endpoint (wsa.tencentcloudapi.com)"
+    required: true
   - name: "file_write"
     description: "Write search results to specified output directory"
+    required: true
+source:
+  homepage: "https://github.com/neuhanli/skills"
+  repository: "https://github.com/neuhanli/skills/tree/main/TencentHotSearch-skill"
 ---
+
+> ⚠️ **BEFORE INSTALLING - Security Notice**
+> 
+> This skill requires Tencent Cloud API credentials (SecretId/SecretKey). 
+> Please read [Security Considerations](#security-considerations) before providing credentials.
+> 
+> **Verify Source**: Check the [GitHub repository](https://github.com/neuhanli/skills) for code audit.  
+> **Use Temporary Keys**: Only use temporary/least-privileged API keys for testing.  
+> **Run in Isolation**: Execute in container/VM with non-sensitive output directory.
 
 # TencentHotSearch Skill
 
@@ -40,6 +56,63 @@ TencentHotSearch-skill is a trending news and article search tool based on Tence
 - **Multi-format Output**: Supports JSON, CSV, TXT, MD format output (default: MD)
 - **Custom Output Path**: Supports setting default output directory in configuration file
 - **Compliance & Security**: All data is obtained through Tencent's official API compliantly
+
+## Security Considerations
+
+Before installing and using this skill, please carefully read the following security guidelines:
+
+### ⚠️ Important Notice
+
+**Registry Metadata Inconsistency**: The registry metadata claims 'no credentials/config required', but both SKILL.md and the code require a `config.json` file containing your Tencent SecretId and SecretKey. This is a documentation mismatch that users should be aware of.
+
+### Pre-Installation Checklist
+
+1. **Verify Source and Provenance**
+   - Review the skill source code yourself
+   - Check the publisher's credibility
+   - Note: Source/homepage links may be missing - verify from trusted sources
+
+2. **Inspect the Code**
+   - Review `scripts/tencent_hotsearch.py` to understand the signing and HTTPS calls
+   - The code performs legitimate Tencent Cloud API calls
+   - No hidden exfiltration mechanisms detected, but always review yourself
+
+3. **Use Minimal/Temporary Credentials**
+   - Use temporary or least-privileged API keys
+   - Create dedicated API keys for this skill
+   - Safely rotate/delete keys after testing
+   - Follow the principle of least privilege
+
+4. **Run in Isolated Environment**
+   - Use container/VM for execution
+   - Do not point `output_dir` to sensitive system paths
+   - Use dedicated temporary directory or sandbox environment
+
+5. **Protect Configuration Files**
+   - Do NOT commit `config.json` to version control
+   - Follow the provided `.gitignore` configuration (already set up)
+   - Set file permissions: `chmod 600 config.json` (Linux/macOS)
+   - Regularly rotate API keys
+
+### For Higher Confidence
+
+If you need higher assurance before installation:
+
+- Ask the publisher to correct registry metadata to explicitly declare required credentials
+- Request a verified homepage or repository URL
+- Ask for signed releases or upstream repository URL for auditing
+- Review the full source code in `scripts/tencent_hotsearch.py`
+
+### Security Features Implemented
+
+✅ **Path Traversal Prevention**: Validates output paths to prevent directory traversal attacks  
+✅ **Secret Masking**: Masks API keys in error messages and logs  
+✅ **HTTPS Only**: All API requests use encrypted HTTPS connections  
+✅ **Official Endpoint**: Only accesses official Tencent Cloud API (wsa.tencentcloudapi.com)  
+✅ **Git Protection**: `.gitignore` configured to exclude `config.json`  
+✅ **Error Handling**: Comprehensive error handling with secure credential management  
+
+For detailed security recommendations, see [CONFIG.md](CONFIG.md#security-recommendations)
 
 ## When to Use
 

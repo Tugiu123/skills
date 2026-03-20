@@ -3,11 +3,16 @@
   "slug": "tencenthotsearch-skill",
   "displayName": "Tencent Web Search API",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773839659184,
-    "commit": "https://github.com/openclaw/skills/commit/6e38d257652fdb896da52f87d51e32c80c19e974"
+    "version": "1.0.5",
+    "publishedAt": 1773842348249,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773839659184,
+      "commit": "https://github.com/openclaw/skills/commit/6e38d257652fdb896da52f87d51e32c80c19e974"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773556819650,

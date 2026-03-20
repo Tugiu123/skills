@@ -1,7 +1,24 @@
-# TencentHotSearch-skill dependencies
-# Note: This skill uses only Python standard libraries for HTTP requests and manual signing
-# No external dependencies are required for core functionality
+# TencentHotSearch-skill Dependencies
+# =====================================
+#
+# Core Functionality: NO EXTERNAL DEPENDENCIES REQUIRED
+# This skill uses only Python standard library modules:
+#   - urllib.request, urllib.parse (HTTP requests)
+#   - hashlib, hmac (HMAC-SHA256 signing)
+#   - json, os, sys, time, datetime, pathlib, typing, argparse
+#
+# Optional: CSV Export Support
+# Install pandas only if you need CSV format export:
+#   pip install pandas>=2.0.0
+#
+# Supported output formats without pandas:
+#   - JSON (.json)
+#   - Markdown (.md)
+#   - Text (.txt)
+#
+# Supported output formats with pandas:
+#   - CSV (.csv)
 
-# Optional: pandas is only needed if you want to export results to CSV format
-# Install only if CSV export is needed:
-# pip install pandas>=2.0.0
+# No dependencies listed - all core functionality uses stdlib
+# Uncomment below only if CSV export is needed:
+# pandas>=2.0.0

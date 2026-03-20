@@ -1,11 +1,36 @@
 # TencentHotSearch Skill
 
+> ⚠️ **Security Notice**: This skill requires Tencent Cloud API credentials. Please read [Security Considerations](#security-considerations) and [SECURITY.md](SECURITY.md) before installation.
+
 A trending news and article search tool based on Tencent Cloud Online Search API (SearchPro). Supports web-wide search or site-specific search to retrieve popular articles and news related to keywords.
 
 **API Information:**
 - **Endpoint Domain**: wsa.tencentcloudapi.com
 - **API Version**: 2025-05-08
 - **API Name**: SearchPro
+
+## Source & Repository
+
+- **GitHub**: https://github.com/neuhanli/skills
+- **Package**: TencentHotSearch-skill
+- **Documentation**: [SECURITY.md](SECURITY.md), [CONFIG.md](CONFIG.md)
+
+### Verification
+
+To verify the integrity of this skill:
+
+```bash
+# Clone the official repository
+git clone https://github.com/neuhanli/skills.git
+cd skills/TencentHotSearch-skill
+
+# Review the code
+cat scripts/tencent_hotsearch.py
+cat requirements.txt
+
+# Check configuration
+cat config.example.json
+```
 
 ## Features
 
@@ -292,6 +317,18 @@ Plain text format, suitable for quick reading and copy-paste.
 
 ## Security Considerations
 
+> For comprehensive security guidelines, see [SECURITY.md](SECURITY.md)
+
+### Before Installation
+
+⚠️ **Important**: This skill requires Tencent Cloud API credentials. Please ensure you:
+
+1. **Review the source code** in `scripts/tencent_hotsearch.py`
+2. **Use temporary/least-privileged API keys** for testing
+3. **Run in isolated environment** (container/VM)
+4. **Never commit config.json** to version control
+5. **Read [SECURITY.md](SECURITY.md)** for complete security checklist
+
 ### 1. API Credentials Protection
 
 - ⚠️ **DO NOT** commit `config.json` to version control (Git)
@@ -339,6 +376,53 @@ Plain text format, suitable for quick reading and copy-paste.
 ## License
 
 MIT License
+
+## Installation Verification Checklist
+
+> ⚠️ **Important**: Due to registry metadata inconsistencies, please complete this verification before providing API credentials.
+
+Before installing and providing credentials:
+
+- [ ] **Review Source Code**: Examine `scripts/tencent_hotsearch.py` for API calls and signing logic
+- [ ] **Verify Repository**: Confirm the official GitHub repository: https://github.com/neuhanli/skills
+- [ ] **Use Temporary Keys**: Create dedicated, least-privileged Tencent API keys
+- [ ] **Isolated Environment**: Run in container/VM with non-sensitive output directory
+- [ ] **File Protection**: Ensure `config.json` is never committed and set `chmod 600`
+- [ ] **Monitor Network**: Watch for unexpected network connections
+
+### Code Integrity Verification
+
+```bash
+# Clone and inspect the code
+git clone https://github.com/neuhanli/skills.git
+cd skills/TencentHotSearch-skill
+
+# Review the main script
+cat scripts/tencent_hotsearch.py
+
+# Check for expected functionality
+grep -n "wsa.tencentcloudapi.com" scripts/tencent_hotsearch.py
+grep -n "HMAC" scripts/tencent_hotsearch.py
+grep -n "config.json" scripts/tencent_hotsearch.py
+
+# Verify no unexpected dependencies
+grep -n "import" scripts/tencent_hotsearch.py | grep -v "from datetime\|from pathlib\|from typing\|import json\|import os\|import sys\|import hashlib\|import hmac\|import time\|import urllib"
+```
+
+### Expected Code Patterns
+
+When reviewing the code, look for these legitimate patterns:
+
+- ✅ **Tencent API Endpoint**: `wsa.tencentcloudapi.com`
+- ✅ **HMAC-SHA256 Signing**: Manual implementation using `hashlib` and `hmac`
+- ✅ **Configuration File**: Reads `config.json` for credentials
+- ✅ **Standard Library Only**: Uses `urllib` instead of external HTTP libraries
+- ✅ **Path Validation**: Prevents directory traversal attacks
+- ✅ **Secret Masking**: API keys are masked in error messages
+
+### Registry Metadata Notice
+
+The registry metadata incorrectly states "no credentials/config required" while the actual code requires Tencent API credentials. This inconsistency has been addressed in SKILL.md but users should be aware of this discrepancy.
 
 ## Author
 
