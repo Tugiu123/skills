@@ -3,9 +3,15 @@
   "slug": "gws-meet",
   "displayName": "Gws Meet",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772748556733,
-    "commit": "https://github.com/openclaw/skills/commit/b8ddd129f6e368e337aa5cd3431ddb854578773c"
+    "version": "1.0.1",
+    "publishedAt": 1773775543774,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772748556733,
+      "commit": "https://github.com/openclaw/skills/commit/b8ddd129f6e368e337aa5cd3431ddb854578773c"
+    }
+  ]
 }
