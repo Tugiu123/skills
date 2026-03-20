@@ -139,7 +139,7 @@ def list_currencies(appkey: str):
     return data.get("result", [])
 
 
-def bank_rates(appkey: str, bank: str | None = None):
+def bank_rates(appkey: str, bank: str = None):
     """
     调用 /exchange/bank 接口，查询指定银行的外汇牌价（十大银行）。
 

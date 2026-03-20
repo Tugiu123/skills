@@ -1,11 +1,17 @@
 {
   "owner": "jisuapi",
   "slug": "exchange",
-  "displayName": "汇率查询 - Exchange Rate Inquiry & Conversion",
+  "displayName": "Exchange Rate Inquiry & Conversion - 汇率查询",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772601269974,
-    "commit": "https://github.com/openclaw/skills/commit/6832ae63a05ad1a788a809bff856a6e107549edb"
+    "version": "1.0.1",
+    "publishedAt": 1773720054692,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772601269974,
+      "commit": "https://github.com/openclaw/skills/commit/6832ae63a05ad1a788a809bff856a6e107549edb"
+    }
+  ]
 }
