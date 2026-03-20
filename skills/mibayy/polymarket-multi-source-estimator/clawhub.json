@@ -1,0 +1,22 @@
+{
+  "emoji": "\ud83e\udde0",
+  "version": "1.1.2",
+  "requires": {
+    "pip": [
+      "simmer-sdk",
+      "requests"
+    ],
+    "env": [
+      "SIMMER_API_KEY",
+      "TRADING_VENUE",
+      "LLM_API_KEY",
+      "LLM_API_URL",
+      "LLM_MODEL"
+    ]
+  },
+  "cron": "*/5 * * * *",
+  "automaton": {
+    "managed": true,
+    "entrypoint": "multi_source_estimator.py"
+  }
+}
