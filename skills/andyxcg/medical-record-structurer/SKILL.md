@@ -1,7 +1,7 @@
 ---
 name: medical-record-structurer
 description: Medical record structuring and standardization tool. Converts doctor's oral or handwritten medical records into standardized electronic medical records (EMR). Supports voice/text input, automatic field recognition, and structured output. Use when processing medical records, clinical notes, patient histories, or converting unstructured medical data into standardized formats. Includes skillpay.me payment integration for pay-per-use monetization.
-version: 1.2.0
+version: 1.2.129
 ---
 
 # Medical Record Structurer
@@ -25,6 +25,14 @@ A professional medical record processing tool that transforms unstructured medic
 7. **Batch Processing** - Process multiple records at once
 8. **File Input Support** - Read medical records from files
 9. **Multi-language Support** - Chinese and English output
+
+## Support / 支持
+
+If you find this skill helpful, you can support the developer:
+
+**EVM Address**: `0xf8ea28c182245d9f66f63749c9bbfb3cfc7d4815`
+
+Your support helps maintain and improve this skill!
 
 ## Demo Mode
 
