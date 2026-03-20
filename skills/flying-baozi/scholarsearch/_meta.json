@@ -3,9 +3,15 @@
   "slug": "scholarsearch",
   "displayName": "Scholarsearch",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773537148040,
-    "commit": "https://github.com/openclaw/skills/commit/bb1c170e12ff223e67c67c98b3527bb6dbe297ee"
+    "version": "1.1.0",
+    "publishedAt": 1773537398251,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773537148040,
+      "commit": "https://github.com/openclaw/skills/commit/bb1c170e12ff223e67c67c98b3527bb6dbe297ee"
+    }
+  ]
 }
