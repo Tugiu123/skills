@@ -1,8 +1,10 @@
 ---
 name: "Cleaning"
-description: "Cleaning makes home management simple. Record, search, and analyze your data with clear terminal output."
+description: "Schedule and track household cleaning tasks with inventory management. Use when planning cleaning rotations, restocking supplies, or making checklists."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["cleaning", "maintenance", "domestic", "inventory", "home"]
 ---
 

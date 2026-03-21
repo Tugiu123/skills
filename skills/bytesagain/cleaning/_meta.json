@@ -3,9 +3,15 @@
   "slug": "cleaning",
   "displayName": "Cleaning",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773665171492,
-    "commit": "https://github.com/openclaw/skills/commit/856e1c21007d7683714c5161f2c5f3f5ba79f542"
+    "version": "2.0.1",
+    "publishedAt": 1773798366759,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773665171492,
+      "commit": "https://github.com/openclaw/skills/commit/856e1c21007d7683714c5161f2c5f3f5ba79f542"
+    }
+  ]
 }
