@@ -9,7 +9,37 @@ tags:
   - Trade
   - China
   - MCP
+env:
+  HSCIQ_API_KEY:
+    description: "HSCIQ API key for accessing the customs code lookup service"
+    required: true
+  HSCIQ_BASE_URL:
+    description: "HSCIQ API base URL (default: https://www.hsciq.com)"
+    required: false
+    default: "https://www.hsciq.com"
+credentials:
+  - name: HSCIQ API Key
+    description: "Free API key from https://www.hsciq.com"
+    required: true
+    url: https://www.hsciq.com
 ---
+
+# ⚠️ 使用前必读：需要 API 密钥
+
+**本技能需要 HSCIQ API 密钥才能正常工作。**
+
+## 获取 API 密钥
+
+1. 访问 [https://www.hsciq.com](https://www.hsciq.com)
+2. 注册账号并登录
+3. 在控制台申请 API 密钥
+4. 将密钥配置到本地（见下方"配置"章节）
+
+**没有 API 密钥将无法查询海关编码。**
+
+---
+
+
 
 # HSCIQ MCP - 海关编码查询服务
 
