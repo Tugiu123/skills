@@ -1,0 +1,11 @@
+{
+  "owner": "kilb",
+  "slug": "mine",
+  "displayName": "Mine Skill",
+  "latest": {
+    "version": "0.19.2",
+    "publishedAt": 1774108794063,
+    "commit": null
+  },
+  "history": []
+}
