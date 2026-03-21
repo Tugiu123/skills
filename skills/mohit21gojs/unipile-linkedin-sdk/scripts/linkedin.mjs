@@ -3,19 +3,43 @@
  * Unipile LinkedIn SDK CLI
  * Usage: node linkedin.mjs <command> [options]
  * 
- * Requires UNIPILE_DSN and UNIPILE_ACCESS_TOKEN env vars
+ * Environment:
+ *   UNIPILE_DSN           - API endpoint (required)
+ *   UNIPILE_ACCESS_TOKEN  - Access token (required)
+ *   UNIPILE_PERMISSIONS   - Comma-separated: "read" and/or "write" (default: "read,write")
+ * 
+ * Examples:
+ *   UNIPILE_PERMISSIONS=read node linkedin.mjs posts <account> andrewyng
+ *   UNIPILE_PERMISSIONS=read,write node linkedin.mjs create-post <account> "Hello"
  */
 
 import { UnipileClient, UnsuccessfulRequestError } from 'unipile-node-sdk';
 
 const DSN = process.env.UNIPILE_DSN;
 const TOKEN = process.env.UNIPILE_ACCESS_TOKEN;
+const PERMISSIONS = (process.env.UNIPILE_PERMISSIONS || 'read,write').split(',').map(p => p.trim().toLowerCase());
 
 if (!DSN || !TOKEN) {
   console.error('Error: UNIPILE_DSN and UNIPILE_ACCESS_TOKEN must be set');
   console.error('Get credentials from https://dashboard.unipile.com');
   process.exit(1);
 }
+
+const hasRead = PERMISSIONS.includes('read');
+const hasWrite = PERMISSIONS.includes('write');
+
+// Commands that require write permission
+const WRITE_COMMANDS = [
+  'send', 'start-chat', 'invite', 'cancel-invite', 
+  'create-post', 'comment', 'react'
+];
+
+// Commands that are read-only
+const READ_COMMANDS = [
+  'accounts', 'account', 'chats', 'chat', 'messages',
+  'profile', 'my-profile', 'company', 'relations',
+  'posts', 'post', 'invitations', 'attendees'
+];
 
 const client = new UnipileClient(DSN, TOKEN);
 
@@ -36,9 +60,76 @@ function json(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
+function checkPermission(cmd) {
+  if (WRITE_COMMANDS.includes(cmd) && !hasWrite) {
+    console.error(`Error: Command '${cmd}' requires write permission.`);
+    console.error(`Current permissions: ${PERMISSIONS.join(', ')}`);
+    console.error(`Set UNIPILE_PERMISSIONS=write or UNIPILE_PERMISSIONS=read,write to enable.`);
+    process.exit(3);
+  }
+  
+  if (READ_COMMANDS.includes(cmd) && !hasRead) {
+    console.error(`Error: Command '${cmd}' requires read permission.`);
+    console.error(`Current permissions: ${PERMISSIONS.join(', ')}`);
+    console.error(`Set UNIPILE_PERMISSIONS=read to enable.`);
+    process.exit(3);
+  }
+}
+
+function showHelp() {
+  console.log(`Unipile LinkedIn SDK CLI
+
+Environment:
+  UNIPILE_DSN           API endpoint (required)
+  UNIPILE_ACCESS_TOKEN  Access token (required)
+  UNIPILE_PERMISSIONS   Permissions: "read", "write", or "read,write" (default: read,write)
+
+Read Commands (require read permission):
+  accounts                             List LinkedIn accounts
+  account <id>                         Get account details
+  chats [--account_id=X] [--limit=N]   List chats
+  chat <id>                            Get chat details
+  messages <chat_id> [--limit=N]       List messages
+  profile <account_id> <identifier> [--sections=X] [--notify]
+  my-profile <account_id>              Get own profile
+  company <account_id> <identifier>    Get company profile
+  relations <account_id> [--limit=N]   Get connections
+  posts <account_id> <identifier> [--limit=N]
+  post <account_id> <post_id>
+  invitations <account_id>             List pending invitations
+  attendees [--account_id=X]           List chat contacts
+
+Write Commands (require write permission):
+  send <chat_id> "<text>"              Send message
+  start-chat <account_id> "<text>" --to=<id>[,id] [--inmail]
+  invite <account_id> <provider_id> ["message"]
+  cancel-invite <account_id> <id>      Cancel invitation
+  create-post <account_id> "<text>"
+  comment <account_id> <post_id> "<text>"
+  react <account_id> <post_id> [--type=like|celebrate|love|...]
+
+Examples:
+  # Read-only mode (safe for viewing data)
+  UNIPILE_PERMISSIONS=read node linkedin.mjs posts <account> andrewyng
+
+  # Full access (required for sending messages, creating posts)
+  UNIPILE_PERMISSIONS=read,write node linkedin.mjs send <chat_id> "Hello!"
+
+  # Default is full access
+  node linkedin.mjs accounts
+`);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const [cmd, ...params] = args._;
+
+  if (!cmd || cmd === 'help') {
+    showHelp();
+    return;
+  }
+
+  checkPermission(cmd);
 
   try {
     switch (cmd) {
@@ -194,57 +285,10 @@ async function main() {
         }));
         break;
 
-      case 'help':
       default:
-        console.log(`Unipile LinkedIn SDK CLI
-
-Commands:
-  accounts                             List LinkedIn accounts
-  account <id>                         Get account details
-
-  chats [--account_id=X] [--limit=N]   List chats
-  chat <id>                            Get chat details
-  messages <chat_id> [--limit=N]       List messages
-  send <chat_id> "<text>"              Send message
-  start-chat <account_id> "<text>" --to=<id>[,id] [--inmail]
-
-  profile <account_id> <identifier> [--sections=X] [--notify]
-  my-profile <account_id>              Get own profile
-  company <account_id> <identifier>    Get company profile
-  relations <account_id> [--limit=N]   Get connections
-
-  invite <account_id> <provider_id> ["message"]
-  invitations <account_id>             List pending invitations
-  cancel-invite <account_id> <id>      Cancel invitation
-
-  posts <account_id> <identifier> [--limit=N]
-  post <account_id> <post_id>
-  create-post <account_id> "<text>"
-  comment <account_id> <post_id> "<text>"
-  react <account_id> <post_id> [--type=like|celebrate|love|...]
-
-  attendees [--account_id=X]           List chat contacts
-
-Environment:
-  UNIPILE_DSN           API endpoint (e.g., https://api34.unipile.com:16473)
-  UNIPILE_ACCESS_TOKEN  Access token from dashboard.unipile.com
-
-Examples:
-  # List accounts
-  node linkedin.mjs accounts
-
-  # Get profile with sections
-  node linkedin.mjs profile <account_id> andrewyng --sections=experience,education
-
-  # Get posts from last week (filter after fetching)
-  node linkedin.mjs posts <account_id> andrewyng --limit=10
-
-  # Send message
-  node linkedin.mjs send <chat_id> "Hello from CLI!"
-
-  # Create post
-  node linkedin.mjs create-post <account_id> "My new post! 🚀"
-`);
+        console.error(`Unknown command: ${cmd}`);
+        console.error('Run with "help" for usage information.');
+        process.exit(1);
     }
   } catch (err) {
     if (err instanceof UnsuccessfulRequestError) {

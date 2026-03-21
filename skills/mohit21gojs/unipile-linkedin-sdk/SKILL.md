@@ -1,13 +1,15 @@
 ---
 name: unipile-linkedin-sdk
 description: LinkedIn integration via Unipile's official Node.js SDK. Send messages, InMail, view profiles, manage connections, create posts, and interact with content. Use for LinkedIn automation, messaging, profile retrieval, connection requests, or post interactions. Trigger phrases: "linkedin api", "scrape linkedin", "linkedin profile", "linkedin posts", "send linkedin message".
-version: 1.3.1
+version: 1.5.0
 metadata:
   openclaw:
     requires:
       env:
         - UNIPILE_DSN
         - UNIPILE_ACCESS_TOKEN
+      optionalEnv:
+        - UNIPILE_PERMISSIONS
     primaryEnv: UNIPILE_ACCESS_TOKEN
     emoji: "🔗"
     homepage: https://clawhub.ai/skills/unipile-linkedin-sdk
@@ -18,6 +20,20 @@ metadata:
 
 LinkedIn API via official Unipile Node.js SDK for messaging, profiles, posts, and invitations.
 
+## ⚠️ Security: Use Least Privilege
+
+**Recommended:** Set `UNIPILE_PERMISSIONS=read` for read-only access.
+
+```bash
+# RECOMMENDED: Read-only mode (safe, no write operations)
+UNIPILE_PERMISSIONS=read node scripts/linkedin.mjs posts <account> andrewyng
+
+# ONLY if you need to send messages or create posts
+UNIPILE_PERMISSIONS=read,write node scripts/linkedin.mjs create-post <account> "text"
+```
+
+Your access token can perform actions on your behalf. Limit its scope with `UNIPILE_PERMISSIONS`.
+
 ## Setup
 
 ### Installation
@@ -26,18 +42,61 @@ LinkedIn API via official Unipile Node.js SDK for messaging, profiles, posts, an
 npm install unipile-node-sdk
 ```
 
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `UNIPILE_DSN` | ✅ Yes | API endpoint (e.g., `https://api34.unipile.com:16473`) |
+| `UNIPILE_ACCESS_TOKEN` | ✅ Yes | Access token from [dashboard.unipile.com](https://dashboard.unipile.com) |
+| `UNIPILE_PERMISSIONS` | Optional | `read`, `write`, or `read,write`. **Recommended: `read`** |
+
+### Permission Modes
+
+| Mode | UNIPILE_PERMISSIONS | Allowed Operations | Use Case |
+|------|---------------------|-------------------|----------|
+| **Read-only** ⭐ | `read` | List profiles, posts, chats, messages, connections | Data scraping, dashboards, analysis |
+| Write-only | `write` | Send messages, create posts, react, comment | Automation bots |
+| Full access | `read,write` | All operations | Complete LinkedIn automation |
+
+**Default:** `read,write` (full access) — **Change to `read` for safety.**
+
+### Least-Privilege Best Practice
+
+```bash
+# 1. Start with read-only (safest)
+export UNIPILE_PERMISSIONS=read
+
+# 2. Only enable write when specifically needed
+export UNIPILE_PERMISSIONS=read,write  # Temporarily for a specific task
+
+# 3. Revert to read-only after
+export UNIPILE_PERMISSIONS=read
+```
+
 ### Client Initialization
 
 ```javascript
 import { UnipileClient } from 'unipile-node-sdk';
 
 const client = new UnipileClient(
-  process.env.UNIPILE_DSN,        // e.g., 'https://api34.unipile.com:16473'
+  process.env.UNIPILE_DSN,
   process.env.UNIPILE_ACCESS_TOKEN
 );
+
+// Check permissions before operations
+const canWrite = (process.env.UNIPILE_PERMISSIONS || 'read,write').includes('write');
+const canRead = (process.env.UNIPILE_PERMISSIONS || 'read,write').includes('read');
 ```
 
-Store credentials in `~/.openclaw/workspace/TOOLS.md` or environment variables.
+### Credential Storage
+
+**Recommended approaches (in order of security):**
+
+1. **Environment variables** — Set in shell profile or .env (add .env to .gitignore)
+2. **Secrets manager** — AWS Secrets Manager, HashiCorp Vault, etc.
+3. **CI/CD secrets** — GitHub Actions secrets, GitLab CI variables
+
+**Avoid:** Storing tokens in plaintext files, especially in shared or version-controlled directories.
 
 ### Get Credentials
 
@@ -284,6 +343,8 @@ await client.account.solveCodeCheckpoint({
 
 ## Quick Reference
 
+### Read Operations (require `read` permission)
+
 | Task | Method |
 |------|--------|
 | List accounts | `client.account.getAll()` |
@@ -293,16 +354,45 @@ await client.account.solveCodeCheckpoint({
 | Get connections | `client.users.getAllRelations({ account_id })` |
 | List posts | `client.users.getAllPosts({ account_id, identifier })` |
 | Get post | `client.users.getPost({ account_id, post_id })` |
+| List chats | `client.messaging.getAllChats({ account_type: 'LINKEDIN', account_id })` |
+| Get messages | `client.messaging.getAllMessagesFromChat({ chat_id })` |
+| List invitations | `client.users.getAllInvitationsSent({ account_id })` |
+
+### Write Operations (require `write` permission)
+
+| Task | Method |
+|------|--------|
 | Create post | `client.users.createPost({ account_id, text })` |
 | React to post | `client.users.sendPostReaction({ account_id, post_id, reaction_type })` |
 | Comment on post | `client.users.sendPostComment({ account_id, post_id, text })` |
-| List chats | `client.messaging.getAllChats({ account_type: 'LINKEDIN', account_id })` |
-| Get messages | `client.messaging.getAllMessagesFromChat({ chat_id })` |
 | Send message | `client.messaging.sendMessage({ chat_id, text })` |
 | Start chat | `client.messaging.startNewChat({ account_id, attendees_ids, text })` |
 | Send invitation | `client.users.sendInvitation({ account_id, provider_id, message? })` |
-| List invitations | `client.users.getAllInvitationsSent({ account_id })` |
 | Cancel invitation | `client.users.cancelInvitationSent({ account_id, invitation_id })` |
+
+### Implementing Permission Checks
+
+```javascript
+const PERMISSIONS = (process.env.UNIPILE_PERMISSIONS || 'read,write').split(',');
+
+function requireWrite() {
+  if (!PERMISSIONS.includes('write')) {
+    throw new Error('Operation requires write permission. Set UNIPILE_PERMISSIONS=write');
+  }
+}
+
+function requireRead() {
+  if (!PERMISSIONS.includes('read')) {
+    throw new Error('Operation requires read permission. Set UNIPILE_PERMISSIONS=read');
+  }
+}
+
+// Usage
+async function safeCreatePost(accountId, text) {
+  requireWrite();
+  return client.users.createPost({ account_id: accountId, text });
+}
+```
 
 ## Response Patterns
 
@@ -431,8 +521,8 @@ This skill provides a wrapper around the official [unipile-node-sdk](https://git
 
 **Best practices:**
 - Store in environment variables or a secrets manager
-- Never commit tokens to git
-- Avoid storing in plaintext files like `TOOLS.md` in shared repos
+- Never commit tokens to git or version control
+- Avoid storing in workspace files that may be shared or synced
 
 ### Verify the SDK
 
@@ -452,6 +542,7 @@ This skill can:
 - Use a dedicated LinkedIn account for automation
 - Review Unipile's OAuth scopes before connecting
 - Monitor activity via Unipile dashboard
+- **Use `UNIPILE_PERMISSIONS=read` for least privilege**
 
 ### Provenance
 
