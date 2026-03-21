@@ -1,0 +1,11 @@
+{
+  "owner": "7487",
+  "slug": "lp-lobster-crawler",
+  "displayName": "Lobster Crawler Skill",
+  "latest": {
+    "version": "0.7.0",
+    "publishedAt": 1774070664897,
+    "commit": null
+  },
+  "history": []
+}
