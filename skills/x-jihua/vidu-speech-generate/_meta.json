@@ -1,0 +1,11 @@
+{
+  "owner": "x-jihua",
+  "slug": "vidu-speech-generate",
+  "displayName": "Vidu API  voice timbre replication and voice generation capabilities, with over 100 built-in voice IDs.",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773993681265,
+    "commit": null
+  },
+  "history": []
+}
