@@ -1,14 +1,27 @@
----
-name: "md2docx"
-description: "Markdown 转 Word 文档（标准公文格式）。使用 Pandoc 自动转换，支持目录/页眉页脚/自动排版。"
-version: "1.0.2"
----
-
 # md2docx - Markdown 转 Word 文档
 
 使用 Pandoc 将 Markdown 转换为标准公文格式的 Word 文档。
 
-## 快速开始
+## 功能说明
+
+- ✅ 将 Markdown 文件转换为标准公文格式的 Word 文档
+- ✅ 支持自动生成目录（基于 H1/H2/H3 标题）
+- ✅ 预设标准公文格式（页眉、页脚、字体、行距等）
+- ✅ 支持批量转换
+- ✅ 保持原文档样式和格式
+
+## 安装依赖
+
+```bash
+# 确保已安装 pandoc
+# Windows: 下载安装包 https://pandoc.org/installing.html
+# macOS: brew install pandoc
+# Linux: apt-get install pandoc (Ubuntu/Debian) 或 yum install pandoc (CentOS/RHEL)
+```
+
+## 使用方法
+
+### 基本转换
 
 ```bash
 # 转换单个文件
@@ -27,7 +40,7 @@ python tools/md2docx.py input.md --no-toc
 python tools/md2docx.py input.md -t company-template.docx
 ```
 
-## 标准公文格式
+### 标准公文格式
 
 **自动包含：**
 - ✅ 自动生成目录（H1/H2/H3）
@@ -47,19 +60,7 @@ python tools/md2docx.py input.md -t company-template.docx
 | 代码块 | Consolas/五号/灰色背景 |
 | 表格 | 边框/表头加粗 |
 
-## 使用场景
-
-- ✅ 技术报告转换
-- ✅ 方案文档转换
-- ✅ 会议纪要转换
-- ✅ 合同/协议转换
-
-## 依赖
-
-- Pandoc 1.19+（已预装）
-- Python 3.7+
-
-## 示例
+## 使用示例
 
 **转换 AI 投资报告：**
 ```bash
@@ -71,23 +72,14 @@ python tools/md2docx.py "D:\OpenClawDocs\projects\ai-investment-report\AI 投资
 python tools/md2docx.py "D:\OpenClawDocs\projects\*.md" -o "D:\OpenClawDocs\output\"
 ```
 
----
+## 依赖
 
-## 📧 联系与定制
+- Pandoc 1.19+
+- Python 3.7+
+- python-docx
 
-**技术支持：** 1776480440@qq.com
+## 注意事项
 
-**定制需求：**
-- 企业模板定制
-- 批量转换服务
-- 排版样式调整
-
-**欢迎邮件咨询！**
-
----
-
-**输出：** Word 文档（.docx），可直接用 Word/WPS 打开编辑。
-
-**作者：** 高万峰（GWF）  
-**版本：** 1.0.0  
-**日期：** 2026-03-17
+1. 确保 `standard-official-template.docx` 模板文件存在于 `tools` 目录中
+2. Pandoc 需要正确安装并在系统 PATH 中
+3. 转换后的文档可以在 Word 或 WPS 中进一步编辑
