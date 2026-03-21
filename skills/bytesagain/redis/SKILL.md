@@ -1,88 +1,185 @@
 ---
 name: redis
-version: "2.0.0"
+version: "3.0.2"
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 license: MIT-0
 tags: [redis, tool, utility]
-description: "Redis - command-line tool for everyday use"
+description: "Connect, query, and monitor Redis instances. Use when checking key health, validating data types, generating backups, formatting results, linting configs."
 ---
 
-# Redis
+# redis
 
-Redis toolkit — connect, query, monitor, backup, and manage Redis instances.
+Connect, query, and monitor Redis instances. Use when checking key health, validating data types, generating backups, formatting results, linting configs.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `redis help` | Show usage info |
-| `redis run` | Run main task |
-| `redis status` | Check current state |
-| `redis list` | List items |
-| `redis add <item>` | Add new item |
-| `redis export <fmt>` | Export data |
+### `REDIS_HOST`
 
-## Usage
+(default: 127.0.0.1)
 
 ```bash
-redis help
-redis run
-redis status
+scripts/script.sh REDIS_HOST
 ```
 
-## Examples
+### `REDIS_PORT`
+
+(default: 6379)
 
 ```bash
-# Get started
-redis help
-
-# Run default task
-redis run
-
-# Export as JSON
-redis export json
+scripts/script.sh REDIS_PORT
 ```
 
-## Output
+### `REDIS_DB`
 
-Results go to stdout. Save with `redis run > output.txt`.
+(default: 0)
+
+```bash
+scripts/script.sh REDIS_DB
+```
+
+### `ping`
+
+Test Redis connectivity and latency
+
+```bash
+scripts/script.sh ping
+```
+
+### `info`
+
+Server info (sections: server, clients, memory, stats, etc.)
+
+```bash
+scripts/script.sh info [section]
+```
+
+### `get`
+
+Get value (auto-detects type: string, list, set, hash, zset)
+
+```bash
+scripts/script.sh get <key>
+```
+
+### `set`
+
+Set a key-value pair (extra opts passed to Redis SET)
+
+```bash
+scripts/script.sh set <key> <val> [opts]
+```
+
+### `del`
+
+Delete one or more keys
+
+```bash
+scripts/script.sh del <key> [key...]
+```
+
+### `keys`
+
+List keys matching pattern (default: *)
+
+```bash
+scripts/script.sh keys [pattern]
+```
+
+### `monitor`
+
+Live stream of all Redis commands
+
+```bash
+scripts/script.sh monitor
+```
+
+### `stats`
+
+Comprehensive server statistics
+
+```bash
+scripts/script.sh stats
+```
+
+### `flush-confirm`
+
+Flush current database (with confirmation)
+
+```bash
+scripts/script.sh flush-confirm
+```
+
+### `export`
+
+Export all keys to a file
+
+```bash
+scripts/script.sh export <file>
+```
+
+### `import`
+
+Import keys from an export file
+
+```bash
+scripts/script.sh import <file>
+```
+
+### `ttl`
+
+Check TTL of a key
+
+```bash
+scripts/script.sh ttl <key>
+```
+
+### `type`
+
+Check type of a key
+
+```bash
+scripts/script.sh type <key>
+```
+
+### `dbsize`
+
+Show number of keys
+
+```bash
+scripts/script.sh dbsize
+```
+
+### `slowlog`
+
+Show slow query log (default: 10 entries)
+
+```bash
+scripts/script.sh slowlog [count]
+```
+
+## Requirements
+
+- redis-cli
+
+---
+
+*Powered by BytesAgain | bytesagain.com | hello@bytesagain.com*
 
 ## Configuration
 
-Set `REDIS_DIR` to change data directory. Default: `~/.local/share/redis/`
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `REDIS_HOST` | No | Redis host (default: 127.0.0.1) |
+| `REDIS_PORT` | No | Redis port (default: 6379) |
+| `REDIS_DB` | No | Redis database number (default: 0) |
+| `REDIS_PASSWORD` | No | Redis authentication password |
 
----
-*Powered by BytesAgain | bytesagain.com*
-*Feedback & Feature Requests: https://bytesagain.com/feedback*
+## Data Storage
 
+Connection history and command logs are saved to `~/.local/share/redis-helper/`.
 
-## Features
+## Security
 
-- Simple command-line interface for quick access
-- Local data storage with JSON/CSV export
-- History tracking and activity logs
-- Search across all entries
-
-## Quick Start
-
-```bash
-# Check status
-redis status
-
-# View help
-redis help
-
-# Export data
-redis export json
-```
-
-## How It Works
-
-Redis stores all data locally in `~/.local/share/redis/`. Each command logs activity with timestamps for full traceability.
-
-## Support
-
-- Feedback: https://bytesagain.com/feedback/
-- Website: https://bytesagain.com
-
-Powered by BytesAgain | bytesagain.com | hello@bytesagain.com
+Redis credentials are passed via environment variables. The password is used in redis-cli command-line arguments as required by the redis-cli interface.
