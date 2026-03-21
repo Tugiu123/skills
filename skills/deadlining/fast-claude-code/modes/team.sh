@@ -67,6 +67,29 @@ if [[ "$PERMISSION_MODE" != "plan" && "$PERMISSION_MODE" != "auto" ]]; then
     exit 1
 fi
 
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}ℹ${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}✅${NC} $*"
+}
+
+log_warn() {
+    echo -e "${YELLOW}⚠️${NC} $*"
+}
+
+log_error() {
+    echo -e "${RED}❌${NC} $*"
+}
+
 # Expand ~ to home directory
 PROJECT_DIR="${PROJECT_DIR/#\~/$HOME}"
 
@@ -106,25 +129,6 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-log_info() {
-    echo -e "${BLUE}ℹ${NC} $*"
-}
-
-log_success() {
-    echo -e "${GREEN}✅${NC} $*"
-}
-
-log_warn() {
-    echo -e "${YELLOW}⚠️${NC} $*"
-}
-
 log_info "Starting Team mode..."
 log_info "Project: $PROJECT_DIR"
 log_info "Template: $TEMPLATE"
@@ -140,49 +144,105 @@ log_info "Installing completion hooks..."
 HOOKS_DIR="$PROJECT_DIR/.claude/hooks"
 mkdir -p "$HOOKS_DIR"
 
+# Settings file path (used regardless of whether hooks are already installed)
+SETTINGS_FILE="$PROJECT_DIR/.claude/settings.json"
+
+# Create unique session name for this team run
+SESSION="cc-team-$(date +%s)"
+
+echo "[DEBUG] $(date): Creating tmux session $SESSION" >> /tmp/team-debug.log
+
 # Create on-stop hook
+# Use unquoted heredoc so $BASE_DIR gets substituted with actual path
+# Disable nounset for heredoc parsing (variables like $1 are from case statement)
+set +u
 cat > "$HOOKS_DIR/on-stop.sh" << EOF
 #!/bin/bash
 # Team completion detection hook
 # This hook fires when Claude Code stops
 
+TMUX_SESSION="${SESSION}"
+
+# 读取 tmux 输出
+OUTPUT=\$(tmux -L "cc" capture-pane -p -S -10 -t "\$TMUX_SESSION" 2>/dev/null || echo "")
+
+# 检查是否有 session marker，如果有只检测之后的内容
+if grep -q "=== START \${TMUX_SESSION} ===" <<< "\$OUTPUT"; then
+    OUTPUT=\$(sed -n "/=== START \${TMUX_SESSION} ===/,\\\$p" <<< "\$OUTPUT")
+fi
+
+# 检测 marker
+if ! grep -q "CC_CALLBACK_DONE" <<< "\$OUTPUT"; then
+    # 中途 stop → 忽略
+    echo "Intermediate stop, ignoring"
+    exit 0
+fi
+
+# 最终完成 → 调 callback
+CALLBACK_SCRIPT="$BASE_DIR/callbacks/$CALLBACK.sh"
+
 INPUT=\$(cat)
 SESSION_ID=\$(echo "\$INPUT" | jq -r '.session_id // "unknown"')
-CWD=\$(echo "\$INPUT" | jq -r '.cwd // "unknown")
+CWD=\$(echo "\$INPUT" | jq -r '.cwd // "unknown"')
 
-# Find team output files and aggregate them
-TEAM_OUTPUTS=""
-while IFS= read -r -d '' file; do
-    if [[ -f "\$file" ]]; then
-        filename=\$(basename "\$file")
-        TEAM_OUTPUTS="\$TEAM_OUTPUTS\n\n=== \${filename} ===\n\$(cat "\$file")"
-    fi
-done < <(find "\$CWD" -maxdepth 1 -type f \
-    \\( -name "findings-*.md" \
-       -o -name "hypothesis-*-investigation.md" \
-       -o -name "*-implementation.md" \
-       -o -name "*-analysis.md" \
-       -o -name "synthesis-*.md" \
-       -o -name "debate-transcript.md" \
-       -o -name "root-cause-conclusion.md" \
-       -o -name "integration-summary.md" \
-       -o -name "aggregated-results.md" \
-       -o -name "summary-report.md" \\) \
-    -print0)
+# Read original task from file (saved by team.sh)
+if [[ -f ".claude/team-task.txt" ]]; then
+    ORIGINAL_TASK=\$(cat ".claude/team-task.txt")
+else
+    ORIGINAL_TASK="\$CWD"
+fi
 
-# Trigger callback with outputs
-"$BASE_DIR/callbacks/$CALLBACK.sh" \\
-    --status done \\
-    --mode team \\
-    --task "team-session-\$SESSION_ID" \\
-    --message "Team session completed in \$CWD" \\
+# List all non-hidden files and directories (expand folders)
+TEAM_OUTPUTS="Team 任务完成！\n项目目录: \$CWD\n\n文件列表：\n\n"
+
+# Function to list files recursively
+list_dir() {
+    local dir="\$1"
+    local indent="\$2"
+    for item in "\$dir"/*; do
+        if [[ -e "\$item" ]]; then
+            name=\$(basename "\$item")
+            if [[ -d "\$item" ]]; then
+                TEAM_OUTPUTS="\$OUTPUT\n\$TEAM_OUTPUTS\${indent}📁 \$name/\n"
+                list_dir "\$item" "  \$indent"
+            else
+                size=\$(ls -lh "\$item" | awk '{print \$5}')
+                TEAM_OUTPUTS="\$OUTPUT\n\$TEAM_OUTPUTS\${indent}📄 \$name (\$size)\n"
+            fi
+        fi
+    done
+}
+
+list_dir "\$CWD" ""
+
+# Trigger callback with file list
+"\$CALLBACK_SCRIPT" \
+    --status done \
+    --mode team \
+    --task "team-session-\$SESSION_ID" \
+    --message "\$ORIGINAL_TASK" \
     --output "\$TEAM_OUTPUTS"
+# Cleanup: Remove team hooks after callback completes
+# 1. Delete on-stop.sh hook file
+rm -f ".claude/hooks/on-stop.sh"
+
+# 2. Clean up settings.json - remove on-stop.sh references
+if [ -f ".claude/settings.json" ] && command -v jq &> /dev/null; then
+    if jq -e '.. | objects | select(.command? == ".claude/hooks/on-stop.sh")' ".claude/settings.json" > /dev/null 2>&1; then
+        jq '.hooks.Stop |= (map(.hooks |= map(select(.command != ".claude/hooks/on-stop.sh"))))' ".claude/settings.json" > ".claude/settings.json.tmp" 2>/dev/null && \\
+            mv ".claude/settings.json.tmp" ".claude/settings.json"
+    fi
+fi
+
+# 3. Remove team task file
+rm -f ".claude/team-task.txt"
 EOF
 
 chmod +x "$HOOKS_DIR/on-stop.sh"
+# Re-enable nounset
+set -u
 
-# Create or update .claude/settings.json with hooks configuration
-SETTINGS_FILE="$PROJECT_DIR/.claude/settings.json"
+# Create or update .claude/settings.json with hooks configuration (always run, not just on fresh install)
 HOOKS_CONFIG=$(cat <<'HOOKSJSON'
 {
   "Stop": [
@@ -201,14 +261,22 @@ HOOKSJSON
 )
 
 mkdir -p "$PROJECT_DIR/.claude"
+
+# Upsert Stop hook in settings.json
 if [ -f "$SETTINGS_FILE" ]; then
-    # Merge hooks into existing settings
-    EXISTING=$(cat "$SETTINGS_FILE")
-    echo "$EXISTING" | jq --argjson hooks "$HOOKS_CONFIG" '.hooks = (.hooks // {}) + $hooks' > "$SETTINGS_FILE.tmp"
+    # Settings file exists, merge Stop hook (replace entire Stop array)
+    jq --argjson newHooks "$HOOKS_CONFIG" '
+    .hooks = (.hooks // {}) |
+    .hooks.Stop = $newHooks.Stop
+    ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
     mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+    log_success "Upserted Stop hook"
 else
-    # Create new settings file with hooks
-    jq -n --argjson hooks "$HOOKS_CONFIG" '$hooks' > "$SETTINGS_FILE"
+    # No settings file, create fresh
+    jq -n --argjson newHooks "$HOOKS_CONFIG" '
+    {hooks: {Stop: $newHooks.Stop}}
+    ' > "$SETTINGS_FILE"
+    log_success "Created settings with Stop hook"
 fi
 
 log_success "Hooks installed to $HOOKS_DIR/"
@@ -221,6 +289,7 @@ if [[ -n "$TASK" ]]; then
     log_info "Starting Claude Code in Team mode..."
     log_info "Task: $TASK"
     log_info "Template: $TEMPLATE"
+    log_info "Main Session: $SESSION"
     log_info ""
 
     # Get template-specific spawn prompt
@@ -232,6 +301,8 @@ if [[ -n "$TASK" ]]; then
         # Integrate CC_CALLBACK_DONE into the final reporting step
         # Replace "Report completion with summary" with instructions to output marker
         SPAWN_PROMPT=$(echo "$SPAWN_PROMPT" | sed 's/Report completion with summary/Report completion with summary, then output exactly CC_CALLBACK_DONE/')
+        # Add Session Id
+        SPAWN_PROMPT=$(echo -e "$SPAWN_PROMPT\n\n=== START ${SESSION} ===")
     else
         log_warn "Template not found: $TEMPLATE, using default"
         SPAWN_PROMPT="I need to complete a complex task using a team approach.
@@ -249,7 +320,11 @@ Please spawn a team to handle this task efficiently. Consider:
 
 Use delegate mode: I coordinate, teammates execute.
 
-When ready, spawn the team and begin working on the task."
+When ready, spawn the team and begin working on the task.
+
+Report completion with summary, then output exactly CC_CALLBACK_DONE"
+
+        SPAWN_PROMPT=$(echo -e "$SPAWN_PROMPT\n\n=== START ${SESSION} ===")
     fi
 
     log_info "Spawning team..."
@@ -263,6 +338,13 @@ fi
 # Change to project directory
 cd "$PROJECT_DIR"
 
+# DEBUG: Log start
+echo "[DEBUG] $(date): Team mode starting" >> /tmp/team-debug.log
+echo "[DEBUG] PROJECT_DIR=$PROJECT_DIR" >> /tmp/team-debug.log
+echo "[DEBUG] TEMPLATE=$TEMPLATE" >> /tmp/team-debug.log
+echo "[DEBUG] TASK=$TASK" >> /tmp/team-debug.log
+echo "[DEBUG] PERMISSION_MODE=$PERMISSION_MODE" >> /tmp/team-debug.log
+
 # Execute team spawn using tmux (PTY mode required for agent teams)
 log_info "Team will work on the task and exit when complete."
 log_info "Completion will be detected by hooks automatically."
@@ -271,8 +353,9 @@ log_info "⏳ Team execution in progress (this may take some time)..."
 log_info "    No output during this time is normal - agents are working."
 log_info ""
 
-# Create unique session name for this team run
-SESSION="cc-team-$(date +%s)"
+# Save original task for callback
+echo "$TASK" > "$PROJECT_DIR/.claude/team-task.txt"
+
 TMUX_SERVER="cc"
 
 # Kill existing session if any
@@ -282,34 +365,42 @@ tmux -L "$TMUX_SERVER" kill-session -t "$SESSION" 2>/dev/null || true
 tmux -L "$TMUX_SERVER" new-session -d -s "$SESSION" -c "$PROJECT_DIR"
 sleep 0.5
 
+echo "[DEBUG] $(date): Tmux session created, starting Claude Code" >> /tmp/team-debug.log
+
 # Start Claude Code (same as interactive.sh)
 if [[ "$PERMISSION_MODE" == "auto" ]]; then
     CLAUDE_CMD="claude --dangerously-skip-permissions"
-else
-    CLAUDE_CMD="claude --permission-mode $PERMISSION_MODE"
-fi
+    echo "[DEBUG] CLAUDE_CMD=$CLAUDE_CMD" >> /tmp/team-debug.log
 
-tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "$CLAUDE_CMD" Enter
-sleep 4
+    tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "$CLAUDE_CMD" Enter
+    sleep 4
 
-# Auto-accept safety confirmation if using auto mode
-if [[ "$PERMISSION_MODE" == "auto" ]]; then
-    OUTPUT=$(tmux -L "$TMUX_SERVER" capture-pane -p -t "$SESSION" 2>/dev/null || echo "")
-    # Check for new safety confirmation (current version)
-    if grep -q "Yes, I trust this folder" <<< "$OUTPUT"; then
-        log_info "Auto-accepting safety confirmation..."
+    # Auto-accept safety confirmation
+    OUTPUT=$(tmux -L "$TMUX_SERVER" capture-pane -p -t "$SESSION" 2>>/tmp/team-debug.log || echo "")
+    echo "[DEBUG] $(date): Initial output captured" >> /tmp/team-debug.log
+    echo "[DEBUG] Output: $OUTPUT" >> /tmp/team-debug.log
+    
+    # Check for new version: bypass permissions prompt (v2.0+)
+    if grep -q "bypass permissions" <<< "$OUTPUT"; then
+        log_info "Auto-accepting permissions with 'y'..."
+        tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "y"
+        sleep 0.5
+        tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" Enter
+        sleep 5
+    # Check for old version: "Yes, I trust this folder" (v1.x)
+    elif grep -q "Yes, I trust this folder" <<< "$OUTPUT"; then
+        log_info "Auto-accepting permissions with '1'..."
         tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" 1
         sleep 0.5
         tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" Enter
-        sleep 5  # Give Claude Code time to fully start
-    # Check for old permissions warning (previous version)
-    elif grep -q "Yes, I accept" <<< "$OUTPUT"; then
-        log_info "Auto-accepting permissions warning..."
-        tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" 2
-        sleep 0.3
-        tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" Enter
-        sleep 4
+        sleep 5
     fi
+else
+    CLAUDE_CMD="claude --permission-mode $PERMISSION_MODE"
+    echo "[DEBUG] CLAUDE_CMD=$CLAUDE_CMD" >> /tmp/team-debug.log
+
+    tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "$CLAUDE_CMD" Enter
+    sleep 4
 fi
 
 # Send spawn prompt via temp file (handles multi-line)
@@ -321,69 +412,10 @@ rm -f "$TMPFILE"
 sleep 0.3
 tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" Enter
 
+echo "[DEBUG] $(date): Spawn prompt sent, exiting" >> /tmp/team-debug.log
+
 log_info "✅ Team spawn prompt sent"
 
-# Monitor session for completion (wait for synthesis file)
-log_info "Waiting for team to complete..."
-ELAPSED=0
-# Default timeout: 1 hour (3600s) for complex team tasks
-# Can be overridden with TEAM_TIMEOUT env var
-# Examples:
-#   Quick testing (90s): TEAM_TIMEOUT=90
-#   Medium tasks (10min): TEAM_TIMEOUT=600
-#   Complex tasks (30min): TEAM_TIMEOUT=1800
-#   Very complex tasks (1h): TEAM_TIMEOUT=3600 (default)
-MAX_WAIT=${TEAM_TIMEOUT:-3600}
-
-while [[ $ELAPSED -lt $MAX_WAIT ]]; do
-    # Check if session still exists
-    if ! tmux -L "$TMUX_SERVER" has-session -t "$SESSION" 2>/dev/null; then
-        log_info "Team session ended"
-        break
-    fi
-
-    # Check for completion (synthesis file exists)
-    if [[ -f "$PROJECT_DIR/synthesis-review.md" ]] \
-       || [[ -f "$PROJECT_DIR/root-cause-conclusion.md" ]] \
-       || [[ -f "$PROJECT_DIR/integration-summary.md" ]] \
-       || [[ -f "$PROJECT_DIR/aggregated-results.md" ]]; then
-        log_success "✅ Team completed (synthesis file detected)"
-        # Give it a moment to finalize
-        sleep 2
-        # Send /exit to trigger hooks, then wait for graceful shutdown
-        tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "/exit" Enter
-        sleep 3
-        # Kill session if still exists
-        tmux -L "$TMUX_SERVER" kill-session -t "$SESSION" 2>/dev/null || true
-        break
-    fi
-
-    sleep 2
-    ((ELAPSED+=2))
-done
-
-# Final check
-if [[ $ELAPSED -ge $MAX_WAIT ]]; then
-    log_warn "⏰ Team session timed out after ${MAX_WAIT}s"
-    EXIT_CODE=124
-    # Send /exit to trigger hooks, then wait for graceful shutdown
-    tmux -L "$TMUX_SERVER" send-keys -t "$SESSION" "/exit" Enter 2>/dev/null || true
-    sleep 3
-    # Force kill if still exists
-    tmux -L "$TMUX_SERVER" kill-session -t "$SESSION" 2>/dev/null || true
-fi
-
-# Team mode completion is handled by hooks, so we just report the exit
-if [[ ${EXIT_CODE:-0} -eq 0 ]]; then
-    log_success "✅ Team session completed successfully"
-elif [[ ${EXIT_CODE:-0} -eq 124 ]]; then
-    # 124 is the exit code for timeout
-    log_warn "⏰ Team session timed out after ${TEAM_TIMEOUT}s"
-    log_info "    This is normal - team tasks may take longer than expected"
-    log_info "    Hooks will still be triggered on exit"
-else
-    log_warn "Team session exited with code ${EXIT_CODE:-1}"
-fi
-
-# Exit with the same code
-exit ${EXIT_CODE:-0}
+# Exit immediately - hook will handle callback and cleanup on completion
+log_success "Team started in background. Callback will notify on completion."
+exit 0

@@ -2,7 +2,7 @@
 name: fast-claude-code
 description: >
   Claude Code 任务完成回调 Runtime。支持 Single / Interactive / Team 三种模式，
-  通过回调机制自动通知任务完成，无需轮询。
+  ⚠️  任务在后台 tmux 会话中运行，完成后通过 System Event 自动通知，无需轮询。
   Use when: 需要运行 Claude Code 任务并在完成时获得通知。
   NOT for: 简单的文件读写（直接用 read/write 工具）。
 metadata:
@@ -11,9 +11,9 @@ metadata:
       "emoji": "⚡",
       "os": ["darwin", "linux"],
       "requires": {
-        "bins": ["bash", "claude"],
+        "bins": ["bash", "claude", "tmux"],
         "anyBins": ["openclaw"],
-        "optionalBins": ["tmux", "jq"]
+        "optionalBins": ["jq"]
       }
     }
   }
@@ -21,199 +21,172 @@ metadata:
 
 # Fast Claude Code ⚡
 
-Claude Code 任务完成自动通知 Runtime。
+Claude Code 任务完成自动通知 Runtime。任务在后台 tmux 会话中运行，完成后通过 System Event 自动回调。
 
-## 快速决策树
+## ⚠️ IMPORTANT: Entry Point
+
+**必须使用 `bin/fast-claude-code.sh` 作为入口！**
+
+- ✅ 正确：`bin/fast-claude-code.sh team --project "/path" --template "xxx" --task "xxx"`
+- ❌ 错误：直接调用 `bin/send-task.sh` 或 `modes/team.sh`
+- ❌ 错误：直接使用 `tmux` 命令
+
+所有操作都通过 `fast-claude-code.sh` 分发，它会：
+1. 启动正确的 tmux 会话
+2. 安装完成检测机制
+3. 等待回调通知
+
+## Use When
+
+- 需要运行 Claude Code 任务并获得完成通知
+- 需要多 Agent 协作完成复杂任务（Team 模式）
+- 需要长时间运行的 Claude Code 会话（Interactive 模式）
+
+## NOT For
+
+- 简单的文件读写（直接用 read/write 工具）
+- 单次简单命令执行
+
+## Quick Start
+
+```bash
+# Single 模式 - 一次性任务
+bin/fast-claude-code.sh single --task "任务描述" --project "/path/to/project"
+
+# Interactive 模式 - 多轮对话
+# - 开启
+bin/fast-claude-code.sh interactive --project "/path" --label "session-name" --task "任务描述"
+# - 后续（使用 send-task，不要直接用 tmux）
+bin/fast-claude-code.sh send-task --session "session-name" --task "任务描述"
+
+# Team 模式 - 多 Agent 协作
+bin/fast-claude-code.sh team --project "/path" --template "模板" --task "任务描述"
+```
+
+## Modes
+
+| Mode | Use For | Required Params |
+|------|---------|-----------------|
+| `single` | 单文件重构、简单代码审查、一次性分析 | `--task`, `--project` |
+| `interactive` | 长时运行任务、需要多轮对话、需要人工干预 | `--project`, `--label` |
+| `team` | 复杂代码审查、架构决策、性能分析、多 Agent 协作 | `--project`, `--template`, `--task` |
+
+## Mode Decision Guide
 
 ```
 用户任务需要 Claude Code？
 ├─ 是 → 任务类型？
-│   ├─ 一次性任务（单个文件/简单操作）→ Single 模式
-│   ├─ 需要多轮对话/长时间运行 → Interactive 模式
-│   └─ 需要多 Agent 协作/复杂分析 → Team 模式
+│   ├─ 一次性（单文件/简单操作）→ Single
+│   ├─ 需要多轮对话/长时间 → Interactive
+│   └─ 需要多 Agent 协作/复杂分析 → Team
 └─ 否 → 不使用此 skill
 ```
 
-## 三种模式选择指南
+## Team Templates
 
-### Single 模式（一次性任务）
+| Template | Use For | Keywords |
+|----------|---------|----------|
+| `parallel-review` | 代码审查、安全检查、性能测试 | 审查、安全、性能、测试 |
+| `competing-hypotheses` | 问题诊断、调试、找原因 | 调试、问题、原因、为什么 |
+| `fullstack-feature` | 全栈功能开发 | 开发、实现、功能、全栈 |
+| `architecture-decision` | 架构决策、技术选型 | 架构、选择、对比、决策 |
+| `bottleneck-analysis` | 性能瓶颈分析 | 慢、性能、瓶颈、优化 |
+| `inventory-classification` | 批量分类、批量分析 | 分析、分类、评估 |
 
-**使用场景**：
-- 单个文件的重构/修改
-- 简单的代码审查
-- 一次性分析任务
+## Parameters
 
-**调用方式**：
+| Parameter | Mode | Description |
+|-----------|------|-------------|
+| `--task` | Single/Team | 任务描述 |
+| `--project` | All | 项目路径（必须） |
+| `--label` | Interactive | 会话标识符 |
+| `--template` | Team | 模板名称 |
+| `--permission-mode` | All | `auto`（默认）或 `plan` |
+| `--session` | send-task | 会话名 |
+| `--callback` | All | 回调类型（默认 openclaw） |
+
+## Settings
+
+### Timeout（Team 模式）
+
+| 复杂度 | 超时 | 场景 |
+|--------|------|------|
+| 简单 | 默认 1h | 单文件、单模块 |
+| 中等 | 默认 1h | 少量文件、标准任务 |
+| 复杂 | 7200（2h） | 多模块、跨功能 |
+| 超复杂 | 10800（3h） | 全项目、架构级 |
+
 ```bash
-{baseDir}/bin/fast-claude-code.sh single \
-  --task "任务描述" \
-  --project "/path/to/project" \
-  --permission-mode auto
+TEAM_TIMEOUT=7200 bin/fast-claude-code.sh team --project "/path" --template "xxx" --task "xxx"
 ```
 
-**参数**：
-- `--task`（必需）：任务描述
-- `--project`（必需）：项目路径
-- `--permission-mode`（可选）：`auto`（默认）或 `plan`
+### 环境变量
 
-**返回**：
-- 任务完成后自动回调
-- 回调包含任务输出
+- `TEAM_TIMEOUT`：Team 模式超时时间（秒）
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`：Team 模式必须设置
 
-### Interactive 模式（长时运行/多轮对话）
+## Examples
 
-**使用场景**：
-- 需要多轮对话的任务
-- 长时间运行的会话
-- 需要人工干预的复杂任务
-
-**调用方式**：
 ```bash
-{baseDir}/bin/fast-claude-code.sh interactive \
-  --project "/path/to/project" \
-  --label "session-name"
+# 重构单个文件
+bin/fast-claude-code.sh single --task "重构 auth.js 的 JWT 逻辑" --project "/my/project"
+
+# 安全审查（多视角）
+bin/fast-claude-code.sh team --project "/my/project" --template "parallel-review" --task "审查安全性"
+
+# 架构决策
+bin/fast-claude-code.sh team --project "/my/project" --template "architecture-decision" --task "选择 PostgreSQL 还是 MongoDB"
+
+# 复杂功能开发（设置超时）
+TEAM_TIMEOUT=7200 bin/fast-claude-code.sh team --project "/my/project" --template "fullstack-feature" --task "实现用户认证系统"
+
+# Interactive 发送后续任务
+bin/fast-claude-code.sh send-task --session "session-name" --task "后续任务"
+
+# Interactive 结束会话
+bin/fast-claude-code.sh send-task --session "session-name" --task "exit session"
 ```
 
-**参数**：
-- `--project`（必需）：项目路径
-- `--label`（必需）：会话标识符
-- `--task`（可选）：初始任务
-- `--permission-mode`（可选）：`auto`（默认）或 `plan`
+## How It Works
 
-**返回**：
-- 会话创建成功
-- 后续通过 `send-task` 发送任务，每次完成都会回调
+### Single 模式
+1. 在 tmux 中启动 Claude Code
+2. 执行单次任务
+3. 任务完成后通过 callback 通知
 
-**发送后续任务**：
-```bash
-{baseDir}/bin/fast-claude-code.sh send-task \
-  --session "session-name" \
-  --task "后续任务描述"
+### Interactive 模式
+1. 创建持久 tmux 会话
+2. 可通过 `send-task` 发送后续任务
+3. 每次任务完成都触发 callback
+
+### Team 模式
+1. 安装 Stop hook 监听完成事件
+2. 在 tmux 中启动 Team 模式
+3. 主 agent spawn 子 agents 协作
+4. 检测 `CC_CALLBACK_DONE` marker 确认真正完成
+5. 回调通知并清理资源
+
+## Notes
+
+- 任务在后台 tmux 会话中运行，完成后自动回调
+- Team 模式需要 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+- Interactive 模式下可用 `send-task` 发送后续任务
+- ⚠️ 建议不要在一个项目下并行执行多个 Team 任务
+
+## Callback
+
+任务完成后自动回调，格式：
 ```
+请总结以下 Claude Code 任务的执行结果，并回复用户：
 
-### Team 模式（多 Agent 协作）
+=== 任务信息 ===
+模式: model-name
+状态: done
+任务标识: session-id
 
-**使用场景**：
-- 复杂的代码审查（多视角）
-- 需要并行分析的任务
-- 架构决策（需要辩论）
-- 性能瓶颈分析（跨域）
+=== 用户请求 ===
+<USERINPUT>
 
-**模板选择**：
-
-| 模板 | 适用场景 | 判断关键词 |
-|------|----------|-----------|
-| `parallel-review` | 代码审查 | "审查"、"安全"、"性能"、"测试" |
-| `competing-hypotheses` | 问题诊断 | "调试"、"问题"、"原因"、"为什么" |
-| `fullstack-feature` | 功能开发 | "开发"、"实现"、"功能"、"全栈" |
-| `architecture-decision` | 架构决策 | "架构"、"选择"、"对比"、"决策" |
-| `bottleneck-analysis` | 性能分析 | "慢"、"性能"、"瓶颈"、"优化" |
-| `inventory-classification` | 批量处理 | "分析"、"分类"、"评估"（多个独立项） |
-
-**调用方式**：
-```bash
-{baseDir}/bin/fast-claude-code.sh team \
-  --project "/path/to/project" \
-  --template "模板名称" \
-  --task "任务描述"
+=== 执行结果 ===
+<OUTPUT>
 ```
-
-**参数**：
-- `--project`（必需）：项目路径
-- `--template`（必需）：模板名称
-- `--task`（必需）：任务描述
-- `--permission-mode`（可选）：`auto`（默认）或 `plan`
-
-**超时设置**（根据任务复杂度调整）：
-
-| 复杂度 | 超时设置 | 判断依据 |
-|--------|----------|----------|
-| 简单 | 不设置（默认 1h） | 单文件、单模块 |
-| 中等 | 不设置（默认 1h） | 少量文件、标准任务 |
-| 复杂 | `TEAM_TIMEOUT=7200` | 多模块、跨功能 |
-| 超复杂 | `TEAM_TIMEOUT=10800` | 全项目、架构级 |
-
-**判断依据**：
-- 包含"整个项目"、"所有模块"、"全栈" → 考虑 2-3h
-- 包含"重构"、"迁移"、"架构" → 考虑 2h
-- 单文件/单功能 → 默认 1h
-
-**返回**：
-- Team 完成后自动回调
-- 回调包含所有 Agent 的输出文件
-- 输出文件格式：
-  - `parallel-review`: findings-*.md + synthesis-*.md
-  - `competing-hypotheses`: hypothesis-*-investigation.md + root-cause-conclusion.md
-  - `fullstack-feature`: *-implementation.md + integration-summary.md
-  - `architecture-decision`: proposal-option-*.md + architecture-decision.md
-  - `bottleneck-analysis`: *-analysis.md + root-cause-conclusion.md
-  - `inventory-classification`: *-results.md + aggregated-results.md
-
-## 回调消息格式
-
-所有模式完成后的回调格式：
-
-```
-fast-claude-code:done | mode=<MODE> | task=<TASK_ID> | msg=<MESSAGE>
-
---- Response ---
-<OUTPUT_CONTENT>
-```
-
-- **STATUS**: `done` | `error` | `progress`
-- **MODE**: `single` | `interactive` | `team`
-- **OUTPUT_CONTENT**:
-  - Single: 任务输出
-  - Interactive: 任务输出
-  - Team: 所有输出文件的内容
-
-## 调用示例
-
-### 示例 1：代码重构（Single）
-```
-用户：帮我重构 auth.js 的 JWT 验证逻辑
-→ 调用 Single 模式
-```
-
-### 示例 2：多轮分析（Interactive）
-```
-用户：分析这个项目，然后重构核心模块
-→ 调用 Interactive 模式，发送初始任务
-→ 后续可发送更多任务
-```
-
-### 示例 3：安全审查（Team）
-```
-用户：审查整个项目的安全性
-→ 判断：需要多视角分析
-→ 选择模板：parallel-review
-→ 调用 Team 模式
-→ 超时：默认 1h（单个审查任务）
-```
-
-### 示例 4：架构决策（Team）
-```
-用户：我们应该用 PostgreSQL 还是 MongoDB？
-→ 判断：需要架构级别的决策分析
-→ 选择模板：architecture-decision
-→ 调用 Team 模式
-→ 超时：默认 1h
-```
-
-### 示例 5：复杂功能开发（Team）
-```
-用户：实现完整的用户认证系统（前端+后端+测试）
-→ 判断：全栈功能，涉及多个模块
-→ 选择模板：fullstack-feature
-→ 调用 Team 模式
-→ 超时：设置 3h（超复杂任务）
-→ TEAM_TIMEOUT=10800 {baseDir}/bin/fast-claude-code.sh team ...
-```
-
-## 重要提示
-
-1. **环境变量**：Team 模式需要 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
-2. **依赖检查**：调用前确保 `claude` 命令可用
-3. **超时设置**：根据任务复杂度智能调整 TEAM_TIMEOUT
-4. **模板选择**：根据任务关键词自动选择最合适的模板
-5. **回调处理**：监听回调消息，任务完成后会自动通知

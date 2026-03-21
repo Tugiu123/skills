@@ -93,11 +93,6 @@ TASK_WITH_CALLBACK="$TASK
 
 When the task is fully completed, output exactly:
 
-CC_CALLBACK_DONE
-
-If you need to manually trigger completion, type: TASK_COMPLETE
-When you receive TASK_COMPLETE, output exactly:
-
 CC_CALLBACK_DONE"
 
 log_info "Starting Single mode..."
@@ -112,6 +107,37 @@ fi
 
 # Run Claude Code in non-interactive mode
 cd "$PROJECT_DIR"
+
+# Clean up team hooks that may interfere with single mode
+# 1. Delete on-stop.sh file
+# 2. Clean up settings.json entries that reference on-stop.sh
+HOOKS_DIR="$PROJECT_DIR/.claude/hooks"
+SETTINGS_FILE="$PROJECT_DIR/.claude/settings.json"
+
+# Remove on-stop.sh hook file
+rm -f "$HOOKS_DIR/on-stop.sh"
+log_info "Removed team hook file (on-stop.sh)"
+
+# Clean up settings.json - remove any hook entries that reference on-stop.sh
+if [ -f "$SETTINGS_FILE" ]; then
+    if command -v jq &> /dev/null; then
+        # Check if on-stop.sh reference exists
+        if jq -e '.. | objects | select(.command? == ".claude/hooks/on-stop.sh")' "$SETTINGS_FILE" > /dev/null 2>&1; then
+            # Clean up Stop hooks array by filtering out on-stop.sh references
+            if jq '.hooks.Stop |= (map(.hooks |= map(select(.command != ".claude/hooks/on-stop.sh"))))' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"; then
+                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+                log_success "Removed on-stop.sh references from settings.json"
+            else
+                log_warn "Failed to update settings.json, keeping original"
+                rm -f "$SETTINGS_FILE.tmp"
+            fi
+        else
+            log_info "No on-stop.sh references found in settings.json"
+        fi
+    else
+        log_warn "jq not available, skipping settings.json cleanup"
+    fi
+fi
 
 log_info "Running Claude Code..."
 
@@ -130,51 +156,32 @@ case "$PERMISSION_MODE" in
         ;;
 esac
 
-# Capture output and check for completion
-OUTPUT=$($CLAUDE_CMD "$TASK_WITH_CALLBACK" 2>&1) || EXIT_CODE=$?
+# Run in background mode (default)
+log_info "Running in background mode..."
 
-# Check if CC_CALLBACK_DONE was output
-if grep -q "CC_CALLBACK_DONE" <<< "$OUTPUT"; then
-    log_success "Task completed successfully"
-
-    # Extract task output (everything before LAST CC_CALLBACK_DONE)
-    # Extract from line 1 to CC_CALLBACK_DONE, then remove last line (CC_CALLBACK_DONE)
-    TASK_OUTPUT=$(echo "$OUTPUT" | sed -n '1,/CC_CALLBACK_DONE/p' | sed '$d')
-
-    # Trigger callback with output
-    "$BASE_DIR/callbacks/$CALLBACK.sh" \
-        --status done \
-        --mode single \
-        --task "$TASK" \
-        --output "$TASK_OUTPUT"
-    exit 0
-else
-    # Check for specific error patterns
-    if grep -qi "permission" <<< "$OUTPUT"; then
-        log_error "Task failed: Permission required"
-        log_info "Try using --permission-mode auto (use with caution)"
-    elif grep -qiE "error|failed" <<< "$OUTPUT"; then
-        log_error "Task failed with errors"
+# Create a wrapper script that runs Claude and monitors for completion
+(
+    OUTPUT=$($CLAUDE_CMD "$TASK_WITH_CALLBACK" 2>&1) || EXIT_CODE=$?
+    
+    if grep -q "CC_CALLBACK_DONE" <<< "$OUTPUT"; then
+        TASK_OUTPUT=$(echo "$OUTPUT" | sed -n '1,/CC_CALLBACK_DONE/p' | sed '$d')
+        "$BASE_DIR/callbacks/$CALLBACK.sh" \
+            --status done \
+            --mode single \
+            --task "a single task" \
+            --message "$TASK" \
+            --output "$TASK_OUTPUT"
     else
-        log_warn "Task completed but CC_CALLBACK_DONE marker not found"
-        log_info "This may be normal - Claude may have completed without outputting the marker"
+        "$BASE_DIR/callbacks/$CALLBACK.sh" \
+            --status error \
+            --mode single \
+            --task "a single task" \
+            --message "$TASK" \
+            --output "CC_CALLBACK_DONE marker not found. Original output:\n${OUTPUT}"
     fi
+) &
 
-    # Show output for debugging
-    echo ""
-    echo "--- Claude Code Output ---"
-    echo "$OUTPUT"
-    echo "--- End Output ---"
-    echo ""
-
-    # Try to trigger error callback
-    "$BASE_DIR/callbacks/$CALLBACK.sh" \
-        --status error \
-        --mode single \
-        --task "$TASK" \
-        --message "CC_CALLBACK_DONE marker not found in output" \
-        --output "$OUTPUT"
-
-    # Exit with the original exit code if available, otherwise 1
-    exit ${EXIT_CODE:-1}
-fi
+BACKGROUND_PID=$!
+echo "Background process started (PID: $BACKGROUND_PID)"
+log_success "Task started in background. Callback will notify on completion."
+exit 0

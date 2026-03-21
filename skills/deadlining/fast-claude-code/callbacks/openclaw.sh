@@ -40,19 +40,34 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Build message
-if [[ -n "$MESSAGE" ]]; then
-    MSG="fast-claude-code:$STATUS | mode=$MODE | task=$TASK | msg=$MESSAGE"
-else
-    MSG="fast-claude-code:$STATUS | mode=$MODE | task=$TASK"
-fi
+# Build the summary instruction and task content
+SUMMARY_INSTRUCTION="请总结以下 Claude Code 任务的执行结果，并回复用户："
+
+# Build message with clear structure
+MSG="$SUMMARY_INSTRUCTION
+
+=== 任务信息 ===
+模式: $MODE
+状态: $STATUS
+任务标识: $TASK"
+
+# Append original task/command
+MSG="$MSG
+
+=== 用户请求 ===
+$MESSAGE"
 
 # Append output if provided
 if [[ -n "$OUTPUT" ]]; then
     MSG="$MSG
 
---- Response ---
-${OUTPUT}"
+=== 执行结果 ===
+$OUTPUT"
+else
+    MSG="$MSG
+
+=== 执行结果 ===
+(无输出内容)"
 fi
 
 # Check if openclaw is available

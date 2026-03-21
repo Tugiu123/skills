@@ -81,7 +81,7 @@ case "$MODE" in
         exec "$BASE_DIR/modes/team.sh" "$@"
         ;;
     send-task)
-        exec "$BASE_DIR/bin/send-task.sh" "$@"
+        exec "$BASE_DIR/modes/send-task.sh" "$@"
         ;;
     -h|--help|help)
         show_usage

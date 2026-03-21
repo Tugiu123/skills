@@ -131,13 +131,6 @@ log_info "Completion detection:"
 log_info "  - Auto: Claude outputs CC_CALLBACK_DONE when done"
 log_info "  - Manual: Type TASK_COMPLETE to trigger callback"
 log_info ""
-log_info "Tips:"
-log_info "  - Attach: tmux -L cc attach -t $SESSION"
-log_info "  - Detach: Ctrl+B, D"
-log_info "  - Send tasks: tmux -L cc send-keys -t $SESSION \"your task\" Enter"
-log_info "  - Monitor: tmux -L cc capture-pane -p -t $SESSION | tail -50"
-log_info "  - Stop: tmux -L cc kill-session -t $SESSION"
-log_info ""
 
 # Only create new session if not reusing
 if [[ "$EXISTING_SESSION" == "" ]]; then
@@ -272,14 +265,15 @@ $TASK"
                 if grep -q "CC_CALLBACK_DONE" <<< "$AFTER_START"; then
                     # Extract CC's output (between START marker and LAST CC_CALLBACK_DONE)
                     # Extract from line 2 (after START marker) to CC_CALLBACK_DONE, then remove last line (CC_CALLBACK_DONE)
-                    TASK_OUTPUT=$(echo "$AFTER_START" | sed -n '2,/CC_CALLBACK_DONE/p' | sed '$d')
+                    TASK_OUTPUT=$(echo "$AFTER_START" | sed -n "2,/CC_CALLBACK_DONE/p" | sed "\$d")
 
                     # Task completed! Trigger callback with output
                     "$BASE_DIR/callbacks/$CALLBACK.sh" \
                         --status done \
                         --mode interactive \
-                        --task "$LABEL" \
-                        --output "$TASK_OUTPUT" 2>/dev/null || true
+                        --task "$SESSION" \
+                        --message "$TASK" \
+                        --output "$TASK_OUTPUT"
                     log_success "✅ Task completed, callback triggered! Monitor exiting."
                     break
                 fi
@@ -296,7 +290,7 @@ fi
 log_info "Starting session lifecycle monitor (timeout: $((SESSION_TIMEOUT / 3600)) hours)..."
 
 # Create session state file for tracking start time (used by lifecycle monitor and send-task.sh)
-SESSION_STATE_FILE="/tmp/cc-session-${LABEL}.state"
+SESSION_STATE_FILE="/tmp/${SESSION}.state"
 echo "SESSION_START=$(date +%s)" > "$SESSION_STATE_FILE"
 echo "SESSION_LABEL=\"$LABEL\"" >> "$SESSION_STATE_FILE"
 echo "SESSION_NAME=\"$SESSION\"" >> "$SESSION_STATE_FILE"
@@ -323,9 +317,9 @@ echo "SESSION_NAME=\"$SESSION\"" >> "$SESSION_STATE_FILE"
             "$BASE_DIR/callbacks/$CALLBACK.sh" \
                 --status done \
                 --mode interactive \
-                --task "$LABEL" \
+                --task "$SESSION" \
                 --message "Session closed after $((SESSION_TIMEOUT / 3600)) hours timeout" \
-                --output "$SESSION_OUTPUT" 2>/dev/null || true
+                --output "$SESSION_OUTPUT"
             log_info "⏰ Session timeout after $((SESSION_TIMEOUT / 3600)) hours"
             rm -f "$SESSION_STATE_FILE"
             break
@@ -349,9 +343,9 @@ echo "SESSION_NAME=\"$SESSION\"" >> "$SESSION_STATE_FILE"
             "$BASE_DIR/callbacks/$CALLBACK.sh" \
                 --status done \
                 --mode interactive \
-                --task "$LABEL" \
+                --task "$SESSION" \
                 --message "Session closed by user request" \
-                --output "$SESSION_OUTPUT" 2>/dev/null || true
+                --output "$SESSION_OUTPUT"
             log_info "🔚 Session closed by user request"
             rm -f "$SESSION_STATE_FILE"
             break
@@ -368,18 +362,6 @@ LIFECYCLE_MONITOR_PID=$!
 
 log_success "Session started: $SESSION"
 
-log_success "Session started: $SESSION"
-echo ""
-echo "👁️  Attach to session: tmux -L cc attach -t $SESSION"
-echo "🛑  Stop session: tmux -L cc kill-session -t $SESSION"
-echo "⏰  Session lifecycle monitor running (PID: $LIFECYCLE_MONITOR_PID)"
-echo "   - Auto-close after $((SESSION_TIMEOUT / 3600)) hours"
-echo "   - Detects: 结束此次会话 / 关闭会话 / exit session / quit session"
-if [[ -n "$TASK_MONITOR_PID" ]]; then
-    echo "📊 Initial task monitor running (PID: $TASK_MONITOR_PID, will exit after completion)"
-fi
-echo ""
-echo "To send more tasks with completion monitoring:"
-echo "  bash ../../bin/send-task.sh --session $LABEL --task \"your task\""
-echo ""
-echo "Note: Each task (initial or via send-task) has its own monitor that exits after completion"
+# Run in background mode (default)
+log_success "Interactive started in background. Callback will notify on completion."
+exit 0
