@@ -48,37 +48,50 @@ file_id（文档）
 
 ---
 
-## 创建智能文档
+## 创建智能文档 — create_smartcanvas_by_mdx
 
-当需要创建排版丰富（含分栏布局、高亮块、待办列表、表格、带样式文本等）的智能文档时，应优先使用 MDX 格式。MDX 相比 Markdown 支持更多高级排版组件。
+通过 MDX 格式创建排版丰富的在线智能文档。MDX 支持分栏布局（ColumnList）、高亮块（Callout）、待办列表（Todo）、表格（Table）、带样式文本（Mark）等高级组件。MDX 内容必须严格遵循 `mdx_references.md` 规范生成。
+
+**📖 MDX 规范详见：** `mdx_references.md`
+
+### 工作流
 
 ```
-步骤 1：阅读 mdx_references 规范
-  → 在生成 MDX 内容前，必须先完整阅读 mdx_references 规范，了解所有可用组件、属性、
-    取值白名单和格式约束。
-
-步骤 2：按照 mdx_references 规范生成 MDX 内容
-  → 根据文档需求，使用规范中定义的块级组件（Heading、Callout、ColumnList、Table、
-    Todo、BulletedList、NumberedList、BlockQuote、Divider、Image、Paragraph 等）
-    和行内组件（Mark、Link）组织内容
-  → 确保 frontmatter 格式正确、缩进使用 4 空格、块级组件使用三段式多行写法、
-    属性值使用双引号、颜色值使用 token 白名单等
-
-步骤 3：对照 mdx_references 逐条自校验
-  → 生成完成后，必须对照 mdx_references 中的规则逐条自查：
-    - frontmatter 是否位于文档顶部、格式是否正确
-    - 缩进是否全部使用 4 空格（禁止 Tab）
-    - 块级组件是否为三段式多行写法（禁止单行写法）
-    - 属性值是否全部使用双引号（禁止单引号、花括号表达式）
-    - 布尔属性是否不写值（禁止 ="true" 或 ="false"）
-    - 颜色值是否来自规范中的 token 白名单（禁止 CSS 颜色值）
-    - Mark / Link 是否保持单行书写
-    - 是否使用了未在规范中定义的组件（禁止未知组件）
-  → 确认全部合规后再提交
-
-步骤 4：调用 create_smartcanvas_by_mdx 创建文档
-  → create_smartcanvas_by_mdx（传入 title 和校验通过的 MDX 内容，创建文档，获取 file_id 和 file_url）
+1. 阅读 mdx_references.md 了解 MDX 组件规范（组件、属性、取值白名单、格式约束）
+2. 按规范生成包含 Frontmatter 和 MDX 组件的内容
+3. 对照 mdx_references 逐条自校验，确保格式合规
+4. 调用 create_smartcanvas_by_mdx 创建文档（传入 title + MDX 内容）
+5. 从返回结果中获取 file_id 和 url
 ```
+
+### 参数说明
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `title` | string | ✅ | 文档标题，不超过36个字符 |
+| `mdx` | string | ✅ | 严格符合 mdx_references 规范的 MDX 格式文本 |
+| `parent_id` | string | | 父节点ID，为空时在空间根目录创建，不为空时在指定节点下创建 |
+
+### 调用示例
+
+```json
+{
+  "title": "项目需求文档",
+  "mdx": "---\ntitle: 项目需求文档\nicon: 📋\n---\n\n# 项目需求\n\n<Callout icon=\"📌\" blockColor=\"light_blue\" borderColor=\"blue\">\n    本项目旨在开发一套智能文档管理系统。\n</Callout>\n\n## 功能需求\n\n<BulletedList>\n    文档创建功能\n</BulletedList>\n<BulletedList>\n    文档编辑功能\n</BulletedList>\n<BulletedList>\n    协作功能\n</BulletedList>"
+}
+```
+
+### 返回值说明
+
+```json
+{
+  "file_id": "doc_1234567890",
+  "url": "https://docs.qq.com/doc/DV2h5cWJ0R1lQb0lH",
+  "error": "",
+  "trace_id": "trace_1234567890"
+}
+```
+
 ---
 
 ## 元素操作
@@ -789,6 +802,30 @@ file_id（文档）
 
 ## 典型工作流示例
 
+### 创建通用文档（推荐方式）
+
+**📖 参考文档：** `mdx_references.md` — create_smartcanvas_by_mdx
+
+```
+1. 阅读 mdx_references.md 了解 MDX 组件规范
+2. 按规范生成包含 Frontmatter 和 MDX 组件的内容
+3. 对照 mdx_references 逐条自校验，确保格式合规
+4. 调用 create_smartcanvas_by_mdx 创建文档
+5. 从返回结果中获取 file_id 和 url
+```
+
+### 编辑已有文档（智能文档 smartcanvas）
+
+```
+1. 调用 smartcanvas.get_top_level_pages 获取文档页面结构
+2. 按需调用 smartcanvas.* 工具进行增删改查：
+   - 追加内容：smartcanvas.append_insert_smartcanvas_by_markdown（Markdown 方式）
+   - 新增元素：smartcanvas.create_smartcanvas_element
+   - 查询元素：smartcanvas.get_element_info / smartcanvas.get_page_info
+   - 修改元素：smartcanvas.update_element
+   - 删除元素：smartcanvas.delete_element
+```
+
 ### 工作流一：创建结构化文档
 
 ```
@@ -805,7 +842,7 @@ file_id（文档）
   → smartcanvas.create_smartcanvas_element（追加更多页面或内容块）
 ```
 
-### 工作流二：读取文档内容
+### 读取文档内容
 
 ```
 步骤 1：获取顶层页面列表
@@ -861,7 +898,10 @@ file_id（文档）
 
 ---
 
-> 📌 **提示**：
-> - 所有操作都需要先获取 `file_id`，可通过 `manage.search_file` 搜索文档获取，或在创建文档时从返回结果中获取。
-> - 操作元素前，建议先调用 `smartcanvas.get_top_level_pages` 了解文档结构，再调用 `smartcanvas.get_page_info` 获取具体元素 ID。
-> - `Text`、`Heading`、`Task` 元素必须挂载在 `Page` 下，创建时 `parent_id` 必须为 Page 类型元素的 ID。
+## 注意事项
+
+- 所有操作都需要先获取 `file_id`，可通过 `manage.search_file` 搜索文档获取，或在创建文档时从返回结果中获取
+- 操作元素前，建议先调用 `smartcanvas.get_top_level_pages` 了解文档结构，再调用 `smartcanvas.get_page_info` 获取具体元素 ID
+- **元素挂载约束**：`Text`、`Heading`、`Task`、`Image` 必须挂载在 `Page` 下，`parent_id` 必须为 Page 类型元素 ID
+- **分页查询**：`smartcanvas.get_page_info` 使用 `cursor` 分页，`is_over=true` 表示已获取全部内容
+- **删除注意**：删除 Page 元素时，其下所有子元素也会被一并删除

@@ -4,6 +4,9 @@
 
 ---
 ## 目录
+- [文件夹操作](#文件夹操作)
+  - [manage.folder_list](#managefolder_list)
+  - [manage.query_folder_meta](#managequery_folder_meta)
 - [文档创建操作](#文档创建操作)
   - [manage.create_file](#managecreate_file)
 - [文档搜索操作](#文档搜索操作)
@@ -21,6 +24,102 @@
 
 ---
 
+## 文件夹操作
+
+### manage.folder_list
+
+**功能**：拉取指定目录下的文件与文件夹列表。
+
+**使用场景**：
+- 查看根目录或指定文件夹下的所有文件和子文件夹
+- 在创建文档前先获取目标文件夹的 ID
+- 浏览用户的云文档目录结构
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|-----|------|
+| `folder_id` | string |  | 文件夹ID，默认为空，表示查询根目录下的文件 |
+| `start` | integer |  | 查询记录的起始位置，默认为0 |
+
+**返回字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `list[].id` | string | 文件/文件夹 ID |
+| `list[].title` | string | 文件/文件夹标题 |
+| `list[].url` | string | 文件链接 |
+| `list[].is_folder` | boolean | 是否为文件夹，`true` 表示文件夹，`false` 表示文件 |
+| `finish` | boolean | 列表分页是否查完，`false` 表示还有分页未查到，`true` 表示所有分页都查询完成 |
+
+**调用示例（查询根目录）**：
+
+```json
+{}
+```
+
+**调用示例（查询指定文件夹）**：
+
+```json
+{
+  "folder_id": "folder_abc123",
+  "start": 0
+}
+```
+
+**返回示例**：
+
+```json
+{
+  "list": [
+    {
+      "id": "folder_001",
+      "title": "项目文档",
+      "url": "",
+      "is_folder": true
+    },
+    {
+      "id": "doc_001",
+      "title": "会议纪要",
+      "url": "https://docs.qq.com/doc/DV2h5cWJ0R1lQb0lH",
+      "is_folder": false
+    }
+  ],
+  "finish": false,
+  "trace_id": "trace_xyz"
+}
+```
+
+> **注意**：
+> - 返回结果中 `is_folder=true` 的条目为文件夹，其 `id` 可作为 `folder_id` 继续查询子目录内容
+> - 当 `finish=false` 时，需增大 `start` 参数值进行翻页查询
+
+---
+
+### manage.query_folder_meta
+
+**功能**：查询指定文件夹的元信息（meta），支持根据 folderID 查询。
+
+**使用场景**：
+- 查询某个文件夹的详细信息（名称、创建时间等）
+- 验证文件夹 ID 是否有效
+
+**请求参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|-----|------|
+| `folder_id` | string | ✅ | 文件夹ID |
+
+**调用示例**：
+
+```json
+{
+  "folder_id": "folder_abc123"
+}
+```
+
+---
+
 ## 文档创建操作
 
 ### manage.create_file
@@ -29,43 +128,50 @@
 
 **使用场景**：
 - 在指定文件夹下创建新的在线文档（如文档、表格、幻灯片等）
+- 传入 `space_id` 时，在知识库空间中创建文档节点（兼容 `create_space_node` 能力）
 
 **请求参数**：
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|-----|------|
-| `title` | string | ✅ | 文档标题 |
-| `doc_type` | string | ✅ | 文档类型，可选值：`smartcanvas`、`doc`、`sheet`、`form`、`slide`、`mind`、`flowchart`、`smartsheet` |
-| `folder_id` | string |  | 文档所在文件夹唯一标识 |
+| `title` | string | ✅ | 文件标题，长度不超过36字符 |
+| `file_type` | string | ✅ | 文件类型，详见下方取值说明 |
+| `parent_id` | string |  | 父节点ID。不传 `space_id` 时表示个人文件夹唯一标识；传入 `space_id` 时表示空间父节点ID；为空则在个人首页或空间根路径创建 |
+| `space_id` | string |  | 知识库空间ID，传入时在空间中创建节点，不传时在个人首页中创建文件 |
+| `link_node` | object |  | 空间链接节点配置信息，`file_type` 为 `wikilink` 时必填，包含 `link_url`（必填）和 `link_description` |
 
-**doc_type 取值说明**：
+**file_type 取值说明**：
 
-| 值              | 含义   |
-|-----------------|--------|
-| `smartcanvas`   | 文档   |
-| `doc`           | Word   |
-| `sheet`         | 表格   |
-| `form`          | 收集表 |
-| `slide`         | 幻灯片 |
-| `mind`          | 思维导图 |
-| `flowchart`     | 流程图 |
-| `smartsheet`    | 智能表 |
+| 值              | 含义     | 支持场景 |
+|-----------------|----------|---------|
+| `smartcanvas`   | 智能文档  | 个人首页 / 空间 |
+| `doc`           | Word     | 个人首页 / 空间 |
+| `sheet`         | 表格     | 个人首页 / 空间 |
+| `form`          | 收集表   | 个人首页 / 空间 |
+| `slide`         | 幻灯片   | 个人首页 / 空间 |
+| `mind`          | 思维导图  | 个人首页 / 空间 |
+| `flowchart`     | 流程图   | 个人首页 / 空间 |
+| `smartsheet`    | 智能表格  | 个人首页 / 空间 |
+| `folder`        | 文件夹   | 个人首页 / 空间 |
+| `wikilink`      | 空间链接  | 仅空间（需传 `space_id`） |
 
 **返回字段**：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `file_id` | string | 文档ID |
-| `title` | string | 文档名称 |
-| `url` | string | 文档链接 |
-| `type` | string | 文档类型 |
+| `file_id` | string | 文件ID（文档ID、文件夹ID 或空间内节点ID） |
+| `title` | string | 文件名称 |
+| `url` | string | 文件链接 |
+| `type` | string | 文件类型 |
+| `space_id` | string | 空间ID，在空间内创建文件时返回 |
+| `error` | string | 错误信息（如有） |
 
 **调用示例**：
 
 ```json
 {
   "title": "项目计划",
-  "doc_type": "doc"
+  "file_type": "doc"
 }
 ```
 
@@ -77,6 +183,8 @@
   "title": "项目计划",
   "url": "https://docs.qq.com/doc/DV2h5cWJ0R1lQb0lH",
   "type": "doc",
+  "space_id": "",
+  "error": "",
   "trace_id": "trace_xyz"
 }
 ```
@@ -193,9 +301,9 @@
 
 | 参数 | 类型 | 必填 | 说明             |
 |------|------|-----|----------------|
-| `num` | uint32 | ✅ | 当前查询页码数，默认为1   |
-| `count` | uint32 | ✅ | 分页条数，默认为100,每页最多查询的记录数量   |
-| `order_by` | uint32 | ✅ | 排序方式：0-按文档查看时间排序，1-按文件修改时间排序，默认为0，2-按文档名称排序   |
+| `num` | uint32 | ✅ | 当前查询页码数，从1开始   |
+| `count` | uint32 |  | 分页条数，默认为100，每页最多查询的记录数量   |
+| `order_by` | uint32 |  | 排序方式：0-按文档查看时间排序（默认），1-按文件修改时间排序，2-按文档名称排序   |
 
 **返回字段**：
 

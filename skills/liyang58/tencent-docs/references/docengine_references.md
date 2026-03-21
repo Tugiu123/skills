@@ -6,6 +6,24 @@
 
 ---
 
+## 服务信息
+
+| 项目 | 说明 |
+|------|------|
+| 服务名 | `tencent-docengine` |
+| API 地址 | `https://docs.qq.com/api/v6/doc/mcp` |
+| 调用方式 | `mcporter call tencent-docengine <工具名>` |
+| Token | 与 tencent-docs **共用同一个 Token**，完成 tencent-docs 授权（`auth.md`）后自动配置，无需单独鉴权 |
+| 文档类型 | 仅支持 Word 文档类型 |
+
+> ⚠️ **推荐优先使用 `file_url`（文档链接）而非 `file_id` 来标识文档**，用户通常直接提供文档链接，使用更便捷。
+>
+> 编辑前推荐先调用 `get_outline` 获取文档大纲结构，了解各标题和正文的可操作位置。
+>
+> 当用户要求「在文档开头插入」时，需向用户确认是在「文档标题之前」（使用 `HEADING_LEVEL_TITLE` 的 `title_start`）还是「正文开头/标题之后」（使用 `HEADING_LEVEL_TITLE` 的 `content_start`）插入，未明确时应主动询问。
+
+---
+
 ## 通用说明
 
 ### 文档标识
@@ -40,7 +58,7 @@
 | replace_text | 替换指定范围内的文本 |
 | find_and_replace_text | 查找并替换文档中所有匹配的文本 |
 | update_text_property | 更新指定范围内文本的属性（加粗、斜体、下划线、删除线、颜色等） |
-| insert_task | 在指定位置插入任务（待办/已完成） |
+| insert_task | 在指定位置插入一个或多个任务，支持设置任务状态和内容文本 |
 | insert_image | 在指定位置插入图片 |
 | insert_page_break | 在指定位置插入分页符 |
 | insert_table | 在指定位置插入表格 |
@@ -287,15 +305,43 @@
 ## 7. insert_task
 
 ### 功能说明
-在 Word 文档的指定位置插入任务（待办事项）。支持设置任务状态为待办或已完成。
+在 Word 文档的指定位置插入一个或多个任务（待办事项）。每个任务支持设置任务状态（待办/已完成）和任务内容文本。
 
 ### 调用示例
-### 调用示例
+
+**插入单个任务：**
 ```json
 {
   "file_url": "https://docs.qq.com/doc/xxxxxxxx",
   "idx": 0,
-  "state": 1
+  "tasks": [
+    {
+      "state": 1,
+      "content": "完成需求文档编写"
+    }
+  ]
+}
+```
+
+**插入多个任务：**
+```json
+{
+  "file_url": "https://docs.qq.com/doc/xxxxxxxx",
+  "idx": 5,
+  "tasks": [
+    {
+      "state": 1,
+      "content": "完成需求文档编写"
+    },
+    {
+      "state": 2,
+      "content": "完成接口设计"
+    },
+    {
+      "state": 1,
+      "content": "编写单元测试"
+    }
+  ]
 }
 ```
 
@@ -303,7 +349,12 @@
 - `file_url` (string, 推荐): 腾讯文档的文档链接，与 `file_id` 二选一，**推荐优先使用**
 - `file_id` (string, 可选): 文档唯一标识符，与 `file_url` 二选一
 - `idx` (integer, 必填): 插入位置的索引，从 0 开始
-- `state` (integer, 必填): 任务状态
+- `tasks` (array, 必填): 任务列表，支持一次插入多个任务，每个任务包含：
+  - `state` (integer, 必填): 任务状态枚举值，不允许传递0值，取值：
+    - `1`: 待办（未完成）
+    - `2`: 已完成
+  - `content` (string, 必填): 任务内容文本
+
 ### 返回值说明
 ```json
 {
