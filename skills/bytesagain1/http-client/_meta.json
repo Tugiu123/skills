@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain1",
+  "slug": "http-client",
+  "displayName": "Http Client",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1773919079558,
+    "commit": null
+  },
+  "history": []
+}
