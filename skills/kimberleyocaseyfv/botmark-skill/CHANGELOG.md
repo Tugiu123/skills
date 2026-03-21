@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.4.0 (2026-03-20)
+
+### New Features
+- **Engine caching**: Skill install now bundles `botmark_engine.py` + `engine_meta.json`
+  - Bots save the engine locally at install time
+  - Subsequent evaluations pass `cached_engine_version` → server skips runner_script (~50-100 KB saving)
+  - Engine only re-downloaded when `engine_version` changes
+- **New tool parameter**: `cached_engine_version` added to `botmark_start_evaluation`
+- **Inline auto-upgrade**: Outdated bots receive `skill_update.inline_upgrade` with latest tool definitions + endpoint map + engine_version, enabling self-upgrade without owner intervention
+
+### Performance
+- **EVALUATION_INSTRUCTIONS streamlined**: 550→251 lines (54% reduction)
+  - Removed duplicate rules, merged error scenarios into tables
+  - Faster bot processing of system prompt
+- **PBKDF2 iterations**: Reduced from 100k to 10k (server + runner template)
+- **Parallel encryption**: `bundle_scorer` and `bundle_exam` run concurrently
+- **LLM Judge deferred to background**: /submit returns in 100-500ms instead of 8-15s
+- **Report generation parallelized**: human + bot reports generated concurrently
+
+### Fixes
+- Fixed rate limit key mismatch on GET /skill endpoint
+- Added error handling for engine bundling in GET /skill
+- Added HTTP cache headers (Cache-Control: 24h + ETag) to GET /skill
+
 ## v1.5.3 (2026-03-15)
 
 ### Fixes

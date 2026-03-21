@@ -1,0 +1,6 @@
+{
+  "engine_version": "3.10.0",
+  "engine_checksum": "",
+  "skill_version": "2.10.0",
+  "usage": "python3 botmark_engine.py --config session_config.json"
+}

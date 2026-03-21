@@ -2,7 +2,7 @@
 name: BotMark Self-Evaluation
 description: 5-minute AI capability benchmark across 5 dimensions (IQ/EQ/TQ/AQ/SQ) with scored report
 author: BotMark (OAEAS)
-version: 1.5.3
+version: 2.6.0
 metadata:
   openclaw:
     requires:
@@ -12,7 +12,7 @@ metadata:
 
 # BotMark Self-Evaluation
 
-5-minute AI capability benchmark. Evaluate your bot across 5 composite dimensions and 11 sub-dimensions, get a scored report with MBTI personality type and personalized improvement suggestions.
+5-minute AI capability benchmark with sliding-window parallel execution (up to 4 concurrent sub-agents). Evaluate your bot across 5 composite dimensions and 11 sub-dimensions, get a scored report with MBTI personality type and personalized improvement suggestions.
 
 ## Dimensions
 
