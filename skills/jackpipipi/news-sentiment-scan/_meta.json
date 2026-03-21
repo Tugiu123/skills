@@ -1,0 +1,11 @@
+{
+  "owner": "jackpipipi",
+  "slug": "news-sentiment-scan",
+  "displayName": "News Sentiment Scan",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773912544577,
+    "commit": null
+  },
+  "history": []
+}
