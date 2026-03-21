@@ -3,9 +3,15 @@
   "slug": "hk-horse-racing",
   "displayName": "Hong Kong Horse Racing",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773830148238,
-    "commit": "https://github.com/openclaw/skills/commit/27725ce27c32f3bc0a064a33a304b4a716bb1216"
+    "version": "1.2.0",
+    "publishedAt": 1773894849914,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773830148238,
+      "commit": "https://github.com/openclaw/skills/commit/27725ce27c32f3bc0a064a33a304b4a716bb1216"
+    }
+  ]
 }
