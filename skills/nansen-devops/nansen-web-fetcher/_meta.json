@@ -1,0 +1,11 @@
+{
+  "owner": "nansen-devops",
+  "slug": "nansen-web-fetcher",
+  "displayName": "Nansen Web Fetcher",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773937039950,
+    "commit": null
+  },
+  "history": []
+}
