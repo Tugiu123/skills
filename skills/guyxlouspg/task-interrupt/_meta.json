@@ -1,0 +1,11 @@
+{
+  "owner": "guyxlouspg",
+  "slug": "task-interrupt",
+  "displayName": "任务打断机制",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773890583301,
+    "commit": null
+  },
+  "history": []
+}
