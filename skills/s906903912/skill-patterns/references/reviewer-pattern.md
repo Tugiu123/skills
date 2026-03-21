@@ -1,201 +1,201 @@
-# Pattern 3: Reviewer（评审器）
+# Pattern 3: Reviewer
 
-## 核心作用
+## Core Purpose
 
-将**评审标准**与**评审逻辑**分离，用外部检查清单实现模块化审计。
+Separate **review criteria** from **review logic**, using external checklists for modular auditing.
 
-## 适用场景
+## Use Cases
 
 - Code Review
-- 安全审计（OWASP）
-- 合规检查
-- 设计审查
-- 文档质量检查
+- Security audits (OWASP)
+- Compliance checks
+- Design reviews
+- Documentation quality checks
 
-## 目录结构
+## Directory Structure
 
 ```
 skills/code-reviewer/
 ├── SKILL.md
 └── references/
-    └── review-checklist.md   # 评审检查清单
+    └── review-checklist.md   # Review checklist
 ```
 
-## SKILL.md 模板
+## SKILL.md Template
 
 ```markdown
 ---
 name: code-reviewer
-description: Python 代码质量评审。当用户提交代码求反馈、请求审查或需要代码审计时激活。
+description: Python code quality review. Activates when users submit code for feedback, request review, or need code audit.
 metadata:
   pattern: reviewer
   severity-levels: [error, warning, info]
-  trigger-phrases: [代码审查，review 这个，检查代码，code review, audit this]
+  trigger-phrases: [code review, review this, check code, audit this]
 ---
 
-你是 Python 代码评审员。**严格按以下流程执行**：
+You are a Python code reviewer. **Strictly follow this flow**:
 
-## Step 1: 加载检查清单
-加载 `references/review-checklist.md` 获取完整评审标准。
+## Step 1: Load Checklist
+Load `references/review-checklist.md` to get complete review criteria.
 
-## Step 2: 理解代码意图
-先阅读用户代码，理解其功能和目标。
-**禁止**在不理解意图的情况下直接挑错。
+## Step 2: Understand Code Intent
+Read user's code first, understand its function and goals.
+**Prohibit** finding faults without understanding intent.
 
-## Step 3: 逐条应用检查清单
-对清单中的每条规则：
-1. 检查代码是否符合
-2. 如违规，记录：行号 + 严重度 + 原因 + 修复建议
+## Step 3: Apply Checklist Item by Item
+For each rule in checklist:
+1. Check if code complies
+2. If violation, record: line number + severity + reason + fix suggestion
 
-## Step 4: 生成结构化报告
+## Step 4: Generate Structured Report
 
-输出格式如下：
+Output format as follows:
 
-### 📊 总览
-- **功能**：这段代码做什么
-- **整体质量**：一句话评价
+### 📊 Overview
+- **Function**: What this code does
+- **Overall quality**: One-sentence evaluation
 
-### 🚨 错误（必须修复）
-{{列出所有 error 级别问题}}
+### 🚨 Errors (must fix)
+{{List all error-level issues}}
 
-### ⚠️ 警告（建议修复）
-{{列出所有 warning 级别问题}}
+### ⚠️ Warnings (recommended to fix)
+{{List all warning-level issues}}
 
-### ℹ️ 提示（可考虑优化）
-{{列出所有 info 级别问题}}
+### ℹ️ Tips (consider optimizing)
+{{List all info-level issues}}
 
-### 📈 评分
-**X/10 分** - 评分理由
+### 📈 Score
+**X/10** - Scoring rationale
 
-### 🎯 Top 3 建议
-{{按影响力排序的前 3 个改进建议}}
+### 🎯 Top 3 Recommendations
+{{Top 3 improvement suggestions ranked by impact}}
 ```
 
-## references/review-checklist.md 模板
+## references/review-checklist.md Template
 
 ```markdown
-# Python 代码评审检查清单 v2.0
+# Python Code Review Checklist v2.0
 
-## P0 - 错误（必须修复）
+## P0 - Errors (must fix)
 
-### 安全性
-- [ ] 硬编码密码/密钥/API Token
-- [ ] SQL 注入风险（字符串拼接 SQL）
-- [ ] 命令注入风险（os.system 用户输入）
-- [ ] 敏感信息打印到日志
+### Security
+- [ ] Hardcoded passwords/keys/API tokens
+- [ ] SQL injection risks (string-concatenated SQL)
+- [ ] Command injection risks (os.system with user input)
+- [ ] Sensitive information printed to logs
 
-### 正确性
-- [ ] 未处理的异常（裸 except）
-- [ ] 资源未释放（文件/连接未 close）
-- [ ] 竞态条件风险
-- [ ] 边界条件未处理（空列表/None/负数）
+### Correctness
+- [ ] Unhandled exceptions (bare except)
+- [ ] Resources not released (files/connections not closed)
+- [ ] Race condition risks
+- [ ] Boundary conditions not handled (empty lists/None/negative numbers)
 
-## P1 - 警告（建议修复）
+## P1 - Warnings (recommended to fix)
 
-### 可读性
-- [ ] 函数超过 50 行
-- [ ] 嵌套超过 4 层
-- [ ] 变量命名不清晰（单字母/无意义）
-- [ ] 缺少类型注解
+### Readability
+- [ ] Functions over 50 lines
+- [ ] Nesting over 4 levels
+- [ ] Unclear variable naming (single letter/meaningless)
+- [ ] Missing type annotations
 
-### 性能
-- [ ] 循环内重复计算
-- [ ] 不必要的列表拷贝
-- [ ] 使用 list 而非生成器
-- [ ] N+1 查询问题
+### Performance
+- [ ] Repeated calculations inside loops
+- [ ] Unnecessary list copies
+- [ ] Using list instead of generators
+- [ ] N+1 query problems
 
-### 可维护性
-- [ ] 重复代码（DRY 原则）
-- [ ] 魔法数字（未定义常量）
-- [ ] 过长的参数列表（>5 个）
-- [ ] 缺少文档字符串
+### Maintainability
+- [ ] Duplicate code (DRY principle)
+- [ ] Magic numbers (undefined constants)
+- [ ] Overly long parameter lists (>5)
+- [ ] Missing docstrings
 
-## P2 - 提示（可优化）
+## P2 - Tips (can optimize)
 
-### 最佳实践
-- [ ] 可使用标准库替代自定义实现
-- [ ] 可使用更 Pythonic 的写法
-- [ ] 可添加单元测试
-- [ ] 可添加类型提示
+### Best Practices
+- [ ] Could use standard library instead of custom implementation
+- [ ] Could use more Pythonic写法
+- [ ] Could add unit tests
+- [ ] Could add type hints
 ```
 
-## 变体：领域专用 Reviewer
+## Variants: Domain-Specific Reviewer
 
-### 安全审计
+### Security Audit
 
 ```markdown
 references/security-checklist.md
 - OWASP Top 10
-- 认证授权检查
-- 数据加密检查
-- 日志审计检查
+- Authentication/authorization checks
+- Data encryption checks
+- Log audit checks
 ```
 
-### 前端设计审查
+### Frontend Design Review
 
 ```markdown
 references/design-checklist.md
-- 响应式布局
-- 无障碍访问（a11y）
-- 颜色对比度
-- 交互反馈
-- 加载状态处理
+- Responsive layout
+- Accessibility (a11y)
+- Color contrast
+- Interaction feedback
+- Loading state handling
 ```
 
-### EDA 代码审查
+### EDA Code Review
 
 ```markdown
 references/rtl-checklist.md
-- 可综合性检查
-- 时序约束
-- 复位策略
-- 时钟域交叉
-- 面积优化建议
+- Synthesizability checks
+- Timing constraints
+- Reset strategy
+- Clock domain crossing
+- Area optimization suggestions
 ```
 
-## 输出示例
+## Output Example
 
 ```markdown
-### 📊 总览
-- **功能**：用户登录验证，包含密码哈希和 JWT 生成
-- **整体质量**：核心逻辑正确，但存在 2 个安全风险
+### 📊 Overview
+- **Function**: User login validation, includes password hashing and JWT generation
+- **Overall quality**: Core logic correct, but has 2 security risks
 
-### 🚨 错误（必须修复）
-1. **第 15 行** - 硬编码 JWT_SECRET
-   - 风险：密钥泄露导致 Token 可伪造
-   - 修复：从环境变量读取 `os.environ.get("JWT_SECRET")`
+### 🚨 Errors (must fix)
+1. **Line 15** - Hardcoded JWT_SECRET
+   - Risk: Key leak allows Token forgery
+   - Fix: Read from environment variable `os.environ.get("JWT_SECRET")`
 
-2. **第 28 行** - 裸 except 捕获所有异常
-   - 风险：掩盖真实错误，难以调试
-   - 修复：明确捕获具体异常类型 `except AuthenticationError:`
+2. **Line 28** - Bare except catches all exceptions
+   - Risk: Masks real errors, hard to debug
+   - Fix: Catch specific exception types `except AuthenticationError:`
 
-### ⚠️ 警告（建议修复）
-1. **第 10 行** - 函数 65 行，建议拆分
-2. **第 33 行** - 缺少类型注解
+### ⚠️ Warnings (recommended to fix)
+1. **Line 10** - Function 65 lines, recommend splitting
+2. **Line 33** - Missing type annotations
 
-### 📈 评分
-**6/10 分** - 功能可用但有严重安全隐患
+### 📈 Score
+**6/10** - Functional but has serious security issues
 
-### 🎯 Top 3 建议
-1. 立即移除硬编码密钥（安全风险）
-2. 添加输入验证和参数校验
-3. 拆分函数为 validate_user() + generate_token()
+### 🎯 Top 3 Recommendations
+1. Remove hardcoded keys immediately (security risk)
+2. Add input validation and parameter checks
+3. Split function into validate_user() + generate_token()
 ```
 
-## 优缺点
+## Pros & Cons
 
-| 优点 | 缺点 |
+| Pros | Cons |
 |-----|------|
-| 检查清单可独立更新 | 清单设计需要领域专家 |
-| 可复用（换清单=换场景） | 可能产生大量低价值提示 |
-| 输出结构化，易自动化处理 | 严重度分级可能主观 |
+| Checklists can be updated independently | Checklist design needs domain experts |
+| Reusable (change checklist = change scenario) | May generate大量 low-value tips |
+| Structured output, easy to automate | Severity classification may be subjective |
 
-## 自动化扩展
+## Automation Extensions
 
-### 与 CI 集成
+### CI Integration
 
 ```bash
-# 评审输出 JSON 格式，供 CI 解析
+# Review output in JSON format for CI parsing
 {
   "score": 6,
   "errors": [...],
@@ -204,20 +204,20 @@ references/rtl-checklist.md
 }
 ```
 
-### 与 LLM-as-a-judge 集成
+### LLM-as-a-judge Integration
 
 ```markdown
-## Step 5: 二次验证
-将评审结果发送给另一个 LLM 实例：
-"请评估以上评审是否合理，是否有遗漏或误判？"
+## Step 5: Secondary Validation
+Send review results to another LLM instance:
+"Please evaluate if above review is reasonable, any omissions or misjudgments?"
 ```
 
 ---
 
-## 检查清单
+## Checklist
 
-- [ ] `references/checklist.md` 存在且分类清晰
-- [ ] 严重度分级明确（error/warning/info）
-- [ ] SKILL.md 要求理解代码意图后再评审
-- [ ] 输出格式结构化
-- [ ] 有评分机制和 Top 建议
+- [ ] `references/checklist.md` exists with clear categorization
+- [ ] Severity levels clear (error/warning/info)
+- [ ] SKILL.md requires understanding code intent before review
+- [ ] Output format is structured
+- [ ] Has scoring mechanism and Top recommendations

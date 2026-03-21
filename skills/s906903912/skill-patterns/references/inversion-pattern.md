@@ -1,234 +1,234 @@
-# Pattern 4: Inversion（逆向采访）
+# Pattern 4: Inversion
 
-## 核心作用
+## Core Purpose
 
-**先采访再执行**，防止 Agent 在需求不明确时瞎猜，强制收集完整上下文。
+**Interview first, then execute**, preventing Agent from guessing when requirements are unclear, forcing complete context collection.
 
-## 适用场景
+## Use Cases
 
-- 需求模糊的项目规划
-- 复杂系统设计
-- 个性化任务（需要用户偏好）
-- 多约束条件的任务
+- Project planning with vague requirements
+- Complex system design
+- Personalized tasks (need user preferences)
+- Multi-constraint tasks
 
-## 目录结构
+## Directory Structure
 
 ```
 skills/project-planner/
 ├── SKILL.md
 └── assets/
-    └── plan-template.md      # 最终输出模板（可选）
+    └── plan-template.md      # Final output template (optional)
 ```
 
-## SKILL.md 模板
+## SKILL.md Template
 
 ```markdown
 ---
 name: project-planner
-description: 通过结构化提问采集需求，然后生成项目计划。当用户说"我想构建"、"帮我规划"、"设计一个系统"、"开始新项目"时激活。
+description: Gather requirements through structured questioning, then generate project plan. Activates when users say "I want to build", "help me plan", "design a system", "start new project".
 metadata:
   pattern: inversion
   interaction: multi-turn
-  trigger-phrases: [我想做，帮我规划，设计一个，build a, plan a, design a system]
+  trigger-phrases: [I want to, help me plan, design a, build a, plan a, design a system]
 ---
 
-你正在进行结构化需求采访。**严格遵守以下规则**：
+You are conducting a structured requirements interview. **Strictly follow these rules**:
 
-## ⛔ 禁止事项
-- **禁止**在采访完成前开始设计或编写代码
-- **禁止**一次性问所有问题（一次只问 1 个）
-- **禁止**跳过任何问题
+## ⛔ Prohibitions
+- **Prohibit** starting design or writing code before interview completes
+- **Prohibit** asking all questions at once (ask 1 at a time)
+- **Prohibit** skipping any questions
 
-## ✅ 必须事项
-- 每次只问 1 个问题，等待用户回答后再问下一个
-- 如用户回答模糊，追问澄清
-- 采访完成后，总结需求请用户确认
-
----
-
-## Phase 1 — 问题发现（逐个提问，等待每个回答）
-
-按顺序问以下问题，**不要跳过任何一个**：
-
-**Q1**: "这个项目为用户解决什么问题？"
-→ 等待用户回答
-
-**Q2**: "主要用户是谁？他们的技术水平如何？"
-→ 等待用户回答
-
-**Q3**: "预期规模？（日活用户、数据量、请求频率）"
-→ 等待用户回答
+## ✅ Requirements
+- Ask only 1 question at a time, wait for user answer before next
+- If user answer is vague, ask follow-up for clarification
+- After interview completes, summarize requirements for user confirmation
 
 ---
 
-## Phase 2 — 技术约束（Phase 1 全部回答后才开始）
+## Phase 1 — Problem Discovery (ask one by one, wait for each answer)
 
-**Q4**: "使用什么部署环境？（本地/云/边缘）"
-→ 等待用户回答
+Ask following questions in order, **do not skip any**:
 
-**Q5**: "有技术栈偏好吗？（语言/框架/数据库）"
-→ 等待用户回答
+**Q1**: "What problem does this project solve for users?"
+→ Wait for user answer
 
-**Q6**: "不可妥协的要求？（延迟/可用性/合规/预算）"
-→ 等待用户回答
+**Q2**: "Who are the primary users? What is their technical level?"
+→ Wait for user answer
 
----
-
-## Phase 3 — 需求确认（所有问题回答后）
-
-1. 总结收集到的所有需求
-2. 问用户："以上需求总结准确吗？有遗漏或需要调整的吗？"
-3. 根据用户反馈迭代，直到用户确认
+**Q3**: "Expected scale? (daily active users, data volume, request frequency)"
+→ Wait for user answer
 
 ---
 
-## Phase 4 — 生成计划（用户确认需求后）
+## Phase 2 — Technical Constraints (starts only after all Phase 1 answered)
 
-1. 加载 `assets/plan-template.md` 获取输出格式
-2. 用采集的需求填充每个章节
-3. 呈现完整计划
-4. 问："这个计划是否符合你的预期？需要调整什么？"
-5. 根据反馈迭代，直到用户确认
+**Q4**: "What deployment environment? (local/cloud/edge)"
+→ Wait for user answer
+
+**Q5**: "Any technology stack preferences? (language/framework/database)"
+→ Wait for user answer
+
+**Q6**: "Non-negotiable requirements? (latency/availability/compliance/budget)"
+→ Wait for user answer
+
+---
+
+## Phase 3 — Requirements Confirmation (after all questions answered)
+
+1. Summarize all collected requirements
+2. Ask user: "Is above requirements summary accurate? Any omissions or adjustments needed?"
+3. Iterate based on user feedback until user confirms
+
+---
+
+## Phase 4 — Generate Plan (after user confirms requirements)
+
+1. Load `assets/plan-template.md` to get output format
+2. Fill each section with collected requirements
+3. Present complete plan
+4. Ask: "Does this plan meet your expectations? What needs adjustment?"
+5. Iterate based on feedback until user confirms
 ```
 
-## assets/plan-template.md 模板
+## assets/plan-template.md Template
 
 ```markdown
-# {{项目名称}} - 项目计划
+# {{project_name}} - Project Plan
 
-## 1. 项目概述
-- **问题陈述**：{{Q1 答案}}
-- **目标用户**：{{Q2 答案}}
-- **预期规模**：{{Q3 答案}}
+## 1. Project Overview
+- **Problem Statement**: {{Q1 answer}}
+- **Target Users**: {{Q2 answer}}
+- **Expected Scale**: {{Q3 answer}}
 
-## 2. 技术架构
-- **部署环境**：{{Q4 答案}}
-- **技术栈**：{{Q5 答案}}
-- **架构图**：{{生成架构图描述}}
+## 2. Technical Architecture
+- **Deployment Environment**: {{Q4 answer}}
+- **Technology Stack**: {{Q5 answer}}
+- **Architecture Diagram**: {{generate architecture diagram description}}
 
-## 3. 核心功能
-- {{功能列表}}
+## 3. Core Features
+- {{feature list}}
 
-## 4. 约束与要求
-- **性能要求**：{{Q6 答案}}
-- **合规要求**：{{Q6 答案}}
-- **预算约束**：{{Q6 答案}}
+## 4. Constraints & Requirements
+- **Performance Requirements**: {{Q6 answer}}
+- **Compliance Requirements**: {{Q6 answer}}
+- **Budget Constraints**: {{Q6 answer}}
 
-## 5. 里程碑计划
-| 阶段 | 交付物 | 预计时间 |
+## 5. Milestone Plan
+| Phase | Deliverables | Estimated Time |
 |-----|--------|---------|
 | Phase 1 | ... | ... |
 | Phase 2 | ... | ... |
 
-## 6. 风险与缓解
-- **技术风险**：...
-- **资源风险**：...
+## 6. Risks & Mitigation
+- **Technical Risks**: ...
+- **Resource Risks**: ...
 
-## 7. 下一步行动
+## 7. Next Actions
 1. ...
 2. ...
 
 ---
-*生成时间：{{日期}}*
+*Generated: {{date}}*
 ```
 
-## 变体：简化版 Inversion
+## Variant: Simplified Inversion
 
-适用于轻量级任务：
+For lightweight tasks:
 
 ```markdown
-## 快速采访（3 个问题）
+## Quick Interview (3 questions)
 
-在开始之前，我需要了解：
+Before starting, I need to understand:
 
-1. "你的主要目标是什么？"
-2. "有什么技术约束或偏好？"
-3. "如何定义成功？（验收标准）"
+1. "What is your primary goal?"
+2. "Any technical constraints or preferences?"
+3. "How do you define success? (acceptance criteria)"
 
-请依次回答，然后我会给出方案。
+Please answer in order, then I'll provide a solution.
 ```
 
-## 变体：分支式采访
+## Variant: Branching Interview
 
-根据用户回答动态调整问题：
+Dynamically adjust questions based on user answers:
 
 ```markdown
-## Phase 1 — 问题发现
+## Phase 1 — Problem Discovery
 
-**Q1**: "这个项目的主要问题是什么？"
+**Q1**: "What is the main problem with this project?"
 
-→ 如用户回答"性能问题"，进入性能优化分支
-→ 如用户回答"功能缺失"，进入功能设计分支
-→ 如用户回答"成本太高"，进入成本优化分支
+→ If user answers "performance issues", enter performance optimization branch
+→ If user answers "missing features", enter feature design branch
+→ If user answers "too expensive", enter cost optimization branch
 ```
 
-## 对话状态追踪
+## Dialogue State Tracking
 
-对于复杂采访，建议追踪状态：
+For complex interviews, recommend tracking state:
 
 ```markdown
-## 当前状态
+## Current State
 - Phase: 2/3
-- 已回答问题：Q1, Q2, Q3, Q4
-- 待回答问题：Q5, Q6
-- 需求已确认：否
+- Questions answered: Q1, Q2, Q3, Q4
+- Questions pending: Q5, Q6
+- Requirements confirmed: No
 ```
 
-## 优缺点
+## Pros & Cons
 
-| 优点 | 缺点 |
+| Pros | Cons |
 |-----|------|
-| 避免理解偏差 | 对话轮次多，耗时长 |
-| 用户参与感强 | 用户可能不耐烦 |
-| 输出更符合预期 | 问题设计需要经验 |
+| Avoids understanding偏差 | Many dialogue turns, time-consuming |
+| Strong user involvement | Users may get impatient |
+| Output better matches expectations | Question design needs experience |
 
-## 与 Generator 组合
+## Combination with Generator
 
 ```markdown
-## Inversion → Generator 流程
+## Inversion → Generator Flow
 
-Phase 1-3: Inversion 采集需求
+Phase 1-3: Inversion gathers requirements
   ↓
-Phase 4: Generator 填充模板
+Phase 4: Generator fills template
   ↓
-Phase 5: 用户确认 → 如不满足，返回 Phase 1 重新采集
+Phase 5: User confirms → If not satisfied, return to Phase 1 to re-gather
 ```
 
-## 示例对话
+## Example Dialogue
 
 ```
-用户：我想做一个博客系统
+User: I want to build a blog system
 
-Agent: 好的！我先问几个问题来了解你的需求。
+Agent: Great! Let me ask a few questions to understand your needs.
 
-**Q1**: 这个博客系统主要为用户解决什么问题？
-      是个人博客、企业内容平台、还是其他类型？
+**Q1**: What problem does this blog system primarily solve for users?
+      Is it a personal blog, enterprise content platform, or other type?
 
-用户：企业内容平台，用于发布技术文章和案例
+User: Enterprise content platform for publishing technical articles and case studies
 
-Agent: 明白了！
+Agent: Understood!
 
-**Q2**: 主要用户是谁？他们的技术水平如何？
-      是内部员工、客户、还是公开读者？
+**Q2**: Who are the primary users? What is their technical level?
+      Are they internal employees, customers, or public readers?
 
-用户：主要是潜在客户，技术水平中等
+User: Mainly potential customers, medium technical level
 
-Agent: 好的！
+Agent: Got it!
 
-**Q3**: 预期规模？比如每天多少访客、多少篇文章？
+**Q3**: Expected scale? Like daily visitors, number of articles?
 
-用户：预计日活 1000 人，初期约 50 篇文章
+User: Expected 1000 DAU, initially about 50 articles
 
-Agent: ...（继续 Phase 2 技术约束问题）
+Agent: ...(continues with Phase 2 technical constraint questions)
 ```
 
 ---
 
-## 检查清单
+## Checklist
 
-- [ ] 明确禁止提前执行（"DO NOT start until..."）
-- [ ] 问题分阶段组织
-- [ ] 一次只问 1 个问题
-- [ ] 有需求确认环节
-- [ ] 有最终输出模板（可选）
-- [ ] 支持迭代反馈
+- [ ] Clearly prohibit premature execution ("DO NOT start until...")
+- [ ] Questions organized in phases
+- [ ] Ask only 1 question at a time
+- [ ] Has requirements confirmation step
+- [ ] Has final output template (optional)
+- [ ] Supports iterative feedback

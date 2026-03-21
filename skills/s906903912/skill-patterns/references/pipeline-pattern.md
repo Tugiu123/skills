@@ -1,184 +1,184 @@
-# Pattern 5: Pipeline（流水线）
+# Pattern 5: Pipeline
 
-## 核心作用
+## Core Purpose
 
-强制**多步骤顺序执行**，带检查点（checkpoint），防止跳过关键步骤。
+Force **multi-step sequential execution** with checkpoints, preventing skipping critical steps.
 
-## 适用场景
+## Use Cases
 
-- 文档生成（解析→生成→组装→质检）
-- 代码迁移/重构
-- 数据转换流程
-- 多阶段处理任务
+- Document generation (parse→generate→assemble→QC)
+- Code migration/refactoring
+- Data transformation workflows
+- Multi-stage processing tasks
 
-## 目录结构
+## Directory Structure
 
 ```
 skills/doc-pipeline/
 ├── SKILL.md
 ├── references/
-│   ├── docstring-style.md    # Step 2 使用
-│   └── quality-checklist.md  # Step 4 使用
+│   ├── docstring-style.md    # Used in Step 2
+│   └── quality-checklist.md  # Used in Step 4
 └── assets/
-    └── api-doc-template.md   # Step 3 使用
+    └── api-doc-template.md   # Used in Step 3
 ```
 
-## SKILL.md 模板
+## SKILL.md Template
 
 ```markdown
 ---
 name: doc-pipeline
-description: 通过多步骤流水线从 Python 源码生成 API 文档。当用户要求文档化模块、生成 API 文档或从代码创建文档时激活。
+description: Generate API documentation from Python source code through multi-step pipeline. Activates when users request to document modules, generate API docs, or create documentation from code.
 metadata:
   pattern: pipeline
   steps: 4
-  trigger-phrases: [生成文档，document this, create API docs, 文档化]
+  trigger-phrases: [generate docs, document this, create API docs]
 ---
 
-你正在运行文档生成流水线。**严格按顺序执行每个步骤，禁止跳过**。
+You are running a documentation generation pipeline. **Strictly execute each step in order, prohibit skipping**.
 
-## ⛔ 全局规则
-- **禁止**跳过任何步骤
-- **禁止**在步骤失败时继续
-- **禁止**在未获用户确认时进入下一步（如有检查点）
-- 每步完成后，向用户展示结果并说明下一步
+## ⛔ Global Rules
+- **Prohibit** skipping any steps
+- **Prohibit** continuing when step fails
+- **Prohibit** proceeding to next step without user confirmation (if checkpoint exists)
+- After each step completes, show results to user and explain next step
 
 ---
 
-## Step 1 — 解析与清单生成
+## Step 1 — Parse & Inventory Generation
 
-**任务**：分析用户 Python 代码，提取所有公共类、函数、常量
+**Task**: Analyze user's Python code, extract all public classes, functions, constants
 
-**输出**：
+**Output**:
 ```
-检测到以下公共 API：
+Detected following public API:
 - [ ] class UserManager
 - [ ] def authenticate_user()
 - [ ] def create_session()
 - [ ] const MAX_RETRY = 3
 
-请确认：这是你要文档化的完整公共 API 吗？
-有需要添加或排除的吗？
+Please confirm: Is this the complete public API you want documented?
+Anything to add or exclude?
 ```
 
-**检查点**：⏸️ 等待用户确认
+**Checkpoint**: ⏸️ Wait for user confirmation
 
 ---
 
-## Step 2 — 生成 Docstring
+## Step 2 — Generate Docstrings
 
-**任务**：为每个缺少文档的函数生成 docstring
+**Task**: Generate docstrings for each function missing documentation
 
-**前置条件**：加载 `references/docstring-style.md`
+**Prerequisite**: Load `references/docstring-style.md`
 
-**执行**：
-对每个函数：
-1. 按风格指南生成 docstring
-2. 包含：参数说明、返回值、异常、示例
+**Execution**:
+For each function:
+1. Generate docstring per style guide
+2. Include: parameter descriptions, return values, exceptions, examples
 
-**输出**：
+**Output**:
 ```
-为以下函数生成了 docstring：
+Generated docstrings for following functions:
 
 ### authenticate_user()
 ```python
 def authenticate_user(username: str, password: str) -> User:
-    """验证用户凭据并返回用户对象。
+    """Validate user credentials and return user object.
     
     Args:
-        username: 用户名（邮箱格式）
-        password: 用户密码（明文）
+        username: Username (email format)
+        password: User password (plaintext)
     
     Returns:
-        User: 验证成功的用户对象
+        User: User object on successful authentication
     
     Raises:
-        AuthenticationError: 凭据无效时
+        AuthenticationError: When credentials invalid
     
     Example:
         >>> user = authenticate_user("a@example.com", "pass123")
     """
 ```
 
-**检查点**：⏸️ 问用户："这些 docstring 是否符合预期？需要调整吗？"
+**Checkpoint**: ⏸️ Ask user: "Do these docstrings meet expectations? Need adjustments?"
 
 ---
 
-## Step 3 — 组装文档
+## Step 3 — Assemble Documentation
 
-**前置条件**：用户确认 Step 2
+**Prerequisite**: User confirmed Step 2
 
-**任务**：加载 `assets/api-doc-template.md`，编译完整文档
+**Task**: Load `assets/api-doc-template.md`, compile complete documentation
 
-**输出**：完整的 API 参考文档（Markdown 格式）
-
----
-
-## Step 4 — 质量检查
-
-**任务**：对照 `references/quality-checklist.md` 自检
-
-**检查项**：
-- [ ] 每个公共符号都有文档
-- [ ] 每个参数有类型和说明
-- [ ] 每个函数至少有 1 个使用示例
-- [ ] 无拼写错误
-- [ ] 格式一致
-
-**输出**：
-```
-质量检查结果：
-✅ 所有检查通过
-
-或
-
-⚠️ 发现 2 个问题：
-1. create_session() 缺少示例
-2. 拼写错误：第 35 行 "authentcate" → "authenticate"
-
-已自动修复，请确认。
-```
-
-**检查点**：⏸️ 等待用户确认
+**Output**: Complete API reference document (Markdown format)
 
 ---
 
-## Step 5 — 最终交付
+## Step 4 — Quality Check
 
-呈现完整文档，问：
-"文档已完成！需要导出为其他格式（PDF/HTML）或做其他调整吗？"
+**Task**: Self-check against `references/quality-checklist.md`
+
+**Check Items**:
+- [ ] Every public symbol has documentation
+- [ ] Every parameter has type and description
+- [ ] Every function has at least 1 usage example
+- [ ] No spelling errors
+- [ ] Consistent formatting
+
+**Output**:
+```
+Quality Check Results:
+✅ All checks passed
+
+OR
+
+⚠️ Found 2 issues:
+1. create_session() missing example
+2. Spelling error: line 35 "authentcate" → "authenticate"
+
+Auto-fixed, please confirm.
 ```
 
-## references/docstring-style.md 模板
+**Checkpoint**: ⏸️ Wait for user confirmation
+
+---
+
+## Step 5 — Final Delivery
+
+Present complete document, ask:
+"Documentation complete! Need to export to other formats (PDF/HTML) or make other adjustments?"
+```
+
+## references/docstring-style.md Template
 
 ```markdown
-# Docstring 风格指南
+# Docstring Style Guide
 
-## 格式规范
-- 使用 Google 风格
-- 第一行：一句话总结（以动词开头）
-- 空行后：详细描述（可选）
-- Args/Returns/Raises/Example 章节
+## Format Conventions
+- Use Google style
+- First line: One-sentence summary (start with verb)
+- After blank line: Detailed description (optional)
+- Args/Returns/Raises/Example sections
 
-## 示例
+## Example
 ```python
 def process_data(data: list[dict], threshold: float = 0.5) -> dict:
-    """处理原始数据并返回聚合结果。
+    """Process raw data and return aggregated results.
     
-    对输入数据进行过滤、转换和聚合操作。
+    Perform filtering, transformation, and aggregation on input data.
     
     Args:
-        data: 原始数据列表，每个元素为字典
-        threshold: 过滤阈值，范围 0-1，默认 0.5
+        data: Raw data list, each element is a dictionary
+        threshold: Filtering threshold, range 0-1, default 0.5
     
     Returns:
-        包含以下键的字典：
-        - total_count: 处理的数据总数
-        - filtered_count: 过滤后的数量
-        - aggregated: 聚合结果
+        Dictionary containing following keys:
+        - total_count: Total number of processed data
+        - filtered_count: Number after filtering
+        - aggregated: Aggregation results
     
     Raises:
-        ValueError: 数据格式无效或阈值超出范围
+        ValueError: When data format invalid or threshold out of range
     
     Example:
         >>> result = process_data([{"value": 1}, {"value": 2}], 0.3)
@@ -187,100 +187,102 @@ def process_data(data: list[dict], threshold: float = 0.5) -> dict:
     """
 ```
 
-## 禁用内容
-- 不使用 "这个函数..." 开头
-- 不重复函数名已表达的信息
-- 不使用模糊词汇（"可能"、"也许"）
+## Prohibited Content
+- Don't start with "This function..."
+- Don't repeat information already expressed in function name
+- Don't use vague words ("might", "perhaps")
 ```
 
-## references/quality-checklist.md 模板
+## references/quality-checklist.md Template
 
 ```markdown
-# 文档质量检查清单
+# Documentation Quality Checklist
 
-## 完整性
-- [ ] 所有公共类、函数、常量都有文档
-- [ ] 所有参数有类型注解和说明
-- [ ] 所有返回值有说明
-- [ ] 所有异常有说明
+## Completeness
+- [ ] All public classes, functions, constants have documentation
+- [ ] All parameters have type annotations and descriptions
+- [ ] All return values have descriptions
+- [ ] All exceptions have descriptions
 
-## 准确性
-- [ ] 示例代码可执行
-- [ ] 参数说明与实际用途一致
-- [ ] 无过时信息
+## Accuracy
+- [ ] Example code is executable
+- [ ] Parameter descriptions match actual usage
+- [ ] No outdated information
 
-## 可读性
-- [ ] 无拼写错误
-- [ ] 格式一致
-- [ ] 术语一致
+## Readability
+- [ ] No spelling errors
+- [ ] Consistent formatting
+- [ ] Consistent terminology
 
-## 实用性
-- [ ] 每个函数至少有 1 个示例
-- [ ] 复杂逻辑有解释
-- [ ] 有使用场景说明
+## Usefulness
+- [ ] Each function has at least 1 example
+- [ ] Complex logic has explanations
+- [ ] Has usage scenario descriptions
 ```
 
-## 变体：自动化 Pipeline
+## Variant: Automated Pipeline
 
-无需用户确认的自动流程：
+Automatic flow without user confirmation:
 
 ```markdown
-## 自动模式
+## Automatic Mode
 
-Step 1 → Step 2 → Step 3 → Step 4 → 输出
+Step 1 → Step 2 → Step 3 → Step 4 → Output
 
-每步完成后自动进入下一步，最终一次性输出结果。
-适用于信任度高、容错率低的场景。
+Automatically proceed to next step after each step completes, output results once at the end.
+Suitable for high-trust, low-tolerance scenarios.
 ```
 
-## 变体：条件分支 Pipeline
+## Variant: Conditional Branching Pipeline
 
 ```markdown
-## Step 2 — 条件处理
+## Step 2 — Conditional Processing
 
-如代码是 Python → 生成 Google 风格 docstring
-如代码是 JavaScript → 生成 JSDoc 注释
-如代码是 Verilog → 生成注释头
+If code is Python → Generate Google-style docstrings
+If code is JavaScript → Generate JSDoc comments
+If code is Verilog → Generate comment headers
 ```
 
-## 优缺点
+## Pros & Cons
 
-| 优点 | 缺点 |
+| Pros | Cons |
 |-----|------|
-| 流程可控，质量稳定 | 步骤多，耗时长 |
-| 每步可独立验证 | 用户需多次确认 |
-| 易于定位问题步骤 | 流程僵化，难灵活调整 |
+| Controllable flow, stable quality | Many steps, time-consuming |
+| Each step independently verifiable | Users need multiple confirmations |
+| Easy to locate problem steps | Flow rigid, hard to adjust flexibly |
 
-## 与 Reviewer 组合
+## Combination with Reviewer
 
 ```markdown
 ## Pipeline + Reviewer
 
-Step 1: 解析
-Step 2: 生成
-Step 3: 组装
-Step 4: Reviewer 评审（加载 checklist 打分）
-Step 5: 如评分<8，返回 Step 2 重新生成
-Step 6: 交付
+Step 1: Parse
+Step 2: Generate
+Step 3: Assemble
+Step 4: Reviewer review (load checklist to score)
+Step 5: If score<8, return to Step 2 to regenerate
+Step 6: Deliver
 ```
-
-## 检查清单
-
-- [ ] 步骤顺序明确
-- [ ] 每步有清晰输入/输出
-- [ ] 检查点明确标注（⏸️）
-- [ ] 有失败处理逻辑
-- [ ] 按需加载 references/assets
-- [ ] 最终输出格式明确
 
 ---
 
-## 模式对比总结
+## Checklist
 
-| 模式 | 核心特征 | 最佳场景 |
+- [ ] Step sequence is clear
+- [ ] Each step has clear input/output
+- [ ] Checkpoints clearly marked (⏸️)
+- [ ] Has failure handling logic
+- [ ] Load references/assets on demand
+- [ ] Final output format is clear
+
+---
+
+## Pattern Comparison Summary
+
+| Pattern | Core Characteristics | Best Scenarios |
 |-----|---------|---------|
-| Tool Wrapper | 按需加载知识 | 框架规范/团队约定 |
-| Generator | 模板填充 | 文档/报告生成 |
-| Reviewer | 检查清单评审 | Code Review/审计 |
-| Inversion | 先采访再执行 | 需求模糊的任务 |
-| Pipeline | 多步骤 + 检查点 | 复杂转换流程 |
+| Tool Wrapper | Load knowledge on-demand | Framework conventions/team agreements |
+| Generator | Template filling | Document/report generation |
+| Reviewer | Checklist-based review | Code Review/audits |
+| Inversion | Interview first, then execute | Tasks with unclear requirements |
+| Pipeline | Multi-step + checkpoints | Complex transformation workflows |

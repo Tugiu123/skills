@@ -1,17 +1,17 @@
-# Pattern 1: Tool Wrapper（工具包装器）
+# Pattern 1: Tool Wrapper
 
-## 核心作用
+## Core Purpose
 
-给 Agent 注入特定库/框架的专业知识，**按需加载**，不占用日常对话的 context。
+Inject domain-specific expertise for particular libraries/frameworks into the Agent, **load on-demand**, without occupying everyday conversation context.
 
-## 适用场景
+## Use Cases
 
-- 团队内部编码规范
-- 框架最佳实践（FastAPI/React/Verilog）
-- API 使用约定
-- 领域特定术语表
+- Team internal coding conventions
+- Framework best practices (FastAPI/React/Verilog)
+- API usage conventions
+- Domain-specific terminology
 
-## 目录结构
+## Directory Structure
 
 ```
 skills/api-expert/
@@ -20,44 +20,44 @@ skills/api-expert/
     └── conventions.md
 ```
 
-## SKILL.md 模板
+## SKILL.md Template
 
 ```markdown
 ---
 name: api-expert
-description: FastAPI 开发最佳实践。当用户构建、审查或调试 FastAPI 应用、REST API 或 Pydantic 模型时激活。
+description: FastAPI development best practices. Activates when users build, review, or debug FastAPI applications, REST APIs, or Pydantic models.
 metadata:
   pattern: tool-wrapper
   domain: fastapi
   trigger-keywords: [fastapi, pydantic, REST API, endpoint, dependency injection]
 ---
 
-你是 FastAPI 开发专家。将以下规范应用于用户的代码或问题。
+You are a FastAPI development expert. Apply the following conventions to user's code or questions.
 
-## 核心规范
+## Core Conventions
 
-当用户请求涉及 FastAPI 时，**必须**加载 `references/conventions.md` 获取完整规范列表。
+When user requests involve FastAPI, **must** load `references/conventions.md` to get complete convention list.
 
-## 审查代码时
-1. 加载规范文件
-2. 逐条检查用户代码是否符合规范
-3. 每个违规点：引用具体规则 + 给出修复建议
+## When Reviewing Code
+1. Load convention file
+2. Check user code against each convention
+3. For each violation: cite specific rule + provide fix suggestion
 
-## 编写代码时
-1. 加载规范文件
-2. 严格遵守每条规范
-3. 所有函数签名添加类型注解
-4. 依赖注入使用 Annotated 风格
+## When Writing Code
+1. Load convention file
+2. Strictly follow each convention
+3. Add type annotations to all function signatures
+4. Use Annotated style for dependency injection
 
-## 示例输出格式
+## Example Output Format
 
 ```python
-# ❌ 错误示例
+# ❌ Wrong example
 @app.get("/users")
 def get_users():
     return db.query(User).all()
 
-# ✅ 正确示例
+# ✅ Correct example
 @app.get("/users", response_model=list[UserSchema])
 async def get_users(
     db: Annotated[AsyncSession, Depends(get_db)]
@@ -67,86 +67,86 @@ async def get_users(
 ```
 ```
 
-## references/conventions.md 模板
+## references/conventions.md Template
 
 ```markdown
-# FastAPI 团队规范 v1.0
+# FastAPI Team Conventions v1.0
 
-## 1. 项目结构
-- 使用 `src/` 布局
-- 路由按功能模块拆分：`routes/users.py`, `routes/items.py`
-- Schema 定义在 `schemas/` 目录
+## 1. Project Structure
+- Use `src/` layout
+- Split routes by feature module: `routes/users.py`, `routes/items.py`
+- Schema definitions in `schemas/` directory
 
-## 2. 异步规范
-- 所有 I/O 操作必须 async/await
-- 数据库会话使用 AsyncSession
-- 禁止在 async 函数中调用同步阻塞方法
+## 2. Async Conventions
+- All I/O operations must use async/await
+- Database sessions use AsyncSession
+- Prohibit calling synchronous blocking methods in async functions
 
-## 3. 错误处理
-- 使用 HTTPException 抛出标准状态码
-- 自定义异常处理器在 `exceptions.py` 统一注册
-- 错误响应包含：`detail`, `error_code`, `timestamp`
+## 3. Error Handling
+- Use HTTPException to throw standard status codes
+- Custom exception handlers registered centrally in `exceptions.py`
+- Error responses include: `detail`, `error_code`, `timestamp`
 
-## 4. 依赖注入
-- 数据库连接、认证、日志等全部走 Depends()
-- 依赖函数命名：`get_xxx()`
-- 使用 Annotated[Type, Depends(func)] 风格
+## 4. Dependency Injection
+- Database connections, authentication, logging all use Depends()
+- Dependency function naming: `get_xxx()`
+- Use Annotated[Type, Depends(func)] style
 
-## 5. Pydantic 模型
-- 所有请求/响应必须用 Schema 包装
-- 禁止直接返回 ORM 对象
-- 使用 model_config = ConfigDict(from_attributes=True)
+## 5. Pydantic Models
+- All requests/responses must be wrapped with Schema
+- Prohibit returning ORM objects directly
+- Use model_config = ConfigDict(from_attributes=True)
 
-## 6. 测试规范
-- 使用 pytest + httpx.TestClient
-- 每个 endpoint 至少一个测试
-- Mock 外部依赖，不依赖真实数据库
+## 6. Testing Conventions
+- Use pytest + httpx.TestClient
+- At least one test per endpoint
+- Mock external dependencies, don't rely on real database
 ```
 
-## 激活条件设计
+## Activation Condition Design
 
-在 `description` 中明确触发关键词：
+Specify trigger keywords in `description`:
 
 ```yaml
 description: >
-  FastAPI 开发最佳实践。
-  激活词：fastapi, pydantic, REST API, endpoint, dependency injection,
-  路由，schema, Depends, HTTPException, async
+  FastAPI development best practices.
+  Activation words: fastapi, pydantic, REST API, endpoint, dependency injection,
+  routes, schema, Depends, HTTPException, async
 ```
 
-## 优缺点
+## Pros & Cons
 
-| 优点 | 缺点 |
+| Pros | Cons |
 |-----|------|
-| 按需加载，节省 token | 依赖关键词匹配准确性 |
-| 规范独立维护，易更新 | 多个 Tool Wrapper 可能冲突 |
-| 可组合（同时激活多个） | 需要明确的触发词设计 |
+| Load on-demand, saves tokens | Depends on keyword matching accuracy |
+| Conventions maintained independently, easy to update | Multiple Tool Wrappers may conflict |
+| Combinable (activate multiple simultaneously) | Needs clear trigger word design |
 
-## 变体
+## Variants
 
-### 变体 A：多规范切换
+### Variant A: Multi-Convention Switching
 
 ```markdown
-根据用户提到的技术栈加载对应规范：
+Load corresponding conventions based on tech stack user mentions:
 - FastAPI → `references/fastapi-conventions.md`
 - Django → `references/django-conventions.md`
 - Flask → `references/flask-conventions.md`
 ```
 
-### 变体 B：团队专属规范
+### Variant B: Team-Specific Conventions
 
 ```markdown
-你是 [公司名] 后端开发助手。
-**必须**优先遵循 `references/team-conventions.md` 中的内部规范，
-其次参考通用最佳实践。
+You are a [Company Name] backend development assistant.
+**Must** prioritize internal conventions in `references/team-conventions.md`,
+then reference general best practices.
 ```
 
 ---
 
-## 检查清单
+## Checklist
 
-- [ ] `description` 包含明确的触发关键词
-- [ ] `references/` 目录存在且内容具体
-- [ ] SKILL.md 明确说明何时加载规范
-- [ ] 有正误对比示例
-- [ ] 规范可独立更新，无需改 SKILL.md
+- [ ] `description` contains clear trigger keywords
+- [ ] `references/` directory exists with concrete content
+- [ ] SKILL.md clearly explains when to load conventions
+- [ ] Has correct/incorrect comparison examples
+- [ ] Conventions can be updated independently without modifying SKILL.md

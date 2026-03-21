@@ -1,92 +1,92 @@
-# Agent Skill 设计模式模板库
+# Agent Skill Design Pattern Templates
 
-基于 Google ADK 和生态系统的最佳实践，提供 5 个可复用的技能设计模式。
+Based on Google ADK and ecosystem best practices, providing 5 reusable skill design patterns.
 
-## 🎯 适用场景
+## 🎯 Use Cases
 
-- 创建新的 Agent Skill 时需要结构化模板
-- 优化现有技能的设计和质量
-- 团队内部统一技能开发规范
-- 学习 Agent Skill 设计的最佳实践
+- Need structured templates when creating new Agent Skills
+- Optimize existing skill design and quality
+- Standardize skill development within teams
+- Learn best practices for Agent Skill design
 
-## 📦 包含的模式
+## 📦 Included Patterns
 
-| 模式 | 用途 | 典型场景 |
+| Pattern | Purpose | Typical Scenarios |
 |-----|------|---------|
-| [Tool Wrapper](./references/tool-wrapper-pattern.md) | 注入领域专业知识 | 框架规范、团队约定、API 使用指南 |
-| [Generator](./references/generator-pattern.md) | 生成结构化内容 | 技术报告、文档、脚手架、Commit Message |
-| [Reviewer](./references/reviewer-pattern.md) | 评审/审计/打分 | Code Review、安全审计、质量检查 |
-| [Inversion](./references/inversion-pattern.md) | 先采访再执行 | 需求模糊的项目规划、复杂系统设计 |
-| [Pipeline](./references/pipeline-pattern.md) | 多步骤顺序执行 | 文档生成、代码迁移、数据转换 |
+| [Tool Wrapper](./references/tool-wrapper-pattern.md) | Inject domain expertise | Framework conventions, team agreements, API usage guides |
+| [Generator](./references/generator-pattern.md) | Generate structured content | Technical reports, documentation, scaffolding, Commit Messages |
+| [Reviewer](./references/reviewer-pattern.md) | Review/audit/score | Code Review, security audits, quality checks |
+| [Inversion](./references/inversion-pattern.md) | Interview first, then execute | Project planning with unclear requirements, complex system design |
+| [Pipeline](./references/pipeline-pattern.md) | Multi-step sequential execution | Document generation, code migration, data transformation |
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 激活技能
+### 1. Activate the Skill
 
-在对话中提到以下关键词即可激活：
-- 创建 skill
-- 技能模板
-- skill 设计
-- agent 模式
+Mention these keywords in conversation to activate:
+- create skill
+- skill template
+- skill design
+- agent pattern
 - skill pattern
-- 技能结构
+- skill structure
 
-### 2. 选择模式
+### 2. Choose a Pattern
 
-技能会根据你的需求推荐最适合的设计模式，或组合多个模式。
+The skill will recommend the most suitable design pattern based on your needs, or combine multiple patterns.
 
-### 3. 按模板创建
+### 3. Create Following Templates
 
-遵循推荐模式的结构和流程，创建你的技能。
+Follow the structure and flow of the recommended pattern to create your skill.
 
-## 📁 目录结构
+## 📁 Directory Structure
 
 ```
 skill-patterns/
-├── SKILL.md                          # 技能入口
-├── README.md                         # 使用说明
+├── SKILL.md                          # Skill entry point
+├── README.md                         # Usage guide
 └── references/
-    ├── tool-wrapper-pattern.md       # 模式 1：工具包装器
-    ├── generator-pattern.md          # 模式 2：生成器
-    ├── reviewer-pattern.md           # 模式 3：评审器
-    ├── inversion-pattern.md          # 模式 4：逆向采访
-    ├── pipeline-pattern.md           # 模式 5：流水线
-    └── creation-checklist.md         # 创建检查清单
+    ├── tool-wrapper-pattern.md       # Pattern 1: Tool Wrapper
+    ├── generator-pattern.md          # Pattern 2: Generator
+    ├── reviewer-pattern.md           # Pattern 3: Reviewer
+    ├── inversion-pattern.md          # Pattern 4: Inversion
+    ├── pipeline-pattern.md           # Pattern 5: Pipeline
+    └── creation-checklist.md         # Creation checklist
 ```
 
-## 💡 模式组合示例
+## 💡 Pattern Combination Examples
 
-- **Generator + Reviewer**: 生成报告后自动质量检查
-- **Inversion + Generator**: 先采访需求，再生成方案
-- **Pipeline + Reviewer**: 每步完成后评审质量
-- **Tool Wrapper + Pipeline**: 每步加载不同规范
+- **Generator + Reviewer**: Auto quality check after generating reports
+- **Inversion + Generator**: Interview requirements first, then generate solution
+- **Pipeline + Reviewer**: Review quality after each step
+- **Tool Wrapper + Pipeline**: Load different conventions for each step
 
-## 📊 选择决策树
+## 📊 Decision Tree
 
 ```
-用户请求是否明确？
-├─ 是 → 是否需要特定领域知识？
-│   ├─ 是 → Tool Wrapper
-│   └─ 否 → 是否需要固定输出格式？
-│       ├─ 是 → Generator
-│       └─ 否 → 是否是评审任务？
-│           ├─ 是 → Reviewer
-│           └─ 否 → 单步执行（无需模式）
-└─ 否 → 是否需要多轮采集需求？
-    ├─ 是 → Inversion
-    └─ 否 → 是否有多步骤强制顺序？
-        ├─ 是 → Pipeline
-        └─ 否 → Inversion（先澄清）
+Is user request clear?
+├─ Yes → Need specific domain knowledge?
+│   ├─ Yes → Tool Wrapper
+│   └─ No → Need fixed output format?
+│       ├─ Yes → Generator
+│       └─ No → Is it a review task?
+│           ├─ Yes → Reviewer
+│           └─ No → Single-step execution (no pattern needed)
+└─ No → Need multi-turn requirement gathering?
+    ├─ Yes → Inversion
+    └─ No → Have mandatory multi-step sequence?
+        ├─ Yes → Pipeline
+        └─ No → Inversion (clarify first)
 ```
 
-## 📖 来源
+## 📖 Source
 
-设计模式基于：Google Cloud Tech - "5 Agent Skill design patterns every ADK developer should know"
+Design patterns based on: Google Cloud Tech - "5 Agent Skill design patterns every ADK developer should know"
 
-## 📝 版本
+## 📝 Version
 
-- v1.0.0 - 初始发布，包含 5 个核心模式 + 创建检查清单
+- v1.1.0 - English release with 5 core patterns + creation checklist
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交新的模式变体和改进建议！
+Welcome to submit new pattern variations and improvement suggestions!

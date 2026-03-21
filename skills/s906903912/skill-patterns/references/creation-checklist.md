@@ -1,73 +1,73 @@
-# Skill 创建检查清单
+# Skill Creation Checklist
 
-使用此清单验证新创建的 skill 是否完整。
+Use this checklist to verify that a newly created skill is complete.
 
-## 基础结构
+## Basic Structure
 
-- [ ] `SKILL.md` 存在且包含必需字段
-- [ ] `name` 字段：技能标识符（小写，连字符分隔）
-- [ ] `description` 字段：清晰说明用途和触发条件
-- [ ] `metadata.trigger-keywords` 或 `metadata.trigger-phrases`：激活词列表
-- [ ] 目录结构符合标准（references/、assets/ 如需要）
+- [ ] `SKILL.md` exists and contains required fields
+- [ ] `name` field: skill identifier (lowercase, hyphen-separated)
+- [ ] `description` field: clearly explains purpose and trigger conditions
+- [ ] `metadata.trigger-keywords` or `metadata.trigger-phrases`: activation word list
+- [ ] Directory structure follows standards (references/, assets/ as needed)
 
-## SKILL.md 内容质量
+## SKILL.md Content Quality
 
-- [ ] 明确说明何时激活（触发条件）
-- [ ] 明确说明核心能力/职责
-- [ ] 有执行流程或步骤说明
-- [ ] 有输出格式要求（如适用）
-- [ ] 有正误示例对比（如适用）
-- [ ] 说明了需要加载的 references/assets 文件
+- [ ] Clearly explains when to activate (trigger conditions)
+- [ ] Clearly explains core capabilities/responsibilities
+- [ ] Has execution flow or step instructions
+- [ ] Has output format requirements (if applicable)
+- [ ] Has correct/incorrect example comparisons (if applicable)
+- [ ] Explains which references/assets files need to be loaded
 
-## 模式匹配
+## Pattern Matching
 
-根据技能类型，确认选择了正确的模式：
+Based on skill type, confirm the correct pattern is selected:
 
-- [ ] **Tool Wrapper**: 有 references/conventions.md 或类似规范文件
-- [ ] **Generator**: 有 assets/template.md 和 references/style-guide.md
-- [ ] **Reviewer**: 有 references/checklist.md 且分级清晰（error/warning/info）
-- [ ] **Inversion**: 有明确的问题列表和采访流程，禁止提前执行
-- [ ] **Pipeline**: 有明确的步骤顺序和检查点（⏸️）
+- [ ] **Tool Wrapper**: Has references/conventions.md or similar convention files
+- [ ] **Generator**: Has assets/template.md and references/style-guide.md
+- [ ] **Reviewer**: Has references/checklist.md with clear severity levels (error/warning/info)
+- [ ] **Inversion**: Has clear question list and interview flow, prohibits premature execution
+- [ ] **Pipeline**: Has clear step sequence and checkpoints (⏸️)
 
-## 可维护性
+## Maintainability
 
-- [ ] 规范/清单与主逻辑分离（便于独立更新）
-- [ ] 模板使用变量占位符（如 `{{标题}}`）
-- [ ] 有版本号（在 SKILL.md metadata 或文件名中）
-- [ ] 有清晰的目录组织和命名
+- [ ] Conventions/checklists separated from main logic (for independent updates)
+- [ ] Templates use variable placeholders (e.g., `{{title}}`)
+- [ ] Has version number (in SKILL.md metadata or filename)
+- [ ] Has clear directory organization and naming
 
-## 测试验证
+## Testing & Validation
 
-- [ ] 触发词测试：用触发词激活，确认技能正确响应
-- [ ] 流程测试：按技能说明执行完整流程
-- [ ] 边界测试：测试模糊输入、错误输入的处理
-- [ ] 输出验证：确认输出格式符合预期
+- [ ] Trigger word test: activate with trigger words, confirm skill responds correctly
+- [ ] Flow test: execute complete flow per skill instructions
+- [ ] Boundary test: test handling of ambiguous input, error input
+- [ ] Output validation: confirm output format meets expectations
 
-## 文档完整性
+## Documentation Completeness
 
-- [ ] README.md（如需要，说明技能用途和使用方法）
-- [ ] 示例文件（如需要，展示典型输入输出）
-- [ ] 变更记录（如需要，记录版本演进）
+- [ ] README.md (if needed, explains skill purpose and usage)
+- [ ] Example files (if needed, shows typical input/output)
+- [ ] Changelog (if needed, records version evolution)
 
-## 发布前检查
+## Pre-release Checks
 
-- [ ] 无敏感信息（API Key、密码、内部 URL）
-- [ ] 无硬编码路径（使用相对路径）
-- [ ] .gitignore 配置正确（排除 secrets、临时文件）
-- [ ] 代码/脚本可执行（如有 scripts/ 目录）
+- [ ] No sensitive information (API Keys, passwords, internal URLs)
+- [ ] No hardcoded paths (use relative paths)
+- [ ] .gitignore configured correctly (exclude secrets, temp files)
+- [ ] Code/scripts executable (if scripts/ directory exists)
 
 ---
 
-## 快速评分
+## Quick Scoring
 
-**结构完整性**: _/5（5 项基础结构）
-**内容质量**: _/5（SKILL.md 质量）
-**模式匹配**: _/5（模式选择与实现）
-**可维护性**: _/5（分离与组织）
-**测试覆盖**: _/5（测试验证）
+**Structure Completeness**: _/5 (5 basic structure items)
+**Content Quality**: _/5 (SKILL.md quality)
+**Pattern Matching**: _/5 (pattern selection & implementation)
+**Maintainability**: _/5 (separation & organization)
+**Test Coverage**: _/5 (testing validation)
 
-**总分**: __/25
+**Total Score**: __/25
 
-- 20-25 分：可以发布
-- 15-19 分：需要改进
-- <15 分：建议重构
+- 20-25 points: Ready to publish
+- 15-19 points: Needs improvement
+- <15 points: Recommend refactor

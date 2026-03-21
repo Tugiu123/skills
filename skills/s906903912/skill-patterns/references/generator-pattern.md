@@ -1,180 +1,180 @@
-# Pattern 2: Generator（生成器）
+# Pattern 2: Generator
 
-## 核心作用
+## Core Purpose
 
-强制输出**结构一致**的内容，解决"每次生成格式都不一样"的问题。
+Force **structurally consistent** output, solving the "every generation has different format" problem.
 
-## 适用场景
+## Use Cases
 
-- 技术报告/文档生成
-- API 文档
-- 项目脚手架
-- 标准化邮件/公告
-- Commit Message 生成
+- Technical report/document generation
+- API documentation
+- Project scaffolding
+- Standardized emails/announcements
+- Commit Message generation
 
-## 目录结构
+## Directory Structure
 
 ```
 skills/report-generator/
 ├── SKILL.md
 ├── references/
-│   └── style-guide.md      # 风格指南（语气/格式）
+│   └── style-guide.md      # Style guide (tone/format)
 └── assets/
-    └── report-template.md  # 输出模板
+    └── report-template.md  # Output template
 ```
 
-## SKILL.md 模板
+## SKILL.md Template
 
 ```markdown
 ---
 name: report-generator
-description: 生成结构化的技术报告。当用户要求撰写、创建或起草报告、总结、分析文档时激活。
+description: Generate structured technical reports. Activates when users request to write, create, or draft reports, summaries, or analysis documents.
 metadata:
   pattern: generator
   output-format: markdown
-  trigger-phrases: [写报告，生成文档，创建总结，draft a report, write a summary]
+  trigger-phrases: [write report, generate document, create summary, draft a report, write a summary]
 ---
 
-你是技术报告生成器。**严格按以下步骤执行**：
+You are a technical report generator. **Strictly follow these steps**:
 
-## Step 1: 加载风格指南
-加载 `references/style-guide.md` 获取语调和格式规范。
+## Step 1: Load Style Guide
+Load `references/style-guide.md` to get tone and format conventions.
 
-## Step 2: 加载模板
-加载 `assets/report-template.md` 获取必需的输出结构。
+## Step 2: Load Template
+Load `assets/report-template.md` to get required output structure.
 
-## Step 3: 收集缺失信息
-向用户询问以下信息（如未提供）：
-- 主题或核心内容
-- 关键发现或数据点
-- 目标受众（技术/管理层/大众）
-- 期望长度（简短/详细）
+## Step 3: Collect Missing Information
+Ask user for following information (if not provided):
+- Topic or core content
+- Key findings or data points
+- Target audience (technical/management/general)
+- Expected length (brief/detailed)
 
-## Step 4: 填充模板
-按风格指南规则填充模板的每个字段。
-**禁止**省略模板中的任何章节。
+## Step 4: Fill Template
+Fill each field of template per style guide rules.
+**Prohibit** omitting any sections in template.
 
-## Step 5: 输出
-返回完整的 Markdown 文档。
+## Step 5: Output
+Return complete Markdown document.
 
-## 输出要求
-- 使用 Markdown 格式
-- 所有章节标题与模板一致
-- 引用风格指南中的语气规范
-- 如有数据，用表格或列表呈现
+## Output Requirements
+- Use Markdown format
+- All section headers match template
+- Reference tone conventions from style guide
+- If data exists, present with tables or lists
 ```
 
-## assets/report-template.md 模板
+## assets/report-template.md Template
 
 ```markdown
-# {{标题}}
+# {{title}}
 
-## 执行摘要
-{{200 字以内的核心结论}}
+## Executive Summary
+{{Core conclusions within 200 words}}
 
-## 背景
-{{问题背景/上下文}}
+## Background
+{{Problem background/context}}
 
-## 方法论
-{{分析方法/工具/数据来源}}
+## Methodology
+{{Analysis methods/tools/data sources}}
 
-## 关键发现
-{{分点列出 3-5 个核心发现}}
+## Key Findings
+{{List 3-5 core findings as bullet points}}
 
-## 详细分析
-{{深入分析，可分小节}}
+## Detailed Analysis
+{{In-depth analysis, can be split into subsections}}
 
-## 建议与下一步
-{{可操作的建议}}
+## Recommendations & Next Steps
+{{Actionable recommendations}}
 
-## 附录
-{{补充材料/参考链接}}
+## Appendix
+{{Supplementary materials/reference links}}
 
 ---
-*生成时间：{{日期}}*
-*作者：{{生成者}}*
+*Generated: {{date}}*
+*Author: {{generator}}*
 ```
 
-## references/style-guide.md 模板
+## references/style-guide.md Template
 
 ```markdown
-# 技术报告风格指南
+# Technical Report Style Guide
 
-## 语气规范
-- **技术受众**：专业、精确、可含术语
-- **管理层受众**：结论先行、避免技术细节、强调 ROI
-- **大众受众**：通俗易懂、多用类比、解释术语
+## Tone Conventions
+- **Technical audience**: Professional, precise, may include terminology
+- **Management audience**: Conclusions first, avoid technical details, emphasize ROI
+- **General audience**: Accessible, use analogies, explain terminology
 
-## 格式规范
-- 标题使用 Sentence case（仅首字母大写）
-- 代码块必须标注语言
-- 表格必须有表头
-- 引用使用 > 格式
+## Format Conventions
+- Headers use Sentence case (only first letter capitalized)
+- Code blocks must specify language
+- Tables must have headers
+- Use > format for quotes
 
-## 禁用内容
-- 避免"可能"、"也许"等模糊词汇
-- 不使用第一人称（我/我们）
-- 不添加未经验证的数据
+## Prohibited Content
+- Avoid vague words like "might", "perhaps"
+- Don't use first person (I/we)
+- Don't add unverified data
 
-## 长度控制
-- 执行摘要：≤200 字
-- 关键发现：3-5 条，每条≤50 字
-- 详细分析：根据主题调整，但每节≤800 字
+## Length Control
+- Executive summary: ≤200 words
+- Key findings: 3-5 items, each ≤50 words
+- Detailed analysis: adjust per topic, but each section ≤800 words
 ```
 
-## 变体：交互式生成
+## Variant: Interactive Generation
 
 ```markdown
-## Step 3（交互版）: 分步确认
+## Step 3 (Interactive Version): Step-by-Step Confirmation
 
-每填充一个章节后，向用户展示并询问：
-"这部分内容是否符合你的预期？需要调整吗？"
+After filling each section, show to user and ask:
+"Does this section meet your expectations? Need any adjustments?"
 
-用户确认后再继续下一章节。
+Continue to next section after user confirms.
 ```
 
-## 优缺点
+## Pros & Cons
 
-| 优点 | 缺点 |
+| Pros | Cons |
 |-----|------|
-| 输出高度一致 | 模板僵化，灵活性低 |
-| 新人也能生成专业内容 | 需要维护模板库 |
-| 易于自动化验收 | 模板设计成本高 |
+| Highly consistent output | Templates rigid, low flexibility |
+| Newcomers can generate professional content | Need to maintain template library |
+| Easy to automate acceptance | High template design cost |
 
-## 组合模式
+## Pattern Combinations
 
 ### Generator + Inversion
 
-先用 Inversion 模式采集需求，再用 Generator 填充模板：
+Use Inversion pattern to collect requirements first, then use Generator to fill template:
 
 ```markdown
-## Phase 1: 需求采集（Inversion）
-问 5 个问题了解用户需求
+## Phase 1: Requirements Gathering (Inversion)
+Ask 5 questions to understand user needs
 
-## Phase 2: 生成报告（Generator）
-用采集的信息填充模板
+## Phase 2: Generate Report (Generator)
+Fill template with collected information
 ```
 
 ### Generator + Reviewer
 
-生成后自动自检：
+Auto self-check after generation:
 
 ```markdown
-## Step 6: 质量检查
-加载 `references/quality-checklist.md` 自检：
-- [ ] 所有章节完整
-- [ ] 无拼写错误
-- [ ] 数据有来源标注
+## Step 6: Quality Check
+Load `references/quality-checklist.md` for self-check:
+- [ ] All sections complete
+- [ ] No spelling errors
+- [ ] Data has source citations
 
-发现问题则修正后重新输出。
+If issues found, fix and re-output.
 ```
 
 ---
 
-## 检查清单
+## Checklist
 
-- [ ] `assets/` 目录有完整模板
-- [ ] `references/` 目录有风格指南
-- [ ] SKILL.md 明确步骤顺序
-- [ ] 有缺失信息处理逻辑（询问用户）
-- [ ] 输出格式明确（Markdown/JSON 等）
+- [ ] `assets/` directory has complete templates
+- [ ] `references/` directory has style guide
+- [ ] SKILL.md specifies step sequence
+- [ ] Has missing information handling logic (ask user)
+- [ ] Output format is clear (Markdown/JSON/etc.)
