@@ -1,0 +1,11 @@
+{
+  "owner": "kaudata",
+  "slug": "omnicast",
+  "displayName": "Omnicast",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1774088438473,
+    "commit": null
+  },
+  "history": []
+}
