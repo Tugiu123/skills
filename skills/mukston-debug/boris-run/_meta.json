@@ -1,0 +1,11 @@
+{
+  "owner": "mukston-debug",
+  "slug": "boris-run",
+  "displayName": "Boris Workflow for OpenClaw",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773860666338,
+    "commit": null
+  },
+  "history": []
+}
