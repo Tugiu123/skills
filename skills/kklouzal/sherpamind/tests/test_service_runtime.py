@@ -2,7 +2,9 @@ import json
 import time
 from pathlib import Path
 
-from sherpamind.db import initialize_db, record_api_request_event, replace_ticket_document_chunks, replace_ticket_documents, upsert_tickets
+from sherpamind.cli import _json_ready
+
+from sherpamind.db import initialize_db, record_api_request_event, replace_ticket_document_chunks, replace_ticket_documents, upsert_ticket_details, upsert_tickets
 from sherpamind.service_runtime import run_pending_tasks
 from sherpamind.settings import Settings
 from sherpamind.vector_index import build_vector_index, get_vector_index_status
@@ -34,6 +36,10 @@ def make_settings(tmp_path: Path) -> Settings:
         service_vector_refresh_every_seconds=0,
         service_doctor_every_seconds=0,
         service_enrichment_limit=25,
+        service_cold_bootstrap_every_seconds=1800,
+        service_enrichment_bootstrap_every_seconds=900,
+        service_enrichment_bootstrap_limit=240,
+        cold_closed_bootstrap_pages_per_run=10,
         api_hourly_limit=600,
         api_budget_warn_ratio=0.7,
         api_budget_critical_ratio=0.85,
@@ -50,6 +56,18 @@ def test_run_pending_tasks_writes_service_state(monkeypatch, tmp_path: Path) -> 
     assert (tmp_path / '.SherpaMind' / 'private' / 'service-state.json').exists()
 
 
+def test_json_ready_normalizes_dataclasses(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv('SHERPAMIND_WORKSPACE_ROOT', str(tmp_path))
+    settings = make_settings(tmp_path)
+    initialize_db(settings.db_path)
+    payload = _json_ready(run_pending_tasks(settings))
+    json.dumps(payload)
+    hot_open = next(item for item in payload['results'] if item['task'] == 'hot_open')
+    watch_result, sync_result = hot_open['result']
+    assert watch_result['status'] == 'needs_config'
+    assert sync_result['status'] == 'needs_config'
+
+
 def test_run_pending_tasks_prunes_old_request_events(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv('SHERPAMIND_WORKSPACE_ROOT', str(tmp_path))
     settings = make_settings(tmp_path)
@@ -58,6 +76,37 @@ def test_run_pending_tasks_prunes_old_request_events(monkeypatch, tmp_path: Path
     record_api_request_event(settings.db_path, method='GET', path='tickets', status_code=200, outcome='http_response')
     result = run_pending_tasks(settings)
     assert result['pruned_request_events'] >= 1
+
+
+def test_run_pending_tasks_marks_cold_bootstrap_complete_when_closed_detail_catches_up(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv('SHERPAMIND_WORKSPACE_ROOT', str(tmp_path))
+    settings = make_settings(tmp_path)
+    initialize_db(settings.db_path)
+    upsert_tickets(
+        settings.db_path,
+        [
+            {'id': 1, 'subject': 'Cold A', 'status': 'Closed', 'created_time': '2026-03-01T01:00:00Z', 'updated_time': '2026-03-01T02:00:00Z', 'closed_time': '2026-03-01T02:00:00Z'},
+            {'id': 2, 'subject': 'Cold B', 'status': 'Closed', 'created_time': '2026-03-02T01:00:00Z', 'updated_time': '2026-03-02T02:00:00Z', 'closed_time': '2026-03-02T02:00:00Z'},
+        ],
+        synced_at='2026-03-03T00:00:00Z',
+    )
+    upsert_ticket_details(
+        settings.db_path,
+        [
+            {'id': 1, 'subject': 'Cold A', 'status': 'Closed', 'created_time': '2026-03-01T01:00:00Z', 'updated_time': '2026-03-01T02:00:00Z', 'closed_time': '2026-03-01T02:00:00Z'},
+            {'id': 2, 'subject': 'Cold B', 'status': 'Closed', 'created_time': '2026-03-02T01:00:00Z', 'updated_time': '2026-03-02T02:00:00Z', 'closed_time': '2026-03-02T02:00:00Z'},
+        ],
+        synced_at='2026-03-03T00:00:00Z',
+    )
+    (tmp_path / '.SherpaMind' / 'private' / 'service-state.json').parent.mkdir(parents=True, exist_ok=True)
+    from sherpamind.sync_state import set_json_state, get_json_state
+    set_json_state(settings.db_path, 'sync.cold_closed.last_state', {'next_page': 0, 'completed_cycles': 1})
+
+    result = run_pending_tasks(settings)
+    assert result['cold_bootstrap']['bootstrap_complete'] is True
+    bootstrap_state = get_json_state(settings.db_path, 'service.cold_bootstrap')
+    assert bootstrap_state['bootstrap_complete'] is True
+    assert bootstrap_state['bootstrap_completed_at']
 
 
 def test_run_pending_tasks_builds_vector_index(monkeypatch, tmp_path: Path) -> None:
