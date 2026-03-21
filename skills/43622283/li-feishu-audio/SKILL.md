@@ -356,11 +356,33 @@ model.transcribe("$AUDIO_FILE", language="auto")
 
 ## 版本信息
 
-- **技能版本**: 0.0.2
+- **技能版本**: 0.1.3.1
 - **作者**: 北京老李 (BeijingLL)
 - **faster-whisper**: 1.2.1
 - **edge-tts**: 7.2.7
 - **Python**: 3.11
+
+## 安全与供应链
+
+### 必需的凭证
+
+| 变量名 | 必需 | 说明 |
+|--------|------|------|
+| `FEISHU_APP_ID` | ✅ | 飞书应用 ID (cli_xxx) |
+| `FEISHU_APP_SECRET` | ✅ | 飞书应用密钥 |
+| `FAST_WHISPER_MODEL_DIR` | ❌ | 模型目录，默认 `~/.fast-whisper-models` |
+| `VENV_DIR` | ❌ | 虚拟环境目录，默认技能目录下 `.venv` |
+| `TEMP_DIR` | ❌ | 临时文件目录，默认 `/tmp` |
+| `OPENCLAW_CONFIG` | ❌ | OpenClaw 配置路径 |
+| `LOG_DIR` | ❌ | 日志目录，默认技能目录下 `logs` |
+
+### 外部依赖说明
+
+**HuggingFace 镜像**: 默认使用 `https://hf-mirror.com` 加速国内下载，可通过环境变量 `HF_ENDPOINT` 修改。
+
+**uv 安装**: `install.sh` 会在未安装 `uv` 时提示安装命令。建议从官方源验证后再执行。
+
+**Microsoft Edge TTS**: TTS 服务调用微软 Azure 语音服务，需要网络访问。
 
 ## 安全说明
 
