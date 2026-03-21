@@ -3,9 +3,15 @@
   "slug": "claw-migrate",
   "displayName": "Claw Migrate",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773627054262,
-    "commit": "https://github.com/openclaw/skills/commit/c134b2bdd9b394a8f69f8c51e0c5ac6e9a6ec401"
+    "version": "3.0.0",
+    "publishedAt": 1774024993628,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773627054262,
+      "commit": "https://github.com/openclaw/skills/commit/c134b2bdd9b394a8f69f8c51e0c5ac6e9a6ec401"
+    }
+  ]
 }
