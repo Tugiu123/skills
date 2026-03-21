@@ -1,0 +1,11 @@
+{
+  "owner": "codekungfu",
+  "slug": "tech-news",
+  "displayName": "Tech News",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773857753260,
+    "commit": null
+  },
+  "history": []
+}
