@@ -1,0 +1,11 @@
+{
+  "owner": "mugiwarasolos2",
+  "slug": "help-pair",
+  "displayName": "AI agent that verifies identity(DID) on Billions Network",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773889046861,
+    "commit": null
+  },
+  "history": []
+}
