@@ -3,9 +3,15 @@
   "slug": "taopiaopiao",
   "displayName": "Taopiaopiao",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773723873732,
-    "commit": "https://github.com/openclaw/skills/commit/771ea59599d459b8a8ca2983167ee80327d069e4"
+    "version": "0.1.1",
+    "publishedAt": 1773854877039,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773723873732,
+      "commit": "https://github.com/openclaw/skills/commit/771ea59599d459b8a8ca2983167ee80327d069e4"
+    }
+  ]
 }
