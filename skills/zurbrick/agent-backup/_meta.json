@@ -1,0 +1,11 @@
+{
+  "owner": "zurbrick",
+  "slug": "agent-backup",
+  "displayName": "Openclaw Backup",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1773920052735,
+    "commit": null
+  },
+  "history": []
+}
