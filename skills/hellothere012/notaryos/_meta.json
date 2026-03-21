@@ -3,11 +3,16 @@
   "slug": "notaryos",
   "displayName": "NotaryOS",
   "latest": {
-    "version": "2.2.1",
-    "publishedAt": 1773966507982,
-    "commit": "https://github.com/openclaw/skills/commit/1b9c68ed10240fc09664aa6c72d3cdf62984a540"
+    "version": "2.3.0",
+    "publishedAt": 1773969149320,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.1",
+      "publishedAt": 1773966507982,
+      "commit": "https://github.com/openclaw/skills/commit/1b9c68ed10240fc09664aa6c72d3cdf62984a540"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773573101443,
