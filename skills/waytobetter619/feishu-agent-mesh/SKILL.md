@@ -4,7 +4,7 @@ description: >-
   Blueprint for wiring multiple OpenClaw agents (running on different servers) into the same
   Feishu group chats so they can hold autonomous multi-turn discussions, hand off tasks,
   log every cross-agent message, and pause for human approval at key checkpoints.
-  Use when you need Xiao呱、小咕等机器人在飞书里互相@、协作执行任务，而不新增新的
+  Use when you need multiple Feishu bots (across different hosts) to coordinate inside the same chat without adding yet another visible bot account;
   前台机器人账号。
 ---
 
@@ -30,11 +30,13 @@ description: >-
 | 机器人自身的调用入口（HTTP `/tools/invoke` URL 或 CLI 命令）及鉴权方式 | 让 Relay 能够执行具体能力 |
 | 任务审批/白名单配置（哪些群、哪些节点需要人类确认） | 限定机器人只针对授权任务行动 |
 
-> 没有拿到这些信息前，不要启动协作流程；与用户确认后再投入使用。
+详细字段说明和示例表格见 [references/info-collection-template.md](references/info-collection-template.md)。
+
+> 没有拿到这些信息前，不要启动协作流程；与用户确认后再投入使用。完成收集后，把数据写入 [templates/accounts.example.json](templates/accounts.example.json) 并保存为实际配置文件。
 
 
 ## 1. 关键原则
-- **前台不变**：群里仍是现有机器人（小呱、小咕…），任何扩展只发生在后台。
+- **前台不变**：群里仍是现有机器人（例如 Coordinator Bot、Specialist Bot …），任何扩展只发生在后台。
 - **共享上下文**：所有机器人通过同一个 Relay/队列同步讨论内容与任务状态。
 - **多群隔离**：以 `chat_id` 维度存储上下文、日志、审批规则，避免串线。
 - **渐进式演进**：先跑 MVP，再升级到推荐架构，最后再加高级特性。

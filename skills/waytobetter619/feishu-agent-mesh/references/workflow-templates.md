@@ -3,7 +3,7 @@
 ## 1. 指派协作（Commanded Collaboration）
 1. **起始**（用户 @ 若干机器人）
    - Relay 记录 `task_id`（chat_id + timestamp）。
-   - 解析文本中的角色指派，例如“@小呱 拆解，@小咕 实现”。
+   - 解析文本中的角色指派，例如“@Coordinator Bot 拆解，@Specialist Bot 实现”。
 2. **拆解阶段（机器人 A）**
    - A 获取上下文，更新 `contexts.summary`。
    - 在群里回复：拆解结果 + 行动项列表。

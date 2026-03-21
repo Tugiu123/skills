@@ -2,7 +2,7 @@
 
 ## Core Components
 1. **Feishu Bot Apps (existing identities)**
-   - 每个机器人仍使用自己的飞书应用（小呱、小咕…）。
+   - 每个机器人仍使用自己的飞书应用（例如 Coordinator Bot、Specialist Bot …）。
    - 事件订阅全部指向同一个 Relay 服务。
 2. **Relay Service**
    - Web 服务（Node.js/Python 任一）负责：接收事件、写入上下文、调度任务、落日志、触发审批。
@@ -16,10 +16,10 @@
 
 ## Message Flow (Recommended)
 ```
-User @小呱 --> Feishu Event --> Relay
+User @Coordinator Bot --> Feishu Event --> Relay
    Relay writes context(chat_id) + logs entry
-   Relay decides routing --> /tools/invoke 小咕
-小咕处理后 --> 发言到群 + 回写 Relay
+   Relay decides routing --> /tools/invoke Specialist Bot
+Specialist Bot 处理后 --> 发言到群 + 回写 Relay
 ```
 
 ## Storage Considerations
