@@ -1,6 +1,6 @@
 ---
 name: clawface
-version: 0.0.1
+version: 0.0.3
 description: Start the Clawface 3D avatar web UI — serves a local web page the user opens in their browser
 metadata:
   {
@@ -79,6 +79,11 @@ node {baseDir}/bin/serve.js \
 The server prints a URL like `http://localhost:18794` to stdout.
 
 Tell the user: **"Avatar ready at http://localhost:18794"** — they open it in their browser.
+
+## Security
+
+- **Credentials never reach the browser.** The server authenticates to the gateway via a WebSocket proxy (`/ws`). The gateway token and device private key stay server-side — the browser only receives a proxy URL.
+- The `--gateway-token` and `--identity-file` arguments are used exclusively by serve.js to authenticate the upstream gateway connection.
 
 ## Important
 
