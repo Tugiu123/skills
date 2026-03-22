@@ -1,0 +1,11 @@
+{
+  "owner": "vahagn-madatyan",
+  "slug": "example-device-health",
+  "displayName": "Example Device Health",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774159003231,
+    "commit": null
+  },
+  "history": []
+}
