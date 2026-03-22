@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "threat-intel-aggregator",
+  "displayName": "Threat Intel Aggregator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774044991840,
+    "commit": null
+  },
+  "history": []
+}
