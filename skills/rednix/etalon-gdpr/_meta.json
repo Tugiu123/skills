@@ -1,0 +1,11 @@
+{
+  "owner": "rednix",
+  "slug": "etalon-gdpr",
+  "displayName": "Etalon GDPR Scan",
+  "latest": {
+    "version": "0.9.6",
+    "publishedAt": 1774111271324,
+    "commit": null
+  },
+  "history": []
+}
