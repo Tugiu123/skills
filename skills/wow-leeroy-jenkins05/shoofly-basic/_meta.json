@@ -1,0 +1,11 @@
+{
+  "owner": "wow-leeroy-jenkins05",
+  "slug": "shoofly-basic",
+  "displayName": "Shoofly Basic",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1774069457242,
+    "commit": null
+  },
+  "history": []
+}
