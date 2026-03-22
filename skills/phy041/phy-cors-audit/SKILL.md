@@ -2,9 +2,10 @@
 name: phy-cors-audit
 description: CORS (Cross-Origin Resource Sharing) misconfiguration auditor. Probes any API endpoint with crafted Origin headers to detect the most dangerous CORS vulnerabilities — reflecting arbitrary Origins (any attacker.com gets CORS approved), Access-Control-Allow-Credentials:true with wildcard ACAO, null-Origin allowed (iframe/file:// bypass), subdomain regex bypasses (evil.myapp.com passes), missing Vary:Origin (CDN cache poisoning), and permissive preflight responses. Also scans source code for insecure CORS middleware patterns (Express/FastAPI/Go/Rails/Django/Spring). Generates correct CORS configuration for your specific stack. Works against any live URL via curl — zero external API. Triggers on "CORS error", "CORS misconfiguration", "Access-Control-Allow-Origin", "cors policy", "preflight", "cors blocked", "/cors-audit".
 license: Apache-2.0
+homepage: https://canlah.ai
 metadata:
-  author: PHY041
-  version: "1.0.0"
+  author: Canlah AI
+  version: "1.0.1"
   tags:
     - security
     - cors
